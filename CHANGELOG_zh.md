@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md) | **简体中文**
 
+## 2.0.7 - 2026-08-24
+
+- 增加仅 Editor 可用的 `tools://Editor/Profiler` helper，以精确 category/name 发现全局 metric，
+  并通过 `ProfilerRecorder` 有界采样 PlayMode 主线程 CPU 数据。跨帧 session 支持 warmup、
+  带 guard 的采样窗口、raw 统计与 invocation count、sample 分页，并在暂停/退出 PlayMode、
+  Domain Reload 和退出 Editor 时确定性清理。
+
 ## 2.0.6 - 2026-08-18
 
 - 为 Broker 的 `unity_status` 与 `unity_connect` 工具显式输出对象形式的宽容 `{}` output schema。MCP C# SDK

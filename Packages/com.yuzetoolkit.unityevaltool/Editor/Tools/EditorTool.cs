@@ -16,6 +16,7 @@ namespace YuzeToolkit
     [EvalSubTool(typeof(PrefabsTool))]
     [EvalSubTool(typeof(SerializedTool))]
     [EvalSubTool(typeof(ProjectTool))]
+    [EvalSubTool(typeof(ProfilerTool))]
     [EvalSubTool(typeof(PipelineTool))]
     [EvalSubTool(typeof(TestsTool))]
     [EvalSubTool(typeof(CodeUsagesTool))]

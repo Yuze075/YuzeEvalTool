@@ -52,7 +52,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -60,7 +60,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.unityevaltool": "https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6"
+    "com.yuzetoolkit.unityevaltool": "https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7"
   }
 }
 ```
@@ -165,6 +165,12 @@ async function execute() {
 }
 ```
 
+Built-in `tools://` helpers cover common Unity workflows. In particular,
+`tools://Editor/Profiler` can enumerate exact category/name pairs from the global Profiler registry
+and run bounded, cross-frame main-thread CPU `ProfilerRecorder` sessions in PlayMode without
+enabling global Profiler recording.
+See the [helper reference](Packages/com.yuzetoolkit.unityevaltool/docs/HELPER_MODULES.md).
+
 Reuse a valid handle across Domain Reload and registry changes in the same Unity process.
 Reconnect only when the handle expires, becomes invalid, or the Unity process is replaced.
 Never automatically retry a mutating `eval` whose connection was interrupted after
@@ -176,7 +182,7 @@ and the [Broker protocol](Packages/com.yuzetoolkit.unityevaltool/docs/BROKER_PRO
 Install UnityAgentTool after UnityEvalTool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityagenttool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityagenttool#v2.0.7
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a

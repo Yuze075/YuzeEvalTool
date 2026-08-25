@@ -50,7 +50,7 @@ UnityEvalTool Package 会声明 core 依赖，但不会替项目选择 JavaScrip
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -58,7 +58,7 @@ https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unit
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.unityevaltool": "https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6"
+    "com.yuzetoolkit.unityevaltool": "https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7"
   }
 }
 ```
@@ -155,6 +155,11 @@ async function execute() {
 }
 ```
 
+内置 `tools://` helper 覆盖常见 Unity 工作流。其中 `tools://Editor/Profiler` 可从全局 Profiler
+registry 枚举精确 category/name，并在 PlayMode 中执行有界跨帧主线程 CPU
+`ProfilerRecorder` session，无需开启全局 Profiler recording。详见
+[helper 参考](Packages/com.yuzetoolkit.unityevaltool/docs/HELPER_MODULES_zh.md)。
+
 同一 Unity 进程发生 Domain Reload 或 registry 变化后应继续复用有效 handle；只有
 handle 过期、失效或 Unity 进程被替换时才重新连接。修改型 `eval` 如果在派发后
 连接中断，不得自动重试，因为其结果可能不确定。详见[进阶使用](Packages/com.yuzetoolkit.unityevaltool/docs/ADVANCED_USAGE_zh.md)
@@ -165,7 +170,7 @@ handle 过期、失效或 Unity 进程被替换时才重新连接。修改型 `e
 安装 UnityEvalTool 后，使用 **Add package from git URL** 添加 UnityAgentTool：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityagenttool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityagenttool#v2.0.7
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻

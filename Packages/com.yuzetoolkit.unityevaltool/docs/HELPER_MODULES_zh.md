@@ -3,7 +3,7 @@
 [English](HELPER_MODULES.md) | **简体中文** | [Package README](../README_zh.md) | [Runtime 服务](RUNTIME_SERVICES_zh.md) | [项目架构](PROJECT_DESIGN_zh.md) | [进阶使用](ADVANCED_USAGE_zh.md)
 
 [![Runtime](https://img.shields.io/badge/Runtime-7%20modules-2ecc71)](#runtime-helpers)
-[![Editor](https://img.shields.io/badge/Editor-11%20modules-3498db)](#editor-helpers)
+[![Editor](https://img.shields.io/badge/Editor-12%20modules-3498db)](#editor-helpers)
 [![Catalog](https://img.shields.io/badge/Tool%20catalog-1%20module-8e44ad)](#tool-目录)
 [![Tool](https://img.shields.io/badge/Broker%20MCP-3%20tools-orange)](../../../README_zh.md#mcp-配置)
 
@@ -28,7 +28,7 @@ async function execute() {
 |---|---|
 | Tool 目录 | `tools://UnityEval` |
 | Runtime helpers | `tools://Runtime`, `tools://Runtime/Objects`, `tools://Runtime/Components`, `tools://Runtime/Diagnostics`, `tools://Runtime/Reflection`, `tools://Runtime/Inspect`, `tools://Runtime/ObserveFrames` |
-| Editor helpers | `tools://Editor`, `tools://Editor/Assets`, `tools://Editor/Importers`, `tools://Editor/Scenes`, `tools://Editor/Prefabs`, `tools://Editor/Serialized`, `tools://Editor/Project`, `tools://Editor/Pipeline`, `tools://Editor/Tests`, `tools://Editor/CodeUsages`, `tools://Editor/Validation` |
+| Editor helpers | `tools://Editor`, `tools://Editor/Assets`, `tools://Editor/Importers`, `tools://Editor/Scenes`, `tools://Editor/Prefabs`, `tools://Editor/Serialized`, `tools://Editor/Project`, `tools://Editor/Profiler`, `tools://Editor/Pipeline`, `tools://Editor/Tests`, `tools://Editor/CodeUsages`, `tools://Editor/Validation` |
 
 Runtime helper 可在 Editor 或 Runtime/Player 中运行，前提是底层 Unity API 可用。Editor helper 依赖 `UnityEditor`，在 Runtime/Player 中会明确失败。
 
@@ -283,6 +283,53 @@ fallback 的上限，以及截断原因和有界的逐资产错误。工具保�
 | `getProfilerState()` | Profiler 可用性和 recording flags。 |
 | `getToolState()` | 当前 Editor tool、pivot mode、pivot rotation。 |
 
+### `tools://Editor/Profiler`
+
+从全局 Profiler registry 发现 metric，并在稳定且未暂停的 PlayMode 中，以有界方式通过
+`ProfilerRecorder` 采样主线程或全部线程的 CPU 数据。该 helper 不会开启全局 Profiler 或
+Profiler Window recording。
+
+| 函数 | 用途 | 安全 |
+|---|---|---|
+| `listAvailable(category?, nameContains?, limit?)` | 列出全局注册 metric 的准确 category/name、unit 和 data type。`category` 精确匹配，`nameContains` 不区分大小写，二者最多 512 个字符。 | 只读 |
+| `start(metrics, warmupFrames?, sampleFrames?, label?, threadScope?)` | warmup 0..36,000 帧后对 1..16 个精确 `{category,name}` 采样 CPU 数据，保留 1..10,000 个 Player frame；`threadScope` 只接受 `main-thread`（默认）或 `all-threads`，category/name 最多 512 个字符。 | Runtime 状态、长时间运行 |
+| `get(id, includeSamples?, offset?, limit?)` | 读取 validity、状态、raw total/min/mean/mean-per-invocation/p50/p95/max、invocation count、unit 和 data type；time metric 还会返回毫秒字段。可按 metric 分页返回 `{value,count}`，每页最多 500 条。 | 只读 |
+| `cancel(id)` | 停止 active session，并保留已采集 sample。 | Runtime 状态 |
+| `release(id)` | 必要时 dispose active recorder，并释放全部已保留 sample。 | Runtime 状态 |
+
+`listAvailable` 枚举 Unity 的全局 Profiler registry，因此结果可能包含只在 GPU 或工作线程产生
+数据的 metric。响应通过 `discoveryScope: global-profiler-registry` 与
+`samplingScope: main-thread-cpu`（默认范围）及支持的 thread scope 明确范围；发现到 metric
+不代表它会在所选范围产生 CPU sample。`start` 会在 warmup 结束后解析每个精确 category/name，
+因此 warmup 期间才完成静态初始化的 counter 也能变为可用；warmup 为 0 时立即解析并创建
+recorder。Recorder 总是使用 `SumAllSamplesInFrame`；`main-thread` 还会使用
+`CollectOnlyOnCurrentThread`，`all-threads` 则省略该 option 并采集各线程的匹配 sample；
+`invocationCount` 是 `ProfilerRecorderSample.Count` 之和，因此同一 Player frame 内多次 marker
+调用不会丢失。raw value 保持 Unity 报告的 unit；time metric 仍为 nanoseconds。百分位采用
+nearest-rank。`meanPerInvocation` 使用 raw total 除以 invocation count，避免把同一帧中的多个
+tick 当作一次调用；time metric 还会返回 `totalMs`、`minMs`、`meanFrameMs`、
+`meanPerInvocationMs`、`p50Ms`、`p95Ms` 与 `maxMs`。百分位基于 Player-frame sample；同一帧
+包含多次调用时，`p50`/`p95` 及其毫秒字段不是每次 marker 调用的百分位。
+
+`start` 与 `get` 都返回所选 `threadScope`、对应 `samplingScope` 及机器可读聚合元数据：
+`sampleAggregation: sum-all-samples-per-player-frame`、`percentileScope: sample-frame`、
+`meanPerInvocationScope: marker-invocation`、`timeAggregationSemantics`、
+`canExceedWallClockFrameTime`、`scopeWarning`、`counterSampleScope: sample-frame`，以及
+`counterMultipleWritesSemantics: value-counters-may-report-last-written-value-per-player-frame`。
+`all-threads` 下的时间是并发线程累计时间，不是墙钟帧时间：它会合计一个 Player frame 内各线程
+的匹配 span，结果可以超过该帧的墙钟时长。特别是全线程 `Semaphore.WaitForSignal` 表示累计等待
+span，不是 CPU 工作，不能加入墙钟帧时间或把它解释成墙钟帧耗时。
+Counter recorder 的每个 sample 因而代表一个 Player frame；特别是同一帧反复赋值的 value-style
+counter 通常只暴露 producer 最后 flush/write 的值，而不是所有赋值之和，必须结合 producer
+契约解释。
+
+采样窗口两侧各包含一个 guard frame。Unity 返回完整 guarded window 时会排除这两个 sample，
+并令 `completeFrameWindow` 为 true；否则保留所有可用 sample，并令该字段为 false。最多同时运行
+4 个 session、保留 16 个 session。暂停/退出 PlayMode、Domain Reload 和退出 Editor 都会停止
+并 dispose 所有 active recorder；暂停会保留已采集数据，completion reason 为
+`play-mode-paused`。session 仅存在于内存，不跨 Domain Reload。raw sample offset 接受
+0..10,000，page size 会 clamp 到 1..500。
+
 ### `tools://Editor/Pipeline`
 
 Package Manager、Test Runner 和 BuildPipeline 工作流。
@@ -344,6 +391,7 @@ assembly/test 精确过滤各自最多接受 256 个、每个最多 1,024 字符
 | 检查场景对象 | `tools://Runtime/Objects` |
 | 读取 live component 数据 | `tools://Runtime/Components` |
 | 跨帧观察数据 | `tools://Runtime/ObserveFrames` |
+| 采样 Profiler marker/counter | `tools://Editor/Profiler` |
 | 编辑 Inspector 字段 | `tools://Editor/Serialized` |
 | 捕获 Editor viewport | `tools://Editor#captureViewport()` |
 | 搜索项目资源 | `tools://Editor/Assets#find()` |

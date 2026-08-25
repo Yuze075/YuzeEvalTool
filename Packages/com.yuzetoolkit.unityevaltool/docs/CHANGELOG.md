@@ -5,6 +5,12 @@
 The repository-level [changelog](../../../CHANGELOG.md) is the canonical release history
 for the Unity package, computer-level Broker/CLI, npm packages, and Roslyn generator.
 
+## 2.0.7 - 2026-08-24
+
+- Add `tools://Editor/Profiler` for exact global metric discovery and bounded cross-frame main-thread
+  CPU PlayMode sampling with raw statistics, invocation counts, paged samples, and deterministic
+  recorder cleanup.
+
 ## 2.0.4 - 2026-08-15
 
 - Add per-project Unity authorization with a Resources salted-verifier asset, UI Toolkit

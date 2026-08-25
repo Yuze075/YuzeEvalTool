@@ -3,7 +3,7 @@
 **English** | [简体中文](HELPER_MODULES_zh.md) | [Package README](../README.md) | [Runtime services](RUNTIME_SERVICES.md) | [Architecture](PROJECT_DESIGN.md) | [Advanced usage](ADVANCED_USAGE.md)
 
 [![Runtime](https://img.shields.io/badge/Runtime-7%20modules-2ecc71)](#runtime-helpers)
-[![Editor](https://img.shields.io/badge/Editor-11%20modules-3498db)](#editor-helpers)
+[![Editor](https://img.shields.io/badge/Editor-12%20modules-3498db)](#editor-helpers)
 [![Catalog](https://img.shields.io/badge/Tool%20catalog-1%20module-8e44ad)](#tool-catalog)
 [![Tool](https://img.shields.io/badge/Broker%20MCP-3%20tools-orange)](../../../README.md#mcp-setup)
 
@@ -28,7 +28,7 @@ async function execute() {
 |---|---|
 | Tool catalog | `tools://UnityEval` |
 | Runtime helpers | `tools://Runtime`, `tools://Runtime/Objects`, `tools://Runtime/Components`, `tools://Runtime/Diagnostics`, `tools://Runtime/Reflection`, `tools://Runtime/Inspect`, `tools://Runtime/ObserveFrames` |
-| Editor helpers | `tools://Editor`, `tools://Editor/Assets`, `tools://Editor/Importers`, `tools://Editor/Scenes`, `tools://Editor/Prefabs`, `tools://Editor/Serialized`, `tools://Editor/Project`, `tools://Editor/Pipeline`, `tools://Editor/Tests`, `tools://Editor/CodeUsages`, `tools://Editor/Validation` |
+| Editor helpers | `tools://Editor`, `tools://Editor/Assets`, `tools://Editor/Importers`, `tools://Editor/Scenes`, `tools://Editor/Prefabs`, `tools://Editor/Serialized`, `tools://Editor/Project`, `tools://Editor/Profiler`, `tools://Editor/Pipeline`, `tools://Editor/Tests`, `tools://Editor/CodeUsages`, `tools://Editor/Validation` |
 
 Runtime helpers can run in Editor or Runtime/Player when the underlying Unity API is available. Editor helpers require `UnityEditor` and fail clearly in Runtime/Player.
 
@@ -288,6 +288,57 @@ Project-level diagnostics.
 | `getProfilerState()` | Profiler availability and recording flags. |
 | `getToolState()` | Active Editor tool, pivot mode, pivot rotation. |
 
+### `tools://Editor/Profiler`
+
+Global Profiler metric discovery plus bounded CPU `ProfilerRecorder` sampling in stable, unpaused
+PlayMode. Sampling can target the main thread or all threads. This helper does not enable the global
+Profiler or Profiler Window recording.
+
+| Function | Purpose | Safety |
+|---|---|---|
+| `listAvailable(category?, nameContains?, limit?)` | List globally registered metrics with exact category/name, unit, and data type. `category` is exact; `nameContains` is case-insensitive; both accept at most 512 characters. | Read-only |
+| `start(metrics, warmupFrames?, sampleFrames?, label?, threadScope?)` | Start CPU sampling for 1..16 exact `{category,name}` pairs after 0..36,000 warmup frames and retain 1..10,000 Player frames. `threadScope` is exactly `main-thread` (default) or `all-threads`. Category/name strings accept at most 512 characters. | Runtime state, long-running |
+| `get(id, includeSamples?, offset?, limit?)` | Read validity, status, raw total/min/mean/mean-per-invocation/p50/p95/max, invocation count, unit, and data type. Time metrics also include millisecond fields. Optional `{value,count}` samples are paged per metric, at most 500 each. | Read-only |
+| `cancel(id)` | Stop an active session and retain the samples captured so far. | Runtime state |
+| `release(id)` | Dispose an active recorder if necessary and release all retained samples. | Runtime state |
+
+`listAvailable` enumerates Unity's global Profiler registry, so its results can include GPU-only or
+worker-thread metrics. Its response reports `discoveryScope: global-profiler-registry` and
+`samplingScope: main-thread-cpu`, the default scope, plus the supported thread scopes; discovery does
+not guarantee that a metric emits CPU samples in the selected scope. `start` resolves each exact
+category/name pair after warmup, so counters initialized during warmup can become available. With
+zero warmup, resolution and recorder creation happen immediately. Recorders always use
+`SumAllSamplesInFrame`. `main-thread` additionally uses `CollectOnlyOnCurrentThread`, while
+`all-threads` omits that option and collects matching samples across threads;
+`invocationCount` is the sum of `ProfilerRecorderSample.Count`, which keeps multiple marker
+invocations per Player frame visible. Raw values remain in the reported Unity unit, including
+nanoseconds for time metrics. `meanPerInvocation` divides the raw total by invocation count, so a
+frame containing multiple ticks is not mistaken for one invocation. Time metrics additionally
+return `totalMs`, `minMs`, `meanFrameMs`, `meanPerInvocationMs`, `p50Ms`, `p95Ms`, and `maxMs`.
+Percentiles use nearest-rank selection over Player-frame samples; `p50`/`p95` and their millisecond
+forms are not per-marker-invocation percentiles when one frame contains multiple invocations.
+
+Both `start` and `get` return the selected `threadScope`, a matching `samplingScope`, and
+machine-readable aggregation metadata: `sampleAggregation: sum-all-samples-per-player-frame`,
+`percentileScope: sample-frame`, and `meanPerInvocationScope: marker-invocation`. They also report
+`timeAggregationSemantics`, `canExceedWallClockFrameTime`, `scopeWarning`,
+`counterSampleScope: sample-frame`, and
+`counterMultipleWritesSemantics: value-counters-may-report-last-written-value-per-player-frame`.
+A time value under `all-threads` is accumulated concurrent-thread time, not wall-clock frame time:
+it sums matching spans across threads in a Player frame and can exceed that frame's wall-clock
+duration. In particular, an all-thread `Semaphore.WaitForSignal` result measures accumulated waiting
+spans, not CPU work, and must not be added to or interpreted as wall-clock frame duration.
+A counter recorder sample therefore represents one Player frame. In particular, repeatedly assigning
+a value-style counter during one frame generally exposes the producer's last flushed/written value,
+not the sum of all assignments; interpret counters according to their producer contract.
+
+One guard frame is recorded on each edge. When Unity returns the full guarded window, those two
+samples are excluded and `completeFrameWindow` is true; otherwise all available samples are kept
+and the field is false. The store allows four active and sixteen retained sessions. PlayMode
+pause/exit, Domain Reload, and Editor quit stop and dispose every active recorder. A pause
+retains captured data with completion reason `play-mode-paused`; sessions are in-memory and do not
+survive Domain Reload. Raw sample offsets accept 0..10,000 and page sizes are clamped to 1..500.
+
 ### `tools://Editor/Pipeline`
 
 Package Manager, Test Runner, and BuildPipeline workflows.
@@ -353,6 +404,7 @@ Project health checks.
 | Inspect scene objects | `tools://Runtime/Objects` |
 | Read live component data | `tools://Runtime/Components` |
 | Observe values across frames | `tools://Runtime/ObserveFrames` |
+| Sample Profiler markers/counters | `tools://Editor/Profiler` |
 | Edit Inspector fields | `tools://Editor/Serialized` |
 | Capture an Editor viewport | `tools://Editor#captureViewport()` |
 | Search project assets | `tools://Editor/Assets#find()` |

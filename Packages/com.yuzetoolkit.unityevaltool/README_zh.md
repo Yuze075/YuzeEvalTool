@@ -25,7 +25,7 @@ Unity Package 与必需 Broker/CLI 的安装和首次使用说明见[仓库使�
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
@@ -75,8 +75,9 @@ async function execute() {
 `Runtime`、`Runtime/Objects`、`Runtime/Components`、`Runtime/Diagnostics`、
 `Runtime/Inspect`、`Runtime/Reflection`、`Runtime/ObserveFrames`、`UnityEval` 以及仅
 Editor 可用的 `Editor` 层级。Editor 层级包含直接 viewport image、持久化的 Unity Test
-Framework 运行状态和有界序列化代码用法搜索。应优先使用这些语义 helper，而不是直接
-使用 `CS.*` 互操作。
+Framework 运行状态、有界序列化代码用法搜索，以及通过 `Editor/Profiler` 执行的全局 metric
+发现与有界 PlayMode 主线程 CPU `ProfilerRecorder` 采样。应优先使用这些语义 helper，而不是
+直接使用 `CS.*` 互操作。
 
 - [Helper module 参考](docs/HELPER_MODULES_zh.md)
 - [进阶 session、编译与错误处理](docs/ADVANCED_USAGE_zh.md)

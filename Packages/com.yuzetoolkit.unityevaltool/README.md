@@ -27,7 +27,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.6
+https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's
@@ -85,8 +85,9 @@ Use `tools://` to discover root modules and `tools://<Tool/Path>` to import a mo
 built-in roots are `Runtime`, `Runtime/Objects`, `Runtime/Components`,
 `Runtime/Diagnostics`, `Runtime/Inspect`, `Runtime/Reflection`, `Runtime/ObserveFrames`,
 `UnityEval`, and the Editor-only `Editor` hierarchy. The Editor hierarchy includes direct
-viewport images, persistent Unity Test Framework runs, and bounded serialized code-usage
-search. Prefer these semantic helpers over direct `CS.*` interop.
+viewport images, persistent Unity Test Framework runs, bounded serialized code-usage search,
+and global metric discovery plus bounded main-thread CPU `ProfilerRecorder` sampling through
+`Editor/Profiler`. Prefer these semantic helpers over direct `CS.*` interop.
 
 - [Helper module reference](docs/HELPER_MODULES.md)
 - [Advanced sessions, compilation, and errors](docs/ADVANCED_USAGE.md)

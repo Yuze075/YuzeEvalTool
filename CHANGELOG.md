@@ -2,6 +2,14 @@
 
 **English** | [简体中文](CHANGELOG_zh.md)
 
+## 2.0.7 - 2026-08-24
+
+- Add the Editor-only `tools://Editor/Profiler` helper for global `ProfilerRecorder` metric
+  discovery and bounded main-thread CPU PlayMode sampling by exact category/name pairs.
+  Cross-frame sessions include warmup, guarded sample windows, raw statistics and invocation
+  counts, paged samples, and deterministic cleanup on PlayMode pause/exit, Domain Reload, and
+  Editor quit.
+
 ## 2.0.6 - 2026-08-18
 
 - Emit an explicit object-form permissive `{}` output schema for the `unity_status` and `unity_connect` Broker
