@@ -1,6 +1,6 @@
 {
   "name": "com.yuzetoolkit.unityagenttool",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "displayName": "UnityAgentTool",
   "description": "A unified Editor and Runtime workbench for Agent chat, persistent command lines, Debug Panels, Unity logs, System Info and shared settings.",
   "unity": "2022.3",
@@ -10,8 +10,6 @@
     "url": "https://github.com/Yuze075"
   },
   "dependencies": {
-    "com.yuzetoolkit.unityevaltool": "2.0.7",
-    "com.unity.inputsystem": "1.0.0",
-    "com.unity.ugui": "1.0.0"
+    "com.yuzetoolkit.unityevaltool": "2.0.7"
   }
 }

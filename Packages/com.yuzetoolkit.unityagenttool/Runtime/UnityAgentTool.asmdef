@@ -14,6 +14,17 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.inputsystem",
+      "expression": "1.0.0",
+      "define": "YUZE_USE_UNITY_INPUT_SYSTEM"
+    },
+    {
+      "name": "com.unity.ugui",
+      "expression": "1.0.0",
+      "define": "YUZE_USE_UNITY_UGUI"
+    }
+  ],
   "noEngineReferences": false
 }

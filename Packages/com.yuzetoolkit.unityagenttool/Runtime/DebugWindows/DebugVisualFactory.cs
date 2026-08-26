@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UIElements;
 using YuzeToolkit.UnityAgent;
 
@@ -42,7 +41,7 @@ namespace YuzeToolkit
 
             root.RegisterCallback<PointerDownEvent>(evt =>
             {
-                ReleaseEventSystemSelection();
+                DebugPanel.ReleaseEventSystemSelection();
                 var textField = evt.button == 0 ? FindTextField(evt.target as VisualElement, root) : null;
                 if (textField != null && textField.enabledInHierarchy)
                 {
@@ -56,7 +55,7 @@ namespace YuzeToolkit
             }, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerUpEvent>(evt =>
             {
-                ReleaseEventSystemSelection();
+                DebugPanel.ReleaseEventSystemSelection();
                 if (FindTextField(evt.target as VisualElement, root) == null)
                     BlurFocusedElement(root);
             }, TrickleDown.TrickleDown);
@@ -83,7 +82,7 @@ namespace YuzeToolkit
                         var submittedField = activeTextField;
                         activeTextField = null;
                         submittedField.schedule.Execute(submittedField.Blur);
-                        ReleaseEventSystemSelection();
+                        DebugPanel.ReleaseEventSystemSelection();
                     }
 
                     return;
@@ -122,8 +121,6 @@ namespace YuzeToolkit
             if (root.panel?.focusController.focusedElement is VisualElement focused && IsDescendantOf(focused, root))
                 focused.Blur();
         }
-
-        private static void ReleaseEventSystemSelection() => EventSystem.current?.SetSelectedGameObject(null);
 
         private static void SuppressEvent(KeyDownEvent evt)
         {

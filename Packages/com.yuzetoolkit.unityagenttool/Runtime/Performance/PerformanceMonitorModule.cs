@@ -1,6 +1,8 @@
 #nullable enable
 using UnityEngine;
+#if YUZE_USE_UNITY_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 using UnityEngine.Profiling;
 using UnityEngine.UIElements;
 using YuzeToolkit.UnityAgent;
@@ -16,8 +18,10 @@ namespace YuzeToolkit
         [SerializeField, Tooltip("Required USS for the performance monitor. Initialization fails when it is missing.")]
         private StyleSheet? styleSheet;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         [SerializeField, Tooltip("Keyboard key used with the DebugPanel modifiers to show or hide the performance monitor module.")]
         private Key toggleKey = Key.F10;
+#endif
 
         private readonly PerformanceSampler _sampler = new();
         private PerformanceMonitorView? _view;
@@ -26,7 +30,9 @@ namespace YuzeToolkit
 
         public int SortOrder => 0;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         public Key ToggleKey => toggleKey;
+#endif
 
         public void Initialize(DebugPanelContext context)
         {

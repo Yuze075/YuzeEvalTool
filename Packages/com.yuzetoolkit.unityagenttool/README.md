@@ -6,6 +6,12 @@ UnityAgentTool is the shared Editor and Runtime workbench for Unity 2022.3. It d
 `com.yuzetoolkit.unityevaltool` and owns the reusable UI, runtime panel host, DebugPanel lifecycle,
 DebugWindow builder API, Agent conversations, Command Line sessions and Unity log viewer.
 
+The package manifest only requires `com.yuzetoolkit.unityevaltool`. Input System and uGUI are optional
+integrations selected by `YUZE_USE_UNITY_INPUT_SYSTEM` and `YUZE_USE_UNITY_UGUI` version defines. Without
+Input System the workbench and panels remain available through their normal API but keyboard toggle polling is
+omitted. Without uGUI, UI Toolkit interaction remains intact and only synchronization with
+`EventSystem.current` is skipped.
+
 ## Workbench
 
 The Editor menu **YuzeToolkit > Unity Agent** and the runtime `UnityAgentPanelModule` both create the
@@ -147,8 +153,8 @@ is schema V1. Editor Play Mode uses the Editor prompt; the Runtime prompt is res
 
 ## Runtime Host
 
-`DebugPanel`, now fully owned by this package, owns one full-screen `UIDocument` and drives `IDebugPanelModule` lifetimes and toggle
-keys. `UnityAgentPanelModule` is the unified F8 workspace. Its header drags the whole window; the
+`DebugPanel`, now fully owned by this package, owns one full-screen `UIDocument` and drives `IDebugPanelModule` lifetimes. When
+Input System is installed it also drives module toggle keys, with `UnityAgentPanelModule` as the unified F8 workspace. Its header drags the whole window; the
 upper-right handle resizes width and height freely inside the panel bounds. Collapse hides the full
 content and resize hit area, releases focus, and remains independent from System Info visibility.
 The window is bottom-left anchored and its geometry is persisted with `PlayerPrefs`. This package also
@@ -190,7 +196,7 @@ Dynamic choice bindings are refreshed every frame without closing an unchanged p
 
 ## Assemblies
 
-- `UnityAgentTool`: Agent core, all shared UI, DebugPanel, DebugWindow API, Command Line and Log.
+- `UnityAgentTool`: Agent core, all shared UI, DebugPanel, DebugWindow API, Command Line and Log; Input System shortcuts and uGUI EventSystem synchronization are optional.
 - `UnityAgentTool.Editor`: EditorWindow and Editor Broker settings bridge.
 - `UnityAgentTool.Editor.Tests`: optional focused EditMode tests when Unity Test Framework 1.4+ is installed.
 

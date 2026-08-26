@@ -1,7 +1,8 @@
 #nullable enable
 using UnityEngine;
-using UnityEngine.EventSystems;
+#if YUZE_USE_UNITY_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 using UnityEngine.UIElements;
 using YuzeToolkit.UnityAgent;
 
@@ -14,8 +15,10 @@ namespace YuzeToolkit
         private const int GeometryVersion = 1;
         private const string GeometryVersionKey = "UnityAgent.Runtime.GeometryVersion";
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         [SerializeField, Tooltip("Keyboard key used with DebugPanel modifiers to show or hide Unity Agent.")]
         private Key toggleKey = Key.F8;
+#endif
 
         [SerializeField] private Vector2 initialSize = new(1100f, 700f);
         [SerializeField] private Vector2 minimumSize = new(520f, 360f);
@@ -30,7 +33,9 @@ namespace YuzeToolkit
         private float _expandedHeight;
 
         public int SortOrder => 0;
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         public Key ToggleKey => toggleKey;
+#endif
 
         public void Initialize(DebugPanelContext context)
         {
@@ -192,8 +197,7 @@ namespace YuzeToolkit
         {
             if (_window?.panel?.focusController.focusedElement is VisualElement focused &&
                 IsDescendant(focused, _window)) focused.Blur();
-            if (EventSystem.current?.currentSelectedGameObject == gameObject)
-                EventSystem.current.SetSelectedGameObject(null);
+            DebugPanel.ReleaseEventSystemSelection(gameObject);
         }
 
         private static float Resolved(float value, float fallback) =>

@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.EventSystems;
+#if YUZE_USE_UNITY_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 using UnityEngine.UIElements;
 
 namespace YuzeToolkit
@@ -18,15 +19,19 @@ namespace YuzeToolkit
         [SerializeField, Tooltip("Whether the debug panel is visible immediately after it is created.")]
         private bool showOnStartup;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         [SerializeField, Tooltip("Whether Ctrl must be held when pressing the toggle key.")]
         private bool toggleCtrl;
 
         [SerializeField, Tooltip("Whether Alt must be held when pressing the toggle key.")]
         private bool toggleAlt;
+#endif
 
         private readonly List<IDebugPanelModule> _modules = new();
         private readonly Dictionary<IDebugPanelModule, bool> _moduleVisibility = new();
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         private readonly HashSet<Key> _pressedToggleKeys = new();
+#endif
         private UIDocument? _uiDocument;
         private VisualElement? _root;
         private DebugPanelContext? _context;
@@ -85,7 +90,9 @@ namespace YuzeToolkit
                 InitializeDocument();
             if (_root == null) return;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
             HandleToggleInput();
+#endif
 
             if (!_visible) return;
 
@@ -160,7 +167,7 @@ namespace YuzeToolkit
         {
             root.RegisterCallback<PointerDownEvent>(evt =>
             {
-                EventSystem.current?.SetSelectedGameObject(null);
+                ReleaseEventSystemSelection();
                 if (evt.button == 0 && FindTextField(evt.target as VisualElement, root) is { enabledInHierarchy: true })
                     return;
 
@@ -236,7 +243,9 @@ namespace YuzeToolkit
 
             _modules.Clear();
             _moduleVisibility.Clear();
+#if YUZE_USE_UNITY_INPUT_SYSTEM
             _pressedToggleKeys.Clear();
+#endif
         }
 
         private void SetVisible(bool visible)
@@ -252,6 +261,7 @@ namespace YuzeToolkit
             UpdateRootVisibility();
         }
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         private void HandleToggleInput()
         {
             var keyboard = Keyboard.current;
@@ -302,6 +312,7 @@ namespace YuzeToolkit
 
             UpdateRootVisibility();
         }
+#endif
 
         private void SetModuleVisible(IDebugPanelModule module, bool visible)
         {
@@ -330,11 +341,10 @@ namespace YuzeToolkit
             if (_root?.panel?.focusController.focusedElement is VisualElement focused)
                 focused.Blur();
 
-            var eventSystem = EventSystem.current;
-            if (eventSystem != null && eventSystem.currentSelectedGameObject == gameObject)
-                eventSystem.SetSelectedGameObject(null);
+            ReleaseEventSystemSelection(gameObject);
         }
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         private bool IsTogglePressed(Keyboard keyboard, Key toggleKey)
         {
             if (toggleKey == Key.None) return false;
@@ -344,6 +354,23 @@ namespace YuzeToolkit
             return (!toggleCtrl || ctrlPressed) &&
                    (!toggleAlt || altPressed) &&
                    keyboard[toggleKey].wasPressedThisFrame;
+        }
+#endif
+
+        internal static void ReleaseEventSystemSelection()
+        {
+#if YUZE_USE_UNITY_UGUI
+            UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
+#endif
+        }
+
+        internal static void ReleaseEventSystemSelection(GameObject owner)
+        {
+#if YUZE_USE_UNITY_UGUI
+            var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            if (eventSystem != null && eventSystem.currentSelectedGameObject == owner)
+                eventSystem.SetSelectedGameObject(null);
+#endif
         }
     }
 }

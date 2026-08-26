@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+#if YUZE_USE_UNITY_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 using UnityEngine.UIElements;
 using YuzeToolkit.UnityAgent;
 
@@ -17,8 +19,10 @@ namespace YuzeToolkit
         [SerializeField, Tooltip("Required USS for system information. Initialization fails when it is missing.")]
         private StyleSheet? styleSheet;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         [SerializeField, Tooltip("Keyboard key used with the DebugPanel modifiers to show or hide the system information module.")]
         private Key toggleKey = Key.F10;
+#endif
 
         private const float RefreshInterval = 1f;
         private SystemInfoView? _view;
@@ -28,7 +32,9 @@ namespace YuzeToolkit
 
         public int SortOrder => 1;
 
+#if YUZE_USE_UNITY_INPUT_SYSTEM
         public Key ToggleKey => toggleKey;
+#endif
 
         public void Initialize(DebugPanelContext context)
         {

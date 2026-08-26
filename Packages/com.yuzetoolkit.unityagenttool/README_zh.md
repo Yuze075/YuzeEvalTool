@@ -6,6 +6,11 @@ UnityAgentTool 是 Unity 2022.3 下 Editor 与 Runtime 共用的统一工作台�
 `com.yuzetoolkit.unityevaltool`，并统一拥有 UI、运行时浮窗宿主、DebugPanel 生命周期、
 DebugWindow Builder、Agent 对话、Command Line 会话和 Unity 日志查看器。
 
+Package manifest 只强制依赖 `com.yuzetoolkit.unityevaltool`。Input System 与 uGUI 分别是由
+`YUZE_USE_UNITY_INPUT_SYSTEM`、`YUZE_USE_UNITY_UGUI` version define 控制的可选集成。缺少 Input
+System 时工作台和面板仍可通过正常 API 使用，只是不编译键盘快捷键轮询；缺少 uGUI 时 UI Toolkit
+交互保持可用，仅跳过与 `EventSystem.current` 的选中状态同步。
+
 ## 工作台
 
 Editor 菜单 **YuzeToolkit > Unity Agent** 与运行时 `UnityAgentPanelModule` 都创建同一个
@@ -122,8 +127,8 @@ Project Settings 隐式改写。通过
 
 ## Runtime 宿主
 
-`DebugPanel` 管理唯一的全屏 `UIDocument`、`IDebugPanelModule` 生命周期与快捷键，全部实现已归入本包。
-`UnityAgentPanelModule` 是 F8 统一工作台：标题栏拖动整个窗口，右上角手柄可以在面板边界内任意调整
+`DebugPanel` 管理唯一的全屏 `UIDocument` 与 `IDebugPanelModule` 生命周期，全部实现已归入本包。
+安装 Input System 时它还管理模块快捷键，`UnityAgentPanelModule` 是 F8 统一工作台：标题栏拖动整个窗口，右上角手柄可以在面板边界内任意调整
 宽高。折叠会真正隐藏全部内容与缩放命中区、释放焦点，并且不影响 System Info 的独立显隐。
 窗口以左下角为锚点，几何通过 `PlayerPrefs` 保存。本包同时提供标准组合 Prefab，以及保留原视觉的
 System Info / Performance。依赖方向为：
@@ -161,7 +166,7 @@ var handle = DebugWindowModule.RegisterWindow(window =>
 
 ## 程序集
 
-- `UnityAgentTool`：Agent Core、统一 UI、DebugPanel、DebugWindow、Command Line 与 Log。
+- `UnityAgentTool`：Agent Core、统一 UI、DebugPanel、DebugWindow、Command Line 与 Log；Input System 快捷键和 uGUI EventSystem 同步均为可选集成。
 - `UnityAgentTool.Editor`：EditorWindow 与 Editor Broker 设置桥接。
 - `UnityAgentTool.Editor.Tests`：安装 Unity Test Framework 1.4+ 时可用的定向 EditMode 测试。
 
