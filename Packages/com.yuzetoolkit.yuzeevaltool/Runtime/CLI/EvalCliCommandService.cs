@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed partial class EvalCliCommandService
     {

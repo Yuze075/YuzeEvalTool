@@ -1,7 +1,7 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal static class UnityToolResultConverter
 {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal sealed class DebugWindowRegistration
     {

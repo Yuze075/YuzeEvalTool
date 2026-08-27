@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal static class InstallMetadataStore
 {

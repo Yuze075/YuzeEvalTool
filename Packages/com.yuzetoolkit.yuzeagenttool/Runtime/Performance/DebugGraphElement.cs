@@ -3,7 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal sealed class DebugGraphElement : VisualElement
     {

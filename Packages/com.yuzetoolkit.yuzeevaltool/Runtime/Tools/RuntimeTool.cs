@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("Runtime", "Environment state and Unity log buffer access.")]

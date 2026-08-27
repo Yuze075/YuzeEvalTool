@@ -14,6 +14,8 @@ reported explicitly instead of being hidden behind an in-Editor network listener
 
 The repository also contains the optional Yuze Agent Tool package, which owns the shared
 Editor/Runtime Agent workbench, DebugPanel, Command Line, logs, and system monitors.
+The public Unity APIs use `YuzeToolkit.Eval` and `YuzeToolkit.Agent`; their existing
+`UnityEvalTool*` and `UnityAgentTool*` assembly names remain stable for asmdef references.
 
 ## What you install
 
@@ -52,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -60,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0"
   }
 }
 ```
@@ -98,7 +100,7 @@ unity connect <instance-id> -- Runtime getState
 `unity doctor` should report a reachable Broker. `unity list` should show the open Editor
 with its project path and current phase; substitute that row's ID in the final command.
 The final command proves that Broker-to-Unity
-execution works. You can also open **YuzeToolkit > Yuze Eval Tool** in the Editor to inspect
+execution works. You can also open **YuzeToolkit > Eval Tool** in the Editor to inspect
 registration, connection state, and eval availability. If no instance appears, check
 `unity service status`, confirm that the package compiled successfully, and make sure
 another process is not using loopback port `2347`.
@@ -131,7 +133,7 @@ http://127.0.0.1:2347/mcp
 
 Project token verification is disabled by default, so the MCP client normally needs only
 the endpoint URL. To protect one project or shipped Player, open **Project Settings >
-YuzeToolkit > Yuze Eval Tool**, generate or enter a token, apply it, and enable verification.
+YuzeToolkit > Eval Tool**, generate or enter a token, apply it, and enable verification.
 Unity stores only a salted verifier in
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset`; the original token is not saved
 in the project. Unity includes this asset in Player builds and loads it through the standard
@@ -182,7 +184,7 @@ and the [Broker protocol](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROT
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.0.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a

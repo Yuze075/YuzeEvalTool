@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Tests", "Discover, run, inspect, and cancel Unity Test Framework EditMode and PlayMode tests without blocking the Editor.")]
     public sealed partial class TestsTool

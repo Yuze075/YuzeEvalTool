@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using System.Text.Json;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal static class CliWebSocketEndpoint
 {

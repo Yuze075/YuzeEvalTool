@@ -1,6 +1,6 @@
 {
   "name": "UnityAgentTool",
-  "rootNamespace": "YuzeToolkit.UnityAgent",
+  "rootNamespace": "YuzeToolkit.Agent",
   "references": [
     "UnityEvalTool",
     "UnityEvalTool.CLI",

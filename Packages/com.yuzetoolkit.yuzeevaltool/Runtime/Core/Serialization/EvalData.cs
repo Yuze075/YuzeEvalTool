@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static class EvalData
     {

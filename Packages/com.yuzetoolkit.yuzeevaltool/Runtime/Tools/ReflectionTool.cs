@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("Reflection", "Inspect C# types and call static methods when helper modules do not cover a custom API.")]

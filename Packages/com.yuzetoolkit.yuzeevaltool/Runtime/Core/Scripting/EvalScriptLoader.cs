@@ -2,7 +2,7 @@
 using System;
 using Puerts;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class EvalScriptLoader : ILoader, IModuleChecker
     {

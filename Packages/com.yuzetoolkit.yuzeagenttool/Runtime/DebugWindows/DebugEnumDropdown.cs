@@ -2,9 +2,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     /// <summary>
     /// Runtime-owned enum selector. It intentionally does not use EnumField/GenericDropdownMenu,

@@ -1,9 +1,8 @@
 #nullable enable
 using UnityEngine;
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal static class DebugWindowUss
     {

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal static class AgentPath
     {

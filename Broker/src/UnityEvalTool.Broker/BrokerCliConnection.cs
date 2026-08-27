@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal sealed class BrokerCliConnection : IAsyncDisposable
 {

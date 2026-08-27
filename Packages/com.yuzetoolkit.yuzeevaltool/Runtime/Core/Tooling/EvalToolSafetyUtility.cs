@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     internal static class EvalToolSafetyUtility
     {

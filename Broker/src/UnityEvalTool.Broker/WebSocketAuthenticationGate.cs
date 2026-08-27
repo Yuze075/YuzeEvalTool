@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal static class WebSocketAuthenticationGate
 {

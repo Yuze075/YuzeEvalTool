@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("Inspect", "Format C#/Unity object references into AI-readable data.")]

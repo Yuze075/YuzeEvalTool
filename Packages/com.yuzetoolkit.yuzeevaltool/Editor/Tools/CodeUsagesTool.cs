@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("CodeUsages", "Bounded, read-only search for serialized uses of a C# script or member.")]
     public sealed partial class CodeUsagesTool

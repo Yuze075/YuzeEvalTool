@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     public sealed class DebugPanelContext
     {

@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal enum AgentIconKind
     {
@@ -1336,7 +1336,7 @@ namespace YuzeToolkit.UnityAgent
                 // The workbench is the shared visible viewport in both Editor and Player, so owned
                 // popups stay readable and clamp against the same logical rectangle as their anchors.
                 if (current is UnityAgentWorkbenchView ||
-                    current.ClassListContains(global::YuzeToolkit.DebugWindowUss.LayerClass))
+                    current.ClassListContains(DebugWindowUss.LayerClass))
                     return current;
             }
             LogSys.LogError("Yuze Agent Tool popup has no package-owned workbench or Debug Panel layer host.");

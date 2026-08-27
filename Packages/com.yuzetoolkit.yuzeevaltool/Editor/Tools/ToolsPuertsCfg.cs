@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using Puerts;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [Configure]
     public sealed class ToolsPuertsCfg

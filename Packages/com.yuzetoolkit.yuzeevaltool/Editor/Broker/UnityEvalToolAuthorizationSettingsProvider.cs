@@ -5,11 +5,11 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     internal static class UnityEvalToolAuthorizationSettingsProvider
     {
-        private const string SettingsPath = "Project/YuzeToolkit/Yuze Eval Tool";
+        private const string SettingsPath = "Project/YuzeToolkit/Eval Tool";
 
         [SettingsProvider]
         public static SettingsProvider CreateProvider()

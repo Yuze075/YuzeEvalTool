@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal sealed class ProcessAgentTool : IAgentTool
     {

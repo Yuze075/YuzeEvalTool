@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     internal sealed class UnityEvalToolWindow : EditorWindow
     {
@@ -15,7 +15,7 @@ namespace YuzeToolkit
         private UnityEvalToolWorkbenchView? _view;
         private IVisualElementScheduledItem? _tickItem;
 
-        [MenuItem(nameof(YuzeToolkit) + "/Yuze Eval Tool")]
+        [MenuItem("YuzeToolkit/Eval Tool")]
         public static void Open()
         {
             var window = GetWindow<UnityEvalToolWindow>("Yuze Eval Tool");

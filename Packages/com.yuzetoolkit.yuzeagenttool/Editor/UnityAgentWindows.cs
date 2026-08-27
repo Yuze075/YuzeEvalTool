@@ -10,8 +10,9 @@ using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
 using UnityEngine.UIElements;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal sealed class UnityAgentWindow : EditorWindow
     {
@@ -19,13 +20,12 @@ namespace YuzeToolkit.UnityAgent
         private IVisualElementScheduledItem? _tickItem;
         private static UnityAgentWorkbenchPage _requestedPage = UnityAgentWorkbenchPage.Chat;
 
-        [MenuItem("YuzeToolkit/Yuze Agent Tool/Chat")]
+        [MenuItem("YuzeToolkit/Agent Tool")]
         public static void OpenChat()
         {
             Open(UnityAgentWorkbenchPage.Chat);
         }
 
-        [MenuItem("YuzeToolkit/Yuze Agent Tool/Settings")]
         public static void OpenSettings()
         {
             Open(UnityAgentWorkbenchPage.Settings);

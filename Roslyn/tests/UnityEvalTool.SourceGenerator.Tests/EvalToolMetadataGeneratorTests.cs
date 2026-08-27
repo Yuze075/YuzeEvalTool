@@ -6,10 +6,10 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using UnityEvalTool.SourceGenerator;
+using YuzeToolkit.Eval.SourceGenerator;
 using Xunit;
 
-namespace UnityEvalTool.SourceGenerator.Tests
+namespace YuzeToolkit.Eval.SourceGenerator.Tests
 {
     public sealed class EvalToolMetadataGeneratorTests
     {
@@ -18,7 +18,7 @@ namespace UnityEvalTool.SourceGenerator.Tests
         {
             var result = RunGenerator(@"
 using System.Collections.Generic;
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 namespace Demo
 {
@@ -35,7 +35,7 @@ namespace Demo
 
             Assert.Empty(result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
             var source = Assert.Single(result.GeneratedSources);
-            Assert.Contains("partial class RuntimeTool : global::YuzeToolkit.IEvalTool", source);
+            Assert.Contains("partial class RuntimeTool : global::YuzeToolkit.Eval.IEvalTool", source);
             Assert.Contains("public string Name => @\"runtime\";", source);
             Assert.Contains("@\"getState\"", source);
             Assert.Contains("@\"limit\"", source);
@@ -46,14 +46,14 @@ namespace Demo
             Assert.Contains("@\"all\"", source);
             Assert.Contains("@\"includeInactive\"", source);
             Assert.Contains("true,", source);
-            Assert.Contains("(global::YuzeToolkit.EvalToolSafety)1", source);
+            Assert.Contains("(global::YuzeToolkit.Eval.EvalToolSafety)1", source);
         }
 
         [Fact]
         public void ReportsDiagnosticForNonPartialTool()
         {
             var result = RunGenerator(@"
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 [EvalTool(""bad"", ""Bad tool."")]
 public sealed class BadTool
@@ -70,7 +70,7 @@ public sealed class BadTool
         public void ReportsDiagnosticForDuplicateExportedFunctionNames()
         {
             var result = RunGenerator(@"
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 [EvalTool(""bad"", ""Bad tool."")]
 public sealed partial class BadTool
@@ -90,7 +90,7 @@ public sealed partial class BadTool
         public void ReportsDiagnosticForReservedJavaScriptFunctionName()
         {
             var result = RunGenerator(@"
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 [EvalTool(""bad"", ""Bad tool."")]
 public sealed partial class BadTool
@@ -107,7 +107,7 @@ public sealed partial class BadTool
         public void ReportsDiagnosticForNestedTool()
         {
             var result = RunGenerator(@"
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 public partial class Container<T>
 {
@@ -132,7 +132,7 @@ public partial class Container<T>
         {
             var result = RunGenerator(@"
 using System.Threading.Tasks;
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 [EvalTool(""async"", ""Async tool."")]
 public sealed partial class AsyncTool
@@ -149,7 +149,7 @@ public sealed partial class AsyncTool
         public void ReportsDiagnosticForAsyncVoidFunction()
         {
             var result = RunGenerator(@"
-using YuzeToolkit;
+using YuzeToolkit.Eval;
 
 [EvalTool(""async"", ""Async tool."")]
 public sealed partial class AsyncTool
@@ -176,13 +176,13 @@ public sealed partial class AsyncTool
             var result = RunGenerator(files.Select(File.ReadAllText).ToArray());
 
             Assert.Empty(result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
-            Assert.Equal(19, result.GeneratedSources.Length);
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class RuntimeTool : global::YuzeToolkit.IEvalTool"));
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class AssetsTool : global::YuzeToolkit.IEvalTool"));
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class ObserveFramesTool : global::YuzeToolkit.IEvalTool"));
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class TestsTool : global::YuzeToolkit.IEvalTool"));
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class CodeUsagesTool : global::YuzeToolkit.IEvalTool"));
-            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class ToolManagerTool : global::YuzeToolkit.IEvalTool"));
+            Assert.Equal(20, result.GeneratedSources.Length);
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class RuntimeTool : global::YuzeToolkit.Eval.IEvalTool"));
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class AssetsTool : global::YuzeToolkit.Eval.IEvalTool"));
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class ObserveFramesTool : global::YuzeToolkit.Eval.IEvalTool"));
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class TestsTool : global::YuzeToolkit.Eval.IEvalTool"));
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class CodeUsagesTool : global::YuzeToolkit.Eval.IEvalTool"));
+            Assert.Contains(result.GeneratedSources, source => source.Contains("partial class ToolManagerTool : global::YuzeToolkit.Eval.IEvalTool"));
         }
 
         private static TestGeneratorResult RunGenerator(string source)
@@ -200,7 +200,7 @@ public sealed partial class AsyncTool
 using System;
 using System.Collections.Generic;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class EvalToolAttribute : Attribute

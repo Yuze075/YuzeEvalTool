@@ -1,4 +1,4 @@
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal sealed class BrokerSecurityOptions
 {

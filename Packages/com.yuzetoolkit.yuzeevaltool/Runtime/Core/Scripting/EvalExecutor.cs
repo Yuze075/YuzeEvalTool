@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class EvalExecutor
     {

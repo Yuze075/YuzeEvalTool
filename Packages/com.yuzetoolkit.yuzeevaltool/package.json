@@ -1,6 +1,6 @@
 {
   "name": "com.yuzetoolkit.yuzeevaltool",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "displayName": "Yuze Eval Tool",
   "description": "通过电脑级 Broker 为 AI Agent 和 CLI 中转多个 Unity 实例",
   "unity": "2022.3",

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Serialized", "SerializedObject and Inspector property reads/writes.")]
     public sealed partial class SerializedTool

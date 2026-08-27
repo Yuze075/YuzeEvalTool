@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace YuzeToolkit.UnityAgent.Tests
+namespace YuzeToolkit.Agent.Tests
 {
     public sealed class AgentCoreTests
     {

@@ -7,8 +7,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     public sealed class AgentUnityEvalService : IDisposable
     {
@@ -176,7 +177,7 @@ namespace YuzeToolkit.UnityAgent
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return YuzeToolkit.MainThreadDispatcher.RunAsync(() =>
+            return MainThreadDispatcher.RunAsync(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var scenes = new List<object?>();
@@ -239,7 +240,7 @@ namespace YuzeToolkit.UnityAgent
             var maxResults = Math.Min(MaximumResults,
                 Math.Max(1, AgentToolArguments.OptionalInt(arguments, "maxResults", 50)));
             cancellationToken.ThrowIfCancellationRequested();
-            return YuzeToolkit.MainThreadDispatcher.RunAsync(() => Query(
+            return MainThreadDispatcher.RunAsync(() => Query(
                 nameContains, tag, componentType, maxResults, cancellationToken));
         }
 

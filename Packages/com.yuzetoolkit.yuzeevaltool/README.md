@@ -11,6 +11,10 @@ Install and first-use instructions for both the Unity package and the required B
 are in the [repository guide](../../README.md). This page describes the Unity package
 itself.
 
+The Unity C# API is under `YuzeToolkit.Eval`; Broker source uses
+`YuzeToolkit.Eval.Broker`. Existing `UnityEvalTool*` assembly names remain stable for
+asmdef and binary references.
+
 ## Requirements
 
 - Unity 2022.3 or newer.
@@ -29,7 +33,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's
@@ -38,7 +42,7 @@ For a local source checkout, use **Add package from disk** and select this packa
 ## Editor lifecycle
 
 The primary Editor process starts its Broker client automatically after script loading.
-Asset Import Workers are excluded. Open **YuzeToolkit > Yuze Eval Tool** to inspect and
+Asset Import Workers are excluded. Open **YuzeToolkit > Eval Tool** to inspect and
 control registration for the current process. The window reports the installed Broker,
 connection state, Unity phase, eval availability, compilation counters, and registered
 tool catalog.
@@ -61,7 +65,7 @@ the same arbitrary-JavaScript eval surface as the Editor. This is not gated by D
 Build and is independent of the optional Yuze Agent Tool package.
 
 Project token verification is disabled by default. Enable it per project under **Project
-Settings > YuzeToolkit > Yuze Eval Tool** when a shipped Player must reject Brokers that do
+Settings > YuzeToolkit > Eval Tool** when a shipped Player must reject Brokers that do
 not possess the token. The project stores only a salted verifier in
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset`, which Unity includes in Player
 builds and loads through the standard Resources API. If this eval capability is not

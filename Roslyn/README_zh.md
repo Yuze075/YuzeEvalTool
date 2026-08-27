@@ -2,8 +2,8 @@
 
 [English](README.md) | **简体中文** | [使用指南](../README_zh.md)
 
-Source Generator 会读取带 `YuzeToolkit.EvalToolAttribute` 的 partial C# Tool class，
-以及带 `YuzeToolkit.EvalFunctionAttribute` 的方法。它生成 `EvalToolRegistry`
+Source Generator 会读取带 `YuzeToolkit.Eval.EvalToolAttribute` 的 partial C# Tool class，
+以及带 `YuzeToolkit.Eval.EvalFunctionAttribute` 的方法。它生成 `EvalToolRegistry`
 使用的 `IEvalTool` 元数据，包括函数描述、参数和安全声明。
 
 生成的 Analyzer DLL 会提交到 Yuze Eval Tool UPM Package，因此通过 Git 安装 UPM Package

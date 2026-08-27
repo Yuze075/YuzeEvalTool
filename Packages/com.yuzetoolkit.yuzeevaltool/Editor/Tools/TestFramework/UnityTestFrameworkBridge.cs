@@ -12,7 +12,7 @@ using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [InitializeOnLoad]
     internal static class UnityTestFrameworkBridgeBootstrap

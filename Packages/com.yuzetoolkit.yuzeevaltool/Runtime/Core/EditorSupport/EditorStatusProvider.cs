@@ -3,7 +3,7 @@
 using UnityEditor;
 using System.Collections.Generic;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [InitializeOnLoad]
     public static class EditorStatusProvider

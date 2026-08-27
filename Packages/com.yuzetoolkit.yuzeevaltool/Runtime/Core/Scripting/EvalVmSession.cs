@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class EvalVmSession : IDisposable
     {

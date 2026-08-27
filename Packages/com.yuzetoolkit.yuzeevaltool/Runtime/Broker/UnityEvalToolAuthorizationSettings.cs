@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class UnityEvalToolAuthorizationSettings : ScriptableObject
     {

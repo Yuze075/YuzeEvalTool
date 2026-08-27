@@ -1,7 +1,8 @@
 #nullable enable
 using System;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     /// <summary>
     /// Public registration entry point for Debug Panel pages. This API owns visual pages only;

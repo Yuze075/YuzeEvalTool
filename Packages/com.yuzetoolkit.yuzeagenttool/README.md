@@ -5,6 +5,8 @@
 Yuze Agent Tool is the shared Editor and Runtime workbench for Unity 2022.3. It depends on
 `com.yuzetoolkit.yuzeevaltool` and `com.yuzetoolkit.logtool`, and owns the reusable UI, runtime panel host, DebugPanel lifecycle,
 DebugWindow builder API, Agent conversations, Command Line sessions and Unity log viewer.
+Its public C# API is under `YuzeToolkit.Agent`; the existing `UnityAgentTool` assembly names
+remain stable for asmdef references.
 
 The package manifest directly requires Yuze Eval Tool and Yuze Log Tool. Input System and uGUI are optional
 integrations selected by `YUZE_USE_UNITY_INPUT_SYSTEM` and `YUZE_USE_UNITY_UGUI` version defines. Without
@@ -14,7 +16,7 @@ omitted. Without uGUI, UI Toolkit interaction remains intact and only synchroniz
 
 ## Workbench
 
-The Editor menu **YuzeToolkit > Yuze Agent Tool** and the runtime `UnityAgentPanelModule` both create the
+The single Editor menu entry **YuzeToolkit > Agent Tool** and the runtime `UnityAgentPanelModule` both create the
 same `UnityAgentWorkbenchView`. Its main sidebar has exactly five primary actions:
 
 1. **New conversation** opens an unpersisted draft; its document is created only on first send.
@@ -147,7 +149,7 @@ Their `providerProfiles` are never extracted, and no backward-compatible split m
 is not replaced. The first Provider document is seeded with the built-in OpenAI profile, while subsequent Provider
 profiles are user-owned and are never regenerated from Package/Project defaults. A valid existing machine file is
 never changed implicitly by Project Settings. Edit project defaults through
-**Edit > Project Settings > YuzeToolkit > Yuze Agent Tool**; the page covers permission, Editor/Runtime prompts, Tool
+**Edit > Project Settings > YuzeToolkit > Agent Tool**; the page covers permission, Editor/Runtime prompts, Tool
 limits, and ordered AGENTS.md/Skill roots. The machine settings layer is schema V13 and the separate Provider layer
 is schema V1. Editor Play Mode uses the Editor prompt; the Runtime prompt is reserved for standalone Players.
 
@@ -168,9 +170,11 @@ The separate UnityDebugTool package no longer exists.
 
 ## DebugWindow API
 
-DebugWindow registration moved into this package but keeps the `YuzeToolkit` namespace:
+DebugWindow registration moved into this package and uses the `YuzeToolkit.Agent` namespace:
 
 ```csharp
+using YuzeToolkit.Agent;
+
 var handle = DebugWindowModule.RegisterWindow(window =>
 {
     window.SetTitle("Player");

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static class MainThreadDispatcher
     {

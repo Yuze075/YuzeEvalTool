@@ -5,7 +5,7 @@ using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
 [McpServerToolType]

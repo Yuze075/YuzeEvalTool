@@ -9,6 +9,9 @@ session，提供 helper module，并保留现有的 Unity 侧 CLI 命令语法�
 Unity Package 与必需 Broker/CLI 的安装和首次使用说明见[仓库使用指南](../../README_zh.md)。
 本页只说明 Unity Package 自身。
 
+Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.Broker`；供 asmdef
+与二进制引用的 `UnityEvalTool*` 程序集名保持不变。
+
 ## 要求
 
 - Unity 2022.3 或更高版本。
@@ -27,7 +30,7 @@ Unity Package 与必需 Broker/CLI 的安装和首次使用说明见[仓库使�
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
@@ -36,7 +39,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ## Editor 生命周期
 
 主 Editor 进程会在脚本加载后自动启动 Broker Client，Asset Import Worker 会被排除。
-打开 **YuzeToolkit > Yuze Eval Tool** 可检查和控制当前进程的注册。该窗口会显示
+打开 **YuzeToolkit > Eval Tool** 可检查和控制当前进程的注册。该窗口会显示
 已安装 Broker、连接状态、Unity phase、eval 可用性、编译计数和已注册 Tool 目录。
 
 该窗口使用包自有的深色 UI Toolkit 主题；按钮、页签、开关、Notice、文本输入、Tooltip、
@@ -54,7 +57,7 @@ Editor 会在 eval 之外独立报告导入、编译、编译失败、程序集�
 eval 能力。它不受 Development Build 开关限制，也不依赖可选的 Yuze Agent Tool Package。
 
 项目 token 验证默认关闭。发行 Player 需要拒绝没有 token 的 Broker 时，在
-**Project Settings > YuzeToolkit > Yuze Eval Tool** 中按项目开启。项目只在
+**Project Settings > YuzeToolkit > Eval Tool** 中按项目开启。项目只在
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset` 保存加盐 verifier；Unity 会将其
 直接打入 Player，并通过标准 Resources API 读取。如果该 eval 能力不适合产品发行版，应把
 排除或修改 Package 作为明确的产品决策。WebGL 不是受支持的 Broker 目标。

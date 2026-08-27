@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using YuzeToolkit.LitJson;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static class EvalJson
     {

@@ -14,7 +14,7 @@ Editor 和受支持的非 WebGL Player 都主动向它注册。
 `EditorBrokerStatusMonitor` 捕获编译和程序集重载状态。Domain Reload 前，客户端会
 发布 `Reloading` 并断开；之后使用同一进程 instance ID 和更高 VM generation 重连。
 
-项目鉴权在 **Project Settings > YuzeToolkit > Yuze Eval Tool** 配置，单一制作源为
+项目鉴权在 **Project Settings > YuzeToolkit > Eval Tool** 配置，单一制作源为
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset`。Asset 不存在或 `RequireToken` 为
 false 时关闭验证。Apply token 会创建随机 salt，只保存 `PBKDF2-HMAC-SHA256-v1` verifier；
 原始 token 绝不会序列化进项目。

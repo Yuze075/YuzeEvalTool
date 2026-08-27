@@ -3,9 +3,8 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     [InitializeOnLoad]
     internal static class UnityAgentSystemInfoEditorRegistration

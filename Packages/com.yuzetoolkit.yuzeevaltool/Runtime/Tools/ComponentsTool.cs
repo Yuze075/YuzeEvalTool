@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("Components", "Component query, edit, and instance method operations for live Unity objects.")]

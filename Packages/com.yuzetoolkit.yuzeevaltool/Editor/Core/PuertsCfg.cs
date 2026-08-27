@@ -6,7 +6,7 @@ using System.Reflection;
 using Puerts;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     /// <summary>
     /// PuerTS generation configuration for the Unity MCP eval environment.

@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("Objects", "Scene GameObject, hierarchy, and Transform query/edit operations.")]

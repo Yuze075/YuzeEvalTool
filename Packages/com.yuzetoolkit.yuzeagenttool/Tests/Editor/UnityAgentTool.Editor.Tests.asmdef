@@ -1,6 +1,6 @@
 {
   "name": "UnityAgentTool.Editor.Tests",
-  "rootNamespace": "YuzeToolkit.UnityAgent.Tests",
+  "rootNamespace": "YuzeToolkit.Agent.Tests",
   "references": [
     "UnityAgentTool",
     "UnityEngine.TestRunner",

@@ -6,7 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal static class UnityAgentProjectSettingsAsset
     {
@@ -49,7 +49,7 @@ namespace YuzeToolkit.UnityAgent
     /// <summary>UI Toolkit Project Settings surface for versioned, provider-free Agent defaults.</summary>
     internal sealed class UnityAgentProjectSettingsProvider : SettingsProvider
     {
-        internal const string SettingsPath = "Project/YuzeToolkit/Yuze Agent Tool";
+        internal const string SettingsPath = "Project/YuzeToolkit/Agent Tool";
 
         private VisualElement? _root;
         private AgentProjectSettingsDocument? _editing;

@@ -5,6 +5,12 @@
 仓库级[变更记录](../../../CHANGELOG_zh.md) 是 Unity Package、电脑级 Broker/CLI、npm Package 和
 Roslyn Generator 的规范发行历史。
 
+## 3.0.0 - 2026-08-27
+
+- 所有 Unity 侧 API 迁移到 `YuzeToolkit.Eval`，同步更新生成元数据与 JavaScript/PuerTS 类型路径，并保持既有 `UnityEvalTool*` 程序集名不变。
+- Editor Window 与 Project Settings 菜单分别改为 **YuzeToolkit > Eval Tool** 和 **Project Settings > YuzeToolkit > Eval Tool**。
+- 按新的 Attribute 与 Descriptor 命名空间重新生成提交到仓库的 Roslyn Analyzer。
+
 ## 2.1.0 - 2026-08-27
 
 - 移除 Package 内置 JSON 实现，改为共享的 `YuzeUtilityTool.LitJson` Runtime 程序集。

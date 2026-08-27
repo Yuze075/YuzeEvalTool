@@ -1,6 +1,6 @@
 {
   "name": "UnityEvalTool.Editor.Window",
-  "rootNamespace": "YuzeToolkit",
+  "rootNamespace": "YuzeToolkit.Eval",
   "references": [
     "UnityEvalTool",
     "UnityEvalTool.CLI",

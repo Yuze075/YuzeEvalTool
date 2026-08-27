@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Assets", "AssetDatabase search, text IO, asset moves, scripts, materials, dependencies, and script-safe refresh.")]
     public sealed partial class AssetsTool

@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Puerts;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static partial class EvalToolRegistry
     {
@@ -728,7 +728,7 @@ function __toArray(value) {
 }
 
 	function __ensureEnabled() {
-	  if (!CS.YuzeToolkit.EvalToolRegistry.IsEnabled(__path)) {
+	  if (!CS.YuzeToolkit.Eval.EvalToolRegistry.IsEnabled(__path)) {
 	    throw new Error('Eval JS tool ' + __path + ' is disabled.');
 	  }
 	}
@@ -763,7 +763,7 @@ async function __resolveTool() {
             if (descriptor.SubTools.Count > 0)
                 builder.AppendLine($"export const subTools = {subToolsJson};");
             builder.AppendLine("export function isEnabled() {");
-            builder.AppendLine("  return CS.YuzeToolkit.EvalToolRegistry.IsEnabled(__path);");
+            builder.AppendLine("  return CS.YuzeToolkit.Eval.EvalToolRegistry.IsEnabled(__path);");
             builder.AppendLine("}");
             builder.AppendLine("export async function getSubTool(nameOrPath) {");
             builder.AppendLine("  const tool = await __resolveTool();");

@@ -2,7 +2,7 @@
 using System;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal enum DebugLogKind
     {

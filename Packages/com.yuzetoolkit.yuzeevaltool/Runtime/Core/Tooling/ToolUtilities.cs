@@ -12,7 +12,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static class ToolUtilities
     {

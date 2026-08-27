@@ -7,7 +7,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public interface IUnityEvalToolWorkbenchHost
     {

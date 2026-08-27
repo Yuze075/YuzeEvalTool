@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using UnityEngine;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     /// <summary>
     /// Resolves portable Agent paths. A configured relative path is always interpreted relative

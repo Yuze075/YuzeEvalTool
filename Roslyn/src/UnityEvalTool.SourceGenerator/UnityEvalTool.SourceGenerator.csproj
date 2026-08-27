@@ -4,7 +4,7 @@
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>UnityEvalTool.SourceGenerator</AssemblyName>
-    <RootNamespace>UnityEvalTool.SourceGenerator</RootNamespace>
+    <RootNamespace>YuzeToolkit.Eval.SourceGenerator</RootNamespace>
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <NoWarn>$(NoWarn);RS1036;RS2008</NoWarn>

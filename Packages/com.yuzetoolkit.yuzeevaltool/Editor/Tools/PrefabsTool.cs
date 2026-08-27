@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Prefabs", "Prefab instance, asset, stage, override, and unpack operations.")]
     public sealed partial class PrefabsTool

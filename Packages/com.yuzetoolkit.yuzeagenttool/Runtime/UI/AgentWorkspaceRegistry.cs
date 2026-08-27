@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     /// <summary>A live section hosted by the workbench System Info page.</summary>
     public interface IUnityAgentWorkspaceSection : IDisposable

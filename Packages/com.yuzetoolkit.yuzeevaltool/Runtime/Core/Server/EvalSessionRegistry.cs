@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class EvalSessionRegistry : IDisposable
     {

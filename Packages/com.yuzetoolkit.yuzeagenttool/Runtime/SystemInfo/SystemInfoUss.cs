@@ -1,7 +1,7 @@
 #nullable enable
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal static class SystemInfoUss
     {

@@ -3,7 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Profiling;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal sealed class PerformanceSampler
     {

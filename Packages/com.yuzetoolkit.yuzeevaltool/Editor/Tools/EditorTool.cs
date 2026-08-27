@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Editor", "Editor state, compilation, selection, menu commands, play mode, and screenshots.")]
     [EvalSubTool(typeof(AssetsTool))]

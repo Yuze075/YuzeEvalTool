@@ -24,7 +24,7 @@ macOS 使用 LaunchAgent，Linux 使用 systemd user unit，Windows 使用计划
 通过 Unity Package Manager 添加 Unity 侧 Package：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0
 ```
 
 打开 Unity 项目并等待编译完成，然后执行 `unity list`。只有看到该 Editor 才完成

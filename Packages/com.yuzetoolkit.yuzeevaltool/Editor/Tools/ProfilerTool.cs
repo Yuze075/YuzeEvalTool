@@ -8,7 +8,7 @@ using Unity.Profiling.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Profiler", "Global Unity Profiler metric discovery and bounded CPU sampling in PlayMode through ProfilerRecorder.")]
     public sealed partial class ProfilerTool

@@ -9,15 +9,15 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace UnityEvalTool.SourceGenerator
+namespace YuzeToolkit.Eval.SourceGenerator
 {
     [Generator]
     public sealed class EvalToolMetadataGenerator : ISourceGenerator
     {
-        private const string EvalToolAttributeName = "YuzeToolkit.EvalToolAttribute";
-        private const string EvalFunctionAttributeName = "YuzeToolkit.EvalFunctionAttribute";
-        private const string EvalParameterAttributeName = "YuzeToolkit.EvalParameterAttribute";
-        private const string EvalSubToolAttributeName = "YuzeToolkit.EvalSubToolAttribute";
+        private const string EvalToolAttributeName = "YuzeToolkit.Eval.EvalToolAttribute";
+        private const string EvalFunctionAttributeName = "YuzeToolkit.Eval.EvalFunctionAttribute";
+        private const string EvalParameterAttributeName = "YuzeToolkit.Eval.EvalParameterAttribute";
+        private const string EvalSubToolAttributeName = "YuzeToolkit.Eval.EvalSubToolAttribute";
 
         private static readonly HashSet<string> JavaScriptReservedIdentifiers = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -263,11 +263,11 @@ namespace UnityEvalTool.SourceGenerator
                 if (!string.Equals(pair.Key, "Safety", StringComparison.Ordinal)) continue;
                 var value = pair.Value.Value;
                 if (value == null) break;
-                return "(global::YuzeToolkit.EvalToolSafety)" +
+                return "(global::YuzeToolkit.Eval.EvalToolSafety)" +
                        Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
             }
 
-            return "global::YuzeToolkit.EvalToolSafety.Unspecified";
+            return "global::YuzeToolkit.Eval.EvalToolSafety.Unspecified";
         }
 
         private static string GetParameterDescription(IParameterSymbol parameter)
@@ -418,25 +418,25 @@ namespace UnityEvalTool.SourceGenerator
                 .Append(tool.IsSealed ? " sealed" : string.Empty)
                 .Append(" partial class ")
                 .Append(tool.TypeName)
-                .AppendLine(" : global::YuzeToolkit.IEvalTool");
+                .AppendLine(" : global::YuzeToolkit.Eval.IEvalTool");
             builder.Append(indent).AppendLine("{");
 
             var bodyIndent = indent + "    ";
             builder.Append(bodyIndent)
-                .AppendLine("private static readonly global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.EvalToolFunctionDescriptor> __evalFunctions =");
-            builder.Append(bodyIndent).AppendLine("    new global::YuzeToolkit.EvalToolFunctionDescriptor[]");
+                .AppendLine("private static readonly global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.Eval.EvalToolFunctionDescriptor> __evalFunctions =");
+            builder.Append(bodyIndent).AppendLine("    new global::YuzeToolkit.Eval.EvalToolFunctionDescriptor[]");
             builder.Append(bodyIndent).AppendLine("    {");
 
             foreach (var function in tool.Functions)
             {
-                builder.Append(bodyIndent).AppendLine("        new global::YuzeToolkit.EvalToolFunctionDescriptor(");
+                builder.Append(bodyIndent).AppendLine("        new global::YuzeToolkit.Eval.EvalToolFunctionDescriptor(");
                 builder.Append(bodyIndent).Append("            @\"").Append(EscapeVerbatimString(function.Name)).AppendLine("\",");
                 builder.Append(bodyIndent).Append("            @\"").Append(EscapeVerbatimString(function.Description)).AppendLine("\",");
-                builder.Append(bodyIndent).AppendLine("            new global::YuzeToolkit.EvalToolParameterDescriptor[]");
+                builder.Append(bodyIndent).AppendLine("            new global::YuzeToolkit.Eval.EvalToolParameterDescriptor[]");
                 builder.Append(bodyIndent).AppendLine("            {");
                 foreach (var parameter in function.Parameters)
                 {
-                    builder.Append(bodyIndent).AppendLine("                new global::YuzeToolkit.EvalToolParameterDescriptor(");
+                    builder.Append(bodyIndent).AppendLine("                new global::YuzeToolkit.Eval.EvalToolParameterDescriptor(");
                     builder.Append(bodyIndent).Append("                    @\"").Append(EscapeVerbatimString(parameter.Name)).AppendLine("\",");
                     builder.Append(bodyIndent).Append("                    @\"").Append(EscapeVerbatimString(parameter.Type)).AppendLine("\",");
                     builder.Append(bodyIndent).Append("                    ").Append(parameter.Optional ? "true" : "false").AppendLine(",");
@@ -451,8 +451,8 @@ namespace UnityEvalTool.SourceGenerator
             builder.Append(bodyIndent).AppendLine("    };");
             builder.AppendLine();
             builder.Append(bodyIndent)
-                .AppendLine("private static readonly global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.IEvalTool> __evalSubTools =");
-            builder.Append(bodyIndent).AppendLine("    new global::YuzeToolkit.IEvalTool[]");
+                .AppendLine("private static readonly global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.Eval.IEvalTool> __evalSubTools =");
+            builder.Append(bodyIndent).AppendLine("    new global::YuzeToolkit.Eval.IEvalTool[]");
             builder.Append(bodyIndent).AppendLine("    {");
             foreach (var subToolTypeName in tool.SubToolTypeNames)
                 builder.Append(bodyIndent).Append("        new ").Append(subToolTypeName).AppendLine("(),");
@@ -460,8 +460,8 @@ namespace UnityEvalTool.SourceGenerator
             builder.AppendLine();
             builder.Append(bodyIndent).Append("public string Name => @\"").Append(EscapeVerbatimString(tool.ToolName)).AppendLine("\";");
             builder.Append(bodyIndent).Append("public string Description => @\"").Append(EscapeVerbatimString(tool.Description)).AppendLine("\";");
-            builder.Append(bodyIndent).AppendLine("public global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.EvalToolFunctionDescriptor> Functions => __evalFunctions;");
-            builder.Append(bodyIndent).AppendLine("public global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.IEvalTool> SubTools => __evalSubTools;");
+            builder.Append(bodyIndent).AppendLine("public global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.Eval.EvalToolFunctionDescriptor> Functions => __evalFunctions;");
+            builder.Append(bodyIndent).AppendLine("public global::System.Collections.Generic.IReadOnlyList<global::YuzeToolkit.Eval.IEvalTool> SubTools => __evalSubTools;");
             builder.Append(indent).AppendLine("}");
 
             for (var i = tool.ContainingTypeNames.Count - 1; i >= 0; i--)

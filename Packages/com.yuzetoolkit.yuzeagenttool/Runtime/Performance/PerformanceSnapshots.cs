@@ -1,7 +1,7 @@
 #nullable enable
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal static class PerformanceHudConstants
     {

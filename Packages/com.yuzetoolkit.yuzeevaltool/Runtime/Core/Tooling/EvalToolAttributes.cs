@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [Flags]
     public enum EvalToolSafety

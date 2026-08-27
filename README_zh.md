@@ -13,6 +13,8 @@ Yuze Eval Tool 让 AI Agent 和终端用户检查、操作本机的 Unity Editor
 
 仓库还包含可选的 Yuze Agent Tool Package，它统一拥有 Editor/Runtime Agent 工作台、
 DebugPanel、Command Line、日志与系统监控。
+公开 Unity API 分别使用 `YuzeToolkit.Eval` 与 `YuzeToolkit.Agent`；供 asmdef 引用的
+`UnityEvalTool*` 与 `UnityAgentTool*` 程序集名保持不变。
 
 ## 需要安装的组件
 
@@ -50,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -58,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.0.0"
   }
 }
 ```
@@ -93,7 +95,7 @@ unity connect <instance-id> -- Runtime getState
 `unity doctor` 应报告 Broker 可连接；`unity list` 应列出打开的 Editor、项目路径和
 当前 phase；把该行 ID 替换到最后一条命令中。最后一条命令用于证明 Broker 到 Unity 的端到端
 执行可用。也可以在 Editor 中
-打开 **YuzeToolkit > Yuze Eval Tool**，检查注册、连接状态和 eval 可用性。如果没有实例，
+打开 **YuzeToolkit > Eval Tool**，检查注册、连接状态和 eval 可用性。如果没有实例，
 请检查 `unity service status`，确认 Package 已成功编译，并确认 loopback 端口 `2347`
 未被其它进程占用。
 
@@ -123,7 +125,7 @@ http://127.0.0.1:2347/mcp
 ```
 
 项目 token 验证默认关闭，因此 MCP Client 通常只需配置端点 URL。若要保护某个项目或
-发行 Player，请打开 **Project Settings > YuzeToolkit > Yuze Eval Tool**，生成或输入 token，
+发行 Player，请打开 **Project Settings > YuzeToolkit > Eval Tool**，生成或输入 token，
 Apply 后开启验证。Unity 只会把加盐 verifier 保存到
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset`，原始 token 不会写入项目。
 Unity 会把该资源直接打进 Player，并通过标准 Resources API 读取。
@@ -170,7 +172,7 @@ handle 过期、失效或 Unity 进程被替换时才重新连接。修改型 `e
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v2.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.0.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻

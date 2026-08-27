@@ -3,8 +3,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal sealed class RuntimeCliRunner : IDisposable
     {

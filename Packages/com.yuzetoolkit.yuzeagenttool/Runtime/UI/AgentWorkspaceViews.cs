@@ -7,8 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal enum AgentWorkspacePage
     {

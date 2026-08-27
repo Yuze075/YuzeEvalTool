@@ -5,6 +5,7 @@
 Yuze Agent Tool 是 Unity 2022.3 下 Editor 与 Runtime 共用的统一工作台。它依赖
 `com.yuzetoolkit.yuzeevaltool` 与 `com.yuzetoolkit.logtool`，并统一拥有 UI、运行时浮窗宿主、DebugPanel 生命周期、
 DebugWindow Builder、Agent 对话、Command Line 会话和 Unity 日志查看器。
+公开 C# API 位于 `YuzeToolkit.Agent`；供 asmdef 引用的 `UnityAgentTool` 程序集名保持不变。
 
 Package manifest 直接依赖 Yuze Eval Tool 与 Yuze Log Tool。Input System 与 uGUI 分别是由
 `YUZE_USE_UNITY_INPUT_SYSTEM`、`YUZE_USE_UNITY_UGUI` version define 控制的可选集成。缺少 Input
@@ -13,7 +14,7 @@ System 时工作台和面板仍可通过正常 API 使用，只是不编译键�
 
 ## 工作台
 
-Editor 菜单 **YuzeToolkit > Yuze Agent Tool** 与运行时 `UnityAgentPanelModule` 都创建同一个
+唯一的 Editor 菜单入口 **YuzeToolkit > Agent Tool** 与运行时 `UnityAgentPanelModule` 都创建同一个
 `UnityAgentWorkbenchView`。主侧栏固定包含五个主要操作：
 
 1. **New conversation**：打开未落盘的新对话草稿；首次发送时才创建对话文档。
@@ -122,7 +123,7 @@ Editor、Player、两者或都不启用；`embedInPlayerBuild` 则不受 scope �
 只重建 Provider 配置层，不会替换有效的 `settings.json`。首次创建 Provider 文件时会写入内置 OpenAI Profile；
 之后的 Provider 完全由用户管理，不会再次从 Package/Project Default 生成。有效的现有本机配置不会被
 Project Settings 隐式改写。通过
-**Edit > Project Settings > YuzeToolkit > Yuze Agent Tool** 编辑权限、Editor/Runtime Prompt、Tool 限制与
+**Edit > Project Settings > YuzeToolkit > Agent Tool** 编辑权限、Editor/Runtime Prompt、Tool 限制与
 有序 AGENTS.md/Skill 根目录。Editor Play Mode 使用 Editor Prompt，Runtime Prompt 只用于独立 Player。
 
 ## Runtime 宿主
@@ -141,9 +142,11 @@ Yuze Agent Tool -> Yuze Eval Tool
 
 ## DebugWindow API
 
-DebugWindow 注册已移动到本包，但继续使用 `YuzeToolkit` 命名空间：
+DebugWindow 注册已移动到本包，并使用 `YuzeToolkit.Agent` 命名空间：
 
 ```csharp
+using YuzeToolkit.Agent;
+
 var handle = DebugWindowModule.RegisterWindow(window =>
 {
     window.SetTitle("Player");

@@ -6,8 +6,9 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using YuzeToolkit;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal sealed class AgentEvalConnectionSettingsView : VisualElement
     {

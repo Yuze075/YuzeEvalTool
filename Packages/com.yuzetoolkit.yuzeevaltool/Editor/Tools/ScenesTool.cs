@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Scenes", "Scene file and open scene hierarchy operations.")]
     public sealed partial class ScenesTool

@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEditor;
 #endif
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     public static partial class EvalToolRegistry

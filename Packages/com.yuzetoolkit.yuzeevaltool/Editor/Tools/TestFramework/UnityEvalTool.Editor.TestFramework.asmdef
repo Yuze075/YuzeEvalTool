@@ -1,6 +1,6 @@
 {
   "name": "UnityEvalTool.Editor.TestFramework",
-  "rootNamespace": "YuzeToolkit",
+  "rootNamespace": "YuzeToolkit.Eval",
   "references": [
     "UnityEvalTool.Editor.Tools",
     "UnityEditor.TestRunner",

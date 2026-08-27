@@ -3,9 +3,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     /// <summary>
     /// Runtime-owned string selector. It uses the same package-owned popup and vector icons as enum selectors,

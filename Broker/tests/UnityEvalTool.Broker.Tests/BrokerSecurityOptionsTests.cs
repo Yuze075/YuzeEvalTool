@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace YuzeToolkit.UnityEvalTool.Broker.Tests;
+namespace YuzeToolkit.Eval.Broker.Tests;
 
 public sealed class BrokerSecurityOptionsTests
 {

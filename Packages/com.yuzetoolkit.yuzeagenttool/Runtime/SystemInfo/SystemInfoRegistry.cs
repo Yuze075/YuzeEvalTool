@@ -6,7 +6,7 @@ using UnityEditor;
 #endif
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     public static class SystemInfoRegistry
     {

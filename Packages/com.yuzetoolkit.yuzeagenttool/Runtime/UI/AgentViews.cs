@@ -12,7 +12,7 @@ using UnityEngine.TextCore.Text;
 #endif
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     public enum UnityAgentWorkbenchPage
     {
@@ -1778,7 +1778,7 @@ namespace YuzeToolkit.UnityAgent
             FlattenSettingsCard(projectCard);
             var projectActions = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
             var openProject = AgentUi.Button("Open Unity Project Settings",
-                "Open Project Settings > YuzeToolkit > Yuze Agent Tool to edit versioned project defaults.",
+                "Open Project Settings > YuzeToolkit > Agent Tool to edit versioned project defaults.",
                 UnityAgentEvalSettingsBridge.OpenProjectSettings, 220, AgentUi.Accent,
                 AgentUi.AccentForeground, AgentIconKind.Settings);
             openProject.SetEnabled(UnityAgentEvalSettingsBridge.CanOpenProjectSettings);

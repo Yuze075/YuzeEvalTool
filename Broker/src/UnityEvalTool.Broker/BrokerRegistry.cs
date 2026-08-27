@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal sealed class BrokerRegistry
 {

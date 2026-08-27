@@ -2,6 +2,13 @@
 
 **English** | [简体中文](CHANGELOG_zh.md)
 
+## 3.0.0 - 2026-08-27
+
+- Move the Unity API from the shared `YuzeToolkit` namespace to `YuzeToolkit.Eval`, the native Broker to `YuzeToolkit.Eval.Broker`, and the Roslyn generator to `YuzeToolkit.Eval.SourceGenerator` while preserving all existing assembly names and protocol identifiers.
+- Move Yuze Agent Tool 0.4.0 from mixed `YuzeToolkit` / `YuzeToolkit.UnityAgent` namespaces to `YuzeToolkit.Agent`, update project consumers, and keep its assembly names and persisted data paths stable.
+- Reduce the Editor surface to the single **YuzeToolkit > Agent Tool** entry, expose Eval through **YuzeToolkit > Eval Tool**, and remove the repeated Yuze prefix from both Project Settings paths.
+- Regenerate the committed analyzer and keep the Broker, npm package and Unity runtime version metadata synchronized; the npm name remains `@yuzetoolkit/unityevaltool` and the Broker protocol remains 2.0.
+
 ## 2.1.0 - 2026-08-27
 
 - Replace the Unity package's bundled JSON implementation with `YuzeUtilityTool.LitJson` and expose the eval-specific primitive conversion surface as `EvalJson`.

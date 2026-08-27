@@ -1,6 +1,6 @@
 {
   "name": "UnityEvalTool.Editor.Broker",
-  "rootNamespace": "YuzeToolkit",
+  "rootNamespace": "YuzeToolkit.Eval",
   "references": [
     "UnityEvalTool",
     "UnityEvalTool.Editor",

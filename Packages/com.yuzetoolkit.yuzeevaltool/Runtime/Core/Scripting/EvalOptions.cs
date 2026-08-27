@@ -1,6 +1,6 @@
 #nullable enable
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public sealed class EvalOptions
     {

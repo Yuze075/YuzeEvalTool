@@ -1,6 +1,6 @@
 {
   "name": "UnityEvalTool.Editor",
-  "rootNamespace": "YuzeToolkit",
+  "rootNamespace": "YuzeToolkit.Eval",
   "references": [
     "UnityEvalTool",
     "com.tencent.puerts.core",

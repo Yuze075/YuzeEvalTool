@@ -1,6 +1,6 @@
 using System.Security;
 
-namespace YuzeToolkit.UnityEvalTool.Broker;
+namespace YuzeToolkit.Eval.Broker;
 
 internal static class UserServiceManager
 {

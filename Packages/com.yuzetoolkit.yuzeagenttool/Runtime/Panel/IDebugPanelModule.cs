@@ -3,7 +3,7 @@
 using UnityEngine.InputSystem;
 #endif
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     public interface IDebugPanelModule
     {

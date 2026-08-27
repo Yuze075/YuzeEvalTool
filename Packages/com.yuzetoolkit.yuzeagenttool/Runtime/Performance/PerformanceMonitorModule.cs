@@ -5,9 +5,8 @@ using UnityEngine.InputSystem;
 #endif
 using UnityEngine.Profiling;
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     [DisallowMultipleComponent]
     public sealed class PerformanceMonitorModule : MonoBehaviour, IDebugPanelModule

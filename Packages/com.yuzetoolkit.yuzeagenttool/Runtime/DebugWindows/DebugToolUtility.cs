@@ -3,7 +3,7 @@ using System;
 using System.Globalization;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal static class DebugToolUtility
     {

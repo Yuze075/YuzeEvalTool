@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     internal sealed class RuntimeLogStore
     {

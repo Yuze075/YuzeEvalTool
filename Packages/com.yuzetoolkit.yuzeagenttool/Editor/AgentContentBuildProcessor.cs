@@ -6,8 +6,9 @@ using System.Linq;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using YuzeToolkit.Eval;
 
-namespace YuzeToolkit.UnityAgent
+namespace YuzeToolkit.Agent
 {
     internal sealed class AgentContentBuildProcessor : BuildPlayerProcessor, IPostprocessBuildWithReport
     {

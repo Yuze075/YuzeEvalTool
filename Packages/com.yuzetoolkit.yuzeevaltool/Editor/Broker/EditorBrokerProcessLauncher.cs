@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     internal static class EditorBrokerProcessLauncher
     {

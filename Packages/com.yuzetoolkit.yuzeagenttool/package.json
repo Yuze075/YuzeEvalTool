@@ -1,6 +1,6 @@
 {
   "name": "com.yuzetoolkit.yuzeagenttool",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "displayName": "Yuze Agent Tool",
   "description": "A unified Editor and Runtime workbench for Agent chat, persistent command lines, Debug Panels, Unity logs, System Info and shared settings.",
   "unity": "2022.3",
@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "com.yuzetoolkit.logtool": "1.0.0",
-    "com.yuzetoolkit.yuzeevaltool": "2.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "3.0.0"
   }
 }

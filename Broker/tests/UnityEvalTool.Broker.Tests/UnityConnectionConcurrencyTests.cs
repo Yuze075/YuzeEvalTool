@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Xunit;
 
-namespace YuzeToolkit.UnityEvalTool.Broker.Tests;
+namespace YuzeToolkit.Eval.Broker.Tests;
 
 public sealed class UnityConnectionConcurrencyTests
 {

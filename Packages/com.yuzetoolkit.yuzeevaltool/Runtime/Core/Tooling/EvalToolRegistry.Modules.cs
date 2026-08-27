@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     public static partial class EvalToolRegistry
     {
@@ -49,13 +49,13 @@ namespace YuzeToolkit
             return $@"let catalog = {json};
 
 function readCatalog(refresh) {{
-  const parsed = JSON.parse(CS.YuzeToolkit.EvalToolRegistry.GetToolCatalogJson(!!refresh));
+  const parsed = JSON.parse(CS.YuzeToolkit.Eval.EvalToolRegistry.GetToolCatalogJson(!!refresh));
   if (parsed && parsed.success === false) throw new Error(parsed.error || ""Eval tool catalog failed."");
   return parsed;
 }}
 
 function readToolDetails(path, refresh) {{
-  const parsed = JSON.parse(CS.YuzeToolkit.EvalToolRegistry.GetToolDetailsJson(String(path || ''), !!refresh));
+  const parsed = JSON.parse(CS.YuzeToolkit.Eval.EvalToolRegistry.GetToolDetailsJson(String(path || ''), !!refresh));
   if (parsed && parsed.success === false) throw new Error(parsed.error || ""Eval tool details failed."");
   return parsed;
 }}
@@ -123,22 +123,22 @@ export const editorOnly = descriptor.editorOnly;
 export const functions = descriptor.functions || [];
 
 export function isEnabled() {
-  return CS.YuzeToolkit.EvalToolRegistry.IsEnabled(descriptor.path);
+  return CS.YuzeToolkit.Eval.EvalToolRegistry.IsEnabled(descriptor.path);
 }
 
 function getInstance() {
-  return CS.YuzeToolkit.EvalToolRegistry.GetRequiredInstance(descriptor.path);
+  return CS.YuzeToolkit.Eval.EvalToolRegistry.GetRequiredInstance(descriptor.path);
 }
 
 function toSerializable(value) {
-  return JSON.parse(CS.YuzeToolkit.EvalValueFormatter.ToJson(value));
+  return JSON.parse(CS.YuzeToolkit.Eval.EvalValueFormatter.ToJson(value));
 }
 
 function toToolArgument(value) {
   if (value === null || value === undefined) return value;
   const type = typeof value;
   if (type !== ""object"") return value;
-  return CS.YuzeToolkit.EvalValueFormatter.FromJson(JSON.stringify(value));
+  return CS.YuzeToolkit.Eval.EvalValueFormatter.FromJson(JSON.stringify(value));
 }
 ");
 

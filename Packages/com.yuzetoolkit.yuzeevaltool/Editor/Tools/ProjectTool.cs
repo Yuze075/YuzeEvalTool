@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Project", "Project settings, profiler, and editor tool diagnostics.")]
     public sealed partial class ProjectTool

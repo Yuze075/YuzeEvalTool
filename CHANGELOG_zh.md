@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md) | **简体中文**
 
+## 3.0.0 - 2026-08-27
+
+- Unity API 从共享的 `YuzeToolkit` 迁移至 `YuzeToolkit.Eval`，原生 Broker 迁移至 `YuzeToolkit.Eval.Broker`，Roslyn Generator 迁移至 `YuzeToolkit.Eval.SourceGenerator`；既有程序集名与协议标识保持不变。
+- Yuze Agent Tool 0.4.0 从混用的 `YuzeToolkit` / `YuzeToolkit.UnityAgent` 统一迁移至 `YuzeToolkit.Agent`，同步更新项目调用方，并保持程序集名与持久化数据路径稳定。
+- Editor 只保留一个 **YuzeToolkit > Agent Tool** 入口，Eval 使用 **YuzeToolkit > Eval Tool**，两项 Project Settings 路径均省略重复的 Yuze 前缀。
+- 重新生成提交到仓库的 Analyzer，并同步 Broker、npm Package 与 Unity Runtime 版本；npm 名称仍为 `@yuzetoolkit/unityevaltool`，Broker 协议仍为 2.0。
+
 ## 2.1.0 - 2026-08-27
 
 - 移除 Unity Package 内自带的 JSON 实现，改为复用 `YuzeUtilityTool.LitJson`，并将 Eval 专用的基础对象树转换入口公开为 `EvalJson`。

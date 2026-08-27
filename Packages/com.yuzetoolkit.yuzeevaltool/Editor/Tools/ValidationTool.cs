@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Validation", "Project health checks for missing scripts, loaded-scene references, and conventions.")]
     public sealed partial class ValidationTool

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Importers", "AssetImporter inspection, serialized edits, and reimport.")]
     public sealed partial class ImportersTool

@@ -3,8 +3,8 @@
 **English** | [简体中文](README_zh.md) | [User guide](../README.md)
 
 The source generator reads partial C# tool classes marked with
-`YuzeToolkit.EvalToolAttribute` and methods marked with
-`YuzeToolkit.EvalFunctionAttribute`. It emits the `IEvalTool` metadata used by
+`YuzeToolkit.Eval.EvalToolAttribute` and methods marked with
+`YuzeToolkit.Eval.EvalFunctionAttribute`. It emits the `IEvalTool` metadata used by
 `EvalToolRegistry`, including function descriptors, parameters, and safety declarations.
 
 The generated analyzer DLL is committed in the Yuze Eval Tool UPM package so Git-based UPM

@@ -4,9 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 using UnityEngine.UIElements;
-using YuzeToolkit.UnityAgent;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     [DisallowMultipleComponent]
     public sealed class UnityAgentPanelModule : MonoBehaviour, IDebugPanelModule

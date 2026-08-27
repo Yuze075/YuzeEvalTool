@@ -7,7 +7,7 @@ using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [EvalTool("Pipeline", "Package Manager, Test Runner, and BuildPipeline workflows.")]
     public sealed partial class PipelineTool

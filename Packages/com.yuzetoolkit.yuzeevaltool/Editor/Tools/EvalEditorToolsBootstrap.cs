@@ -1,7 +1,7 @@
 #nullable enable
 using UnityEditor;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [InitializeOnLoad]
     internal static class EvalEditorToolsBootstrap

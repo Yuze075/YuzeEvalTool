@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 #endif
 using UnityEngine.UIElements;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Agent
 {
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]

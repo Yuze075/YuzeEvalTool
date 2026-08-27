@@ -1,7 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 
-namespace YuzeToolkit
+namespace YuzeToolkit.Eval
 {
     [UnityEngine.Scripting.Preserve]
     [EvalTool("UnityEval", "Yuze Eval Tool catalog, tool management, and authoring guidance.")]
