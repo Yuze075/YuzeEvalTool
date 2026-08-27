@@ -17,7 +17,7 @@ Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.B
 - Unity 2022.3 或更高版本。
 - `com.tencent.puerts.core` 3.0.2。
 - `com.yuzetoolkit.logtool` 1.0.0 或更高版本。manifest 直接声明该依赖；Unity 侧日志直接使用 Yuze Log Tool，不提供宏定义 fallback。
-- `com.yuzetoolkit.utilitytool` 1.1.0 或更高版本。Eval JSON 转换复用其中的纯 C# LitJson 程序集。
+- `com.yuzetoolkit.jsontool` 0.1.0 或更高版本。Eval JSON 转换复用其可移植的纯 C# DOM 与序列化器。
 - 且仅有一个兼容的 PuerTS JavaScript backend。已验证的组合是
   `com.tencent.puerts.quickjs` 3.0.2 与匹配的 core 3.0.2；也可使用同一
   PuerTS 发行系列中受支持的 V8/core 组合。

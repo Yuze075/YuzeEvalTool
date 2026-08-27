@@ -5,6 +5,10 @@
 The repository-level [changelog](../../../CHANGELOG.md) is the canonical release history
 for the Unity package, computer-level Broker/CLI, npm packages, and Roslyn generator.
 
+## Unreleased
+
+- Replace `YuzeUtilityTool.LitJson` with the directly declared `com.yuzetoolkit.jsontool` dependency and preserve the `EvalJson` dynamic object-tree protocol.
+
 ## 3.0.0 - 2026-08-27
 
 - Move all Unity-facing APIs to `YuzeToolkit.Eval`, update generated metadata and JavaScript/PuerTS type paths, and preserve existing `UnityEvalTool*` assembly names.

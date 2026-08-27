@@ -8,7 +8,7 @@
     "com.tencent.puerts.quickjs",
     "com.tencent.puerts.webgl",
     "YuzeLogTool",
-    "YuzeUtilityTool.LitJson"
+    "YuzeJsonTool.Core"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

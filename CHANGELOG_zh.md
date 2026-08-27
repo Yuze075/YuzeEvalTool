@@ -2,6 +2,10 @@
 
 [English](CHANGELOG.md) | **简体中文**
 
+## 未发布
+
+- 将 Utility Tool LitJson 依赖替换为独立的 Yuze JSON Tool；`EvalJson` 保持原有动态 CLR 对象树契约，并直接使用新的 DOM 与序列化器。
+
 ## 3.0.0 - 2026-08-27
 
 - Unity API 从共享的 `YuzeToolkit` 迁移至 `YuzeToolkit.Eval`，原生 Broker 迁移至 `YuzeToolkit.Eval.Broker`，Roslyn Generator 迁移至 `YuzeToolkit.Eval.SourceGenerator`；既有程序集名与协议标识保持不变。

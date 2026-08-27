@@ -20,7 +20,7 @@ asmdef and binary references.
 - Unity 2022.3 or newer.
 - `com.tencent.puerts.core` 3.0.2.
 - `com.yuzetoolkit.logtool` 1.0.0 or newer. The manifest declares it directly; Unity-side logging uses Yuze Log Tool without a macro fallback.
-- `com.yuzetoolkit.utilitytool` 1.1.0 or newer. Eval JSON conversion uses its shared pure C# LitJson assembly.
+- `com.yuzetoolkit.jsontool` 0.1.0 or newer. Eval JSON conversion uses its portable pure C# DOM and serializer.
 - Exactly one compatible PuerTS JavaScript backend. The tested combination is
   `com.tencent.puerts.quickjs` 3.0.2 with matching core 3.0.2; a supported V8/core pair
   from the same PuerTS release may be used instead.

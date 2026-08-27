@@ -1,6 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
-using YuzeToolkit.LitJson;
+using YuzeToolkit.Json;
 
 namespace YuzeToolkit.Eval
 {
@@ -10,7 +10,7 @@ namespace YuzeToolkit.Eval
         {
             try
             {
-                return ConvertJsonData(JsonMapper.ToObject(json));
+                return ConvertJsonData(YuzeJson.Parse(json));
             }
             catch (JsonException exception)
             {
@@ -22,7 +22,7 @@ namespace YuzeToolkit.Eval
         {
             try
             {
-                return JsonMapper.ToJson(value);
+                return YuzeJson.Serialize(value);
             }
             catch (JsonException exception)
             {
@@ -30,15 +30,15 @@ namespace YuzeToolkit.Eval
             }
         }
 
-        private static object? ConvertJsonData(JsonData? data)
+        private static object? ConvertJsonData(JsonData data)
         {
-            if (data == null) return null;
+            if (data.IsNull) return null;
 
             if (data.IsObject)
             {
                 var result = new Dictionary<string, object?>(System.StringComparer.Ordinal);
-                foreach (var key in data.Keys)
-                    result[key] = ConvertJsonData(data[key]);
+                foreach (var property in data.Properties)
+                    result[property.Key] = ConvertJsonData(property.Value);
                 return result;
             }
 
@@ -50,13 +50,17 @@ namespace YuzeToolkit.Eval
                 return result;
             }
 
-            var wrapper = (IJsonWrapper)data;
-            if (data.IsString) return wrapper.GetString();
-            if (data.IsBoolean) return wrapper.GetBoolean();
-            if (data.IsInt) return wrapper.GetInt();
-            if (data.IsLong) return wrapper.GetLong();
-            if (data.IsDouble) return wrapper.GetDouble();
-            return null;
+            if (data.IsString) return data.AsString();
+            if (data.IsBoolean) return data.AsBoolean();
+            if (!data.IsNumber) throw new System.FormatException($"Unsupported JSON node type {data.Type}.");
+
+            var number = data.AsNumber();
+            if (number.Kind == JsonNumberKind.Int64 && number.TryGetInt64(out var signed))
+                return signed is >= int.MinValue and <= int.MaxValue ? (object)(int)signed : signed;
+            if (number.Kind == JsonNumberKind.UInt64 && number.TryGetUInt64(out var unsigned)) return unsigned;
+            if (number.Kind is JsonNumberKind.Decimal or JsonNumberKind.Double &&
+                number.TryGetDouble(out var floating)) return floating;
+            throw new System.FormatException("JSON number cannot be represented by a CLR primitive.");
         }
     }
 }
