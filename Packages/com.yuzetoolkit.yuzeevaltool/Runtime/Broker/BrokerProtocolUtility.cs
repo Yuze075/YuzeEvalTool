@@ -11,7 +11,7 @@ namespace YuzeToolkit
 
         public static Dictionary<string, object?> ParseEnvelope(string json)
         {
-            var envelope = EvalData.AsObject(LitJson.Parse(json))
+            var envelope = EvalData.AsObject(EvalJson.Parse(json))
                            ?? throw new InvalidOperationException("Broker message must be a JSON object.");
             var protocol = EvalData.GetString(envelope, "protocol") ?? string.Empty;
             if (!string.Equals(protocol, ProtocolVersion, StringComparison.Ordinal))
@@ -20,7 +20,7 @@ namespace YuzeToolkit
         }
 
         public static string Request(string id, string method, Dictionary<string, object?> payload) =>
-            LitJson.Stringify(EvalData.Obj(
+            EvalJson.Stringify(EvalData.Obj(
                 ("protocol", ProtocolVersion),
                 ("type", "request"),
                 ("id", id),
@@ -29,7 +29,7 @@ namespace YuzeToolkit
                 ("error", null)));
 
         public static string Response(string id, string method, object? payload, Dictionary<string, object?>? error = null) =>
-            LitJson.Stringify(EvalData.Obj(
+            EvalJson.Stringify(EvalData.Obj(
                 ("protocol", ProtocolVersion),
                 ("type", "response"),
                 ("id", id),
@@ -38,7 +38,7 @@ namespace YuzeToolkit
                 ("error", error)));
 
         public static string Event(string method, object? payload) =>
-            LitJson.Stringify(EvalData.Obj(
+            EvalJson.Stringify(EvalData.Obj(
                 ("protocol", ProtocolVersion),
                 ("type", "event"),
                 ("id", null),

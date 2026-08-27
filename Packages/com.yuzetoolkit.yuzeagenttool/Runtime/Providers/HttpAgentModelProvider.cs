@@ -157,8 +157,7 @@ namespace YuzeToolkit.UnityAgent
         private static bool CanUseCuratedFallback(Exception exception, AgentProviderPreset? preset)
         {
             if (preset == null || preset.Models.Count == 0) return false;
-            return exception is AgentProviderException or HttpRequestException or FormatException or
-                   LitJson.JsonException;
+            return exception is AgentProviderException or HttpRequestException or FormatException;
         }
 
         private static bool IsTransientTurnFailure(Exception exception) =>

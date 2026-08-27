@@ -2,6 +2,12 @@
 
 **English** | [简体中文](CHANGELOG_zh.md)
 
+## 2.1.0 - 2026-08-27
+
+- Replace the Unity package's bundled JSON implementation with `YuzeUtilityTool.LitJson` and expose the eval-specific primitive conversion surface as `EvalJson`.
+- Make malformed Agent wire JSON consistently surface as `FormatException`, and update Yuze Agent Tool to 0.3.2 against Yuze Eval Tool 2.1.0.
+- Keep the Broker, npm package and Unity runtime version metadata synchronized; the Broker protocol remains 2.0.
+
 ## 2.0.7 - 2026-08-24
 
 - Add the Editor-only `tools://Editor/Profiler` helper for global `ProfilerRecorder` metric

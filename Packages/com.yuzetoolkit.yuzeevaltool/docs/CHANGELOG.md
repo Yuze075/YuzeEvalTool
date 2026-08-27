@@ -5,6 +5,11 @@
 The repository-level [changelog](../../../CHANGELOG.md) is the canonical release history
 for the Unity package, computer-level Broker/CLI, npm packages, and Roslyn generator.
 
+## 2.1.0 - 2026-08-27
+
+- Replace the bundled JSON implementation with the shared `YuzeUtilityTool.LitJson` runtime assembly.
+- Expose eval-specific JSON-to-primitive conversion through `EvalJson` and normalize malformed input to `FormatException`.
+
 ## 2.0.7 - 2026-08-24
 
 - Add `tools://Editor/Profiler` for exact global metric discovery and bounded cross-frame main-thread

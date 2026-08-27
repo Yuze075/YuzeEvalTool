@@ -19,7 +19,7 @@ namespace YuzeToolkit
         private static readonly Dictionary<string, Type?> TypeLookupCache = new(StringComparer.Ordinal);
 
         public static Dictionary<string, object?> ParseArgs(string json) =>
-            EvalData.AsObject(LitJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json)) ?? new Dictionary<string, object?>();
+            EvalData.AsObject(EvalJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json)) ?? new Dictionary<string, object?>();
 
         public static string GetString(Dictionary<string, object?> args, string key, string defaultValue = "") =>
             EvalData.GetString(args, key) ?? defaultValue;

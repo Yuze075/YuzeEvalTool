@@ -420,7 +420,7 @@ namespace YuzeToolkit
                 ("isPlaying", Application.isPlaying),
                 ("values", values),
                 ("errors", errors));
-            var sampleCharacters = LitJson.Stringify(sample).Length;
+            var sampleCharacters = EvalJson.Stringify(sample).Length;
             if (session.StoredCharacters + sampleCharacters > MaxSessionStorageCharacters)
             {
                 Complete(session, "storage-limit");
@@ -472,7 +472,7 @@ namespace YuzeToolkit
         {
             var budget = new SafeFormatBudget(MaxFormattedValueCharacters, MaxCollectionItems);
             var formatted = FormatKnownValue(value, 0, budget);
-            var serialized = LitJson.Stringify(formatted);
+            var serialized = EvalJson.Stringify(formatted);
             if (serialized.Length <= MaxFormattedValueCharacters)
                 return formatted;
             return EvalData.Obj(

@@ -45,7 +45,7 @@ namespace YuzeToolkit
                 var exitRequested = EvalData.GetBool(response, "exit");
                 var text = response.TryGetValue("text", out var value)
                     ? Convert.ToString(value) ?? string.Empty
-                    : LitJson.Stringify(response);
+                    : EvalJson.Stringify(response);
                 if (exitRequested)
                     text = "The embedded Command Line has no process to exit. Its session remains open until this Unity process ends.";
                 return new CliOutput(text, string.Empty, LogType.Log);

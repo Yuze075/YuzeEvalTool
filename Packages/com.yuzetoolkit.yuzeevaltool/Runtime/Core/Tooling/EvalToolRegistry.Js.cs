@@ -226,7 +226,7 @@ export function echo(value) {
             {
                 if (!TryRunJsMetadataRequest(BuildJsMetadataRunner(modulePath), "jsTool.metadata", out var payload))
                     return false;
-                var data = EvalData.AsObject(LitJson.Parse(payload));
+                var data = EvalData.AsObject(EvalJson.Parse(payload));
                 if (data == null || !EvalData.GetBool(data, "success")) return false;
                 name = EvalData.GetString(data, "name") ?? string.Empty;
                 description = EvalData.GetString(data, "description") ?? string.Empty;
@@ -242,7 +242,7 @@ export function echo(value) {
                 if (!TryRunJsMetadataRequest(BuildJsDescriptorRunner(modulePath, rootName, path), "jsTool.descriptor",
                         out var payload))
                     return false;
-                var data = EvalData.AsObject(LitJson.Parse(payload));
+                var data = EvalData.AsObject(EvalJson.Parse(payload));
                 if (data == null || !EvalData.GetBool(data, "success")) return false;
                 var tool = EvalData.AsObject(data.TryGetValue("tool", out var toolValue) ? toolValue : null);
                 if (tool == null) return false;
@@ -696,7 +696,7 @@ export function echo(value) {
 
         private static string BuildJsToolModuleSource(string modulePath, string rootName, EvalToolDescriptor descriptor)
         {
-            var functionsJson = LitJson.Stringify(descriptor.Functions.Select(function => EvalData.Obj(
+            var functionsJson = EvalJson.Stringify(descriptor.Functions.Select(function => EvalData.Obj(
                 ("name", function.MethodName),
                 ("methodName", function.MethodName),
                 ("description", function.Description),
@@ -711,7 +711,7 @@ export function echo(value) {
                     ("description", parameter.Description)
                 )).ToList())
             )).Cast<object?>().ToList());
-            var subToolsJson = LitJson.Stringify(descriptor.SubTools.Select(subTool => EvalData.Obj(
+            var subToolsJson = EvalJson.Stringify(descriptor.SubTools.Select(subTool => EvalData.Obj(
                 ("name", subTool.Name),
                 ("path", subTool.Path),
                 ("description", subTool.Description),

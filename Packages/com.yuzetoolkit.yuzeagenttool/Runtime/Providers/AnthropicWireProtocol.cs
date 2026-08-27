@@ -102,7 +102,7 @@ namespace YuzeToolkit.UnityAgent
             {
                 return AgentJson.ParseObject(call.ArgumentsJson);
             }
-            catch (Exception exception) when (exception is FormatException or LitJson.JsonException)
+            catch (FormatException exception)
             {
                 throw new AgentProviderException(
                     $"Anthropic tool call '{call.Id}' contains invalid object arguments.", exception);

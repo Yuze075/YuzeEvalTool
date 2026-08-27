@@ -5,6 +5,11 @@
 仓库级[变更记录](../../../CHANGELOG_zh.md) 是 Unity Package、电脑级 Broker/CLI、npm Package 和
 Roslyn Generator 的规范发行历史。
 
+## 2.1.0 - 2026-08-27
+
+- 移除 Package 内置 JSON 实现，改为共享的 `YuzeUtilityTool.LitJson` Runtime 程序集。
+- 通过 `EvalJson` 提供 Eval 专用 JSON 基础对象树转换，并将格式错误统一为 `FormatException`。
+
 ## 2.0.7 - 2026-08-24
 
 - 增加 `tools://Editor/Profiler`，按精确 metric 发现全局 registry，并在 PlayMode 中有界跨帧

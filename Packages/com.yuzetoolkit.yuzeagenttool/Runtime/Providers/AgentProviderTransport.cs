@@ -88,7 +88,7 @@ namespace YuzeToolkit.UnityAgent
                 throw new AgentProviderException(message, exception);
             }
             catch (Exception exception) when (exception is InvalidDataException or DecoderFallbackException or
-                                               FormatException or OverflowException or LitJson.JsonException)
+                                               FormatException or OverflowException)
             {
                 throw new AgentProviderException("Provider returned an invalid SSE stream.", exception);
             }

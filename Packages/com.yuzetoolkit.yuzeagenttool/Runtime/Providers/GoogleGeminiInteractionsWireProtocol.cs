@@ -145,7 +145,7 @@ namespace YuzeToolkit.UnityAgent
             {
                 arguments = AgentJson.ParseObject(call.ArgumentsJson);
             }
-            catch (Exception exception) when (exception is FormatException or LitJson.JsonException)
+            catch (FormatException exception)
             {
                 throw new AgentProviderException(
                     $"Gemini tool call '{call.Id}' contains invalid object arguments.", exception);

@@ -34,7 +34,7 @@ namespace YuzeToolkit
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var installPath = Path.Combine(home, ".unityevaltool", "install.json");
             if (!File.Exists(installPath)) return string.Empty;
-            var root = EvalData.AsObject(LitJson.Parse(File.ReadAllText(installPath)))
+            var root = EvalData.AsObject(EvalJson.Parse(File.ReadAllText(installPath)))
                        ?? new Dictionary<string, object?>();
             return Normalize(EvalData.GetString(root, "executablePath") ?? string.Empty);
         }

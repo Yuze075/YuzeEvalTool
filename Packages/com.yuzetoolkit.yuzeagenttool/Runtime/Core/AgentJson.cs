@@ -14,17 +14,8 @@ namespace YuzeToolkit.UnityAgent
         public static List<object?> Array(params object?[] entries) => EvalData.Arr(entries);
 
         public static Dictionary<string, object?> ParseObject(string json)
-        {
-            try
-            {
-                return EvalData.AsObject(LitJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json))
-                       ?? throw new FormatException("Expected a JSON object.");
-            }
-            catch (LitJson.JsonException exception)
-            {
-                throw new FormatException("Invalid JSON.", exception);
-            }
-        }
+            => EvalData.AsObject(EvalJson.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json))
+               ?? throw new FormatException("Expected a JSON object.");
 
         public static Dictionary<string, object?>? GetObject(Dictionary<string, object?> value, string key)
         {
@@ -129,7 +120,7 @@ namespace YuzeToolkit.UnityAgent
             return result;
         }
 
-        public static string Stringify(object? value) => LitJson.Stringify(value);
+        public static string Stringify(object? value) => EvalJson.Stringify(value);
 
         public static string Utc(DateTime value) => value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
     }

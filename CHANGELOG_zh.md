@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md) | **简体中文**
 
+## 2.1.0 - 2026-08-27
+
+- 移除 Unity Package 内自带的 JSON 实现，改为复用 `YuzeUtilityTool.LitJson`，并将 Eval 专用的基础对象树转换入口公开为 `EvalJson`。
+- Agent 协议 JSON 格式错误统一表现为 `FormatException`，Yuze Agent Tool 升级至 0.3.2 并依赖 Yuze Eval Tool 2.1.0。
+- 同步 Broker、npm Package 与 Unity Runtime 的版本元数据；Broker 协议版本仍为 2.0。
+
 ## 2.0.7 - 2026-08-24
 
 - 增加仅 Editor 可用的 `tools://Editor/Profiler` helper，以精确 category/name 发现全局 metric，

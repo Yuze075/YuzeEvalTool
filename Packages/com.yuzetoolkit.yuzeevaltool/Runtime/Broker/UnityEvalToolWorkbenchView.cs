@@ -495,7 +495,7 @@ namespace YuzeToolkit
             if (!File.Exists(metadata)) return "Not installed · run the npm-installed `unity` command once";
             try
             {
-                var root = EvalData.AsObject(LitJson.Parse(File.ReadAllText(metadata)));
+                var root = EvalData.AsObject(EvalJson.Parse(File.ReadAllText(metadata)));
                 var executable = root == null ? string.Empty : EvalData.GetString(root, "executablePath") ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(executable)) return "Invalid install metadata · executablePath is missing";
                 return File.Exists(executable) ? executable : "Installed executable is missing · " + executable;

@@ -458,14 +458,14 @@ namespace YuzeToolkit
         private static object? ConvertValue(string value, string type, string label)
         {
             if (value.StartsWith("json:", StringComparison.Ordinal))
-                return LitJson.Parse(value.Substring("json:".Length));
+                return EvalJson.Parse(value.Substring("json:".Length));
 
             if ((value.StartsWith("{", StringComparison.Ordinal) && value.EndsWith("}", StringComparison.Ordinal)) ||
                 (value.StartsWith("[", StringComparison.Ordinal) && value.EndsWith("]", StringComparison.Ordinal)))
             {
                 try
                 {
-                    return LitJson.Parse(value);
+                    return EvalJson.Parse(value);
                 }
                 catch
                 {
@@ -506,7 +506,7 @@ namespace YuzeToolkit
 
         private static string GenerateToolCall(string path, string methodName, IReadOnlyList<object?> values)
         {
-            var args = string.Join(", ", values.Select(value => LitJson.Stringify(value)));
+            var args = string.Join(", ", values.Select(value => EvalJson.Stringify(value)));
             return "async function execute() {\n" +
                    $"  const tool = await import('tools://{EscapeJavaScriptString(path)}');\n" +
                    $"  const fn = tool['{EscapeJavaScriptString(methodName)}'];\n" +

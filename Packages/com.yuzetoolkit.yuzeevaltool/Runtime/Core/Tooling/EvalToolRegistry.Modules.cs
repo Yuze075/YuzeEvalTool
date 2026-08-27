@@ -45,7 +45,7 @@ namespace YuzeToolkit
 
         public static string GenerateIndexModuleSource()
         {
-            var json = LitJson.Stringify(GetIndex(false));
+            var json = EvalJson.Stringify(GetIndex(false));
             return $@"let catalog = {json};
 
 function readCatalog(refresh) {{
@@ -112,7 +112,7 @@ export function describeTool(path, refresh = false) {{
 
         private static string GenerateCSharpToolModule(EvalToolDescriptor descriptor)
         {
-            var json = LitJson.Stringify(ToJson(descriptor));
+            var json = EvalJson.Stringify(ToJson(descriptor));
             var builder = new StringBuilder();
             builder.AppendLine($"const descriptor = {json};");
             builder.AppendLine(@"
@@ -159,7 +159,7 @@ export async function getSubTool(name) {
             {
                 if (!IsValidJavaScriptIdentifier(function.MethodName)) continue;
                 var escapedMethodName = function.MethodName;
-                var functionJson = LitJson.Stringify(ToFunctionJson(function));
+                var functionJson = EvalJson.Stringify(ToFunctionJson(function));
                 builder.AppendLine($"export function {escapedMethodName}(...args) {{");
                 builder.AppendLine($"  return toSerializable(getInstance().{escapedMethodName}(...args.map(toToolArgument)));");
                 builder.AppendLine("}");

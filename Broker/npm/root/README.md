@@ -24,7 +24,7 @@ because npm dependency lifecycle scripts may be disabled; check the command's ex
 Add the Unity-side package through Unity Package Manager:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
 ```
 
 Open the Unity project, wait for compilation, then run `unity list`. Seeing that Editor is

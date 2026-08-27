@@ -111,7 +111,7 @@ namespace YuzeToolkit
                 }
                 catch (Exception ex)
                 {
-                    completion.TrySetResult(LitJson.Stringify(EvalData.Obj(
+                    completion.TrySetResult(EvalJson.Stringify(EvalData.Obj(
                         ("success", false),
                         ("error", ex.Message),
                         ("stack", ex.StackTrace ?? string.Empty)
@@ -135,7 +135,7 @@ namespace YuzeToolkit
 
             try
             {
-                var parsed = EvalData.AsObject(LitJson.Parse(completion.Task.Result));
+                var parsed = EvalData.AsObject(EvalJson.Parse(completion.Task.Result));
                 return parsed ?? Error("eval returned invalid JSON.");
             }
             catch (Exception ex)

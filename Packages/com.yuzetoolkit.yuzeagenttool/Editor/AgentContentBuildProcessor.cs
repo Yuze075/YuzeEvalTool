@@ -67,7 +67,7 @@ namespace YuzeToolkit.UnityAgent
                 PackageSkillRoots(settings.SkillRoots, contentTarget, skillsManifest,
                     ref copiedBytes, ref copiedFiles);
 
-                File.WriteAllText(Path.Combine(contentTarget, "manifest.json"), LitJson.Stringify(EvalData.Obj(
+                File.WriteAllText(Path.Combine(contentTarget, "manifest.json"), EvalJson.Stringify(EvalData.Obj(
                     ("schemaVersion", 2),
                     ("generatedAtUtc", DateTime.UtcNow.ToString("O")),
                     ("agentsRoots", agentsManifest),

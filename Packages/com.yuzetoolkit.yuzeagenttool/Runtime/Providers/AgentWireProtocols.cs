@@ -65,8 +65,7 @@ namespace YuzeToolkit.UnityAgent
             {
                 throw;
             }
-            catch (Exception exception) when (exception is FormatException or OverflowException or
-                                               LitJson.JsonException)
+            catch (Exception exception) when (exception is FormatException or OverflowException)
             {
                 throw new AgentProviderException("Stored provider data is not valid JSON.", exception);
             }

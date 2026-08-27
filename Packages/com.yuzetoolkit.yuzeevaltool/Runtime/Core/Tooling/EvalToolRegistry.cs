@@ -211,11 +211,11 @@ namespace YuzeToolkit
         {
             try
             {
-                return LitJson.Stringify(GetIndex(refresh));
+                return EvalJson.Stringify(GetIndex(refresh));
             }
             catch (Exception ex)
             {
-                return LitJson.Stringify(Failure(ex.Message));
+                return EvalJson.Stringify(Failure(ex.Message));
             }
         }
 
@@ -224,11 +224,11 @@ namespace YuzeToolkit
         {
             try
             {
-                return LitJson.Stringify(GetToolDetails(path, refresh));
+                return EvalJson.Stringify(GetToolDetails(path, refresh));
             }
             catch (Exception ex)
             {
-                return LitJson.Stringify(Failure(ex.Message));
+                return EvalJson.Stringify(Failure(ex.Message));
             }
         }
 

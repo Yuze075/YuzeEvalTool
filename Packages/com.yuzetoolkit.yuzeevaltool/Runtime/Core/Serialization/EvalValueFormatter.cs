@@ -31,11 +31,11 @@ namespace YuzeToolkit
 
         [UnityEngine.Scripting.Preserve]
         public static string ToJson(object? value, string mode = "default", int depth = 4) =>
-            LitJson.Stringify(Format(value, mode, depth));
+            EvalJson.Stringify(Format(value, mode, depth));
 
         [UnityEngine.Scripting.Preserve]
         public static string ToEvalText(object? value, int depth = 4) =>
-            LitJson.Stringify(ToJsonFriendly(value, depth));
+            EvalJson.Stringify(ToJsonFriendly(value, depth));
 
         [UnityEngine.Scripting.Preserve]
         public static Dictionary<string, object?> Describe(object? value, int depth = 4)
@@ -46,7 +46,7 @@ namespace YuzeToolkit
 
         [UnityEngine.Scripting.Preserve]
         public static object? FromJson(string json) =>
-            LitJson.Parse(string.IsNullOrWhiteSpace(json) ? "null" : json);
+            EvalJson.Parse(string.IsNullOrWhiteSpace(json) ? "null" : json);
 
         private static object? ToJsonFriendly(object? value, int depth)
         {
@@ -267,7 +267,7 @@ namespace YuzeToolkit
         {
             if (value == null) return "null";
             if (value is string text) return text;
-            if (value is UnityEngine.Object) return LitJson.Stringify(ToJsonFriendly(value, depth));
+            if (value is UnityEngine.Object) return EvalJson.Stringify(ToJsonFriendly(value, depth));
             return value.ToString() ?? string.Empty;
         }
 

@@ -4,6 +4,6 @@ namespace YuzeToolkit
 {
     public static class UnityEvalToolVersion
     {
-        public const string Current = "2.0.7";
+        public const string Current = "2.1.0";
     }
 }

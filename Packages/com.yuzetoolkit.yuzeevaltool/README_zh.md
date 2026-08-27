@@ -14,6 +14,7 @@ Unity Package 与必需 Broker/CLI 的安装和首次使用说明见[仓库使�
 - Unity 2022.3 或更高版本。
 - `com.tencent.puerts.core` 3.0.2。
 - `com.yuzetoolkit.logtool` 1.0.0 或更高版本。manifest 直接声明该依赖；Unity 侧日志直接使用 Yuze Log Tool，不提供宏定义 fallback。
+- `com.yuzetoolkit.utilitytool` 1.1.0 或更高版本。Eval JSON 转换复用其中的纯 C# LitJson 程序集。
 - 且仅有一个兼容的 PuerTS JavaScript backend。已验证的组合是
   `com.tencent.puerts.quickjs` 3.0.2 与匹配的 core 3.0.2；也可使用同一
   PuerTS 发行系列中受支持的 V8/core 组合。
@@ -26,7 +27,7 @@ Unity Package 与必需 Broker/CLI 的安装和首次使用说明见[仓库使�
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.1.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
