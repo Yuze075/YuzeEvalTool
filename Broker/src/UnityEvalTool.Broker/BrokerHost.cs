@@ -51,7 +51,7 @@ internal static class BrokerHost
                     !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    await context.Response.WriteAsync("UnityEvalTool accepts MCP credentials only as a Bearer token list.");
+                    await context.Response.WriteAsync("Yuze Eval Tool accepts MCP credentials only as a Bearer token list.");
                     return;
                 }
                 if (!string.IsNullOrEmpty(tokenList))

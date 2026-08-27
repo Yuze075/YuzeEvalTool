@@ -1,0 +1,22 @@
+{
+  "name": "UnityAgentTool.Editor",
+  "rootNamespace": "YuzeToolkit.UnityAgent",
+  "references": [
+    "UnityAgentTool",
+    "UnityEvalTool",
+    "UnityEvalTool.Broker",
+    "UnityEvalTool.Editor.Broker",
+    "YuzeLogTool"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

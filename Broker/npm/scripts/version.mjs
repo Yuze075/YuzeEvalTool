@@ -16,15 +16,15 @@ export function resolveAndValidateVersion(brokerRoot) {
   }
 
   const unityManifest = JSON.parse(readFileSync(
-    join(repositoryRoot, 'Packages/com.yuzetoolkit.unityevaltool/package.json'), 'utf8'));
+    join(repositoryRoot, 'Packages/com.yuzetoolkit.yuzeevaltool/package.json'), 'utf8'));
   const npmManifest = JSON.parse(readFileSync(join(brokerRoot, 'npm/root/package.json'), 'utf8'));
   const directoryProps = readFileSync(join(brokerRoot, 'Directory.Build.props'), 'utf8');
   const brokerProtocolSource = readFileSync(join(brokerRoot,
     'src/UnityEvalTool.Broker/BrokerConstants.cs'), 'utf8');
   const unityVersionSource = readFileSync(join(repositoryRoot,
-    'Packages/com.yuzetoolkit.unityevaltool/Runtime/Core/UnityEvalToolVersion.cs'), 'utf8');
+    'Packages/com.yuzetoolkit.yuzeevaltool/Runtime/Core/UnityEvalToolVersion.cs'), 'utf8');
   const unityProtocolSource = readFileSync(join(repositoryRoot,
-    'Packages/com.yuzetoolkit.unityevaltool/Runtime/Broker/BrokerProtocolUtility.cs'), 'utf8');
+    'Packages/com.yuzetoolkit.yuzeevaltool/Runtime/Broker/BrokerProtocolUtility.cs'), 'utf8');
 
   const mismatches = [];
   if (unityManifest.version !== version) mismatches.push(`Unity package=${unityManifest.version}`);

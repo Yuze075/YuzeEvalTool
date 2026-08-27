@@ -1,12 +1,12 @@
 # @yuzetoolkit/unityevaltool
 
-[English](README.md) | **简体中文** | [完整文档](https://github.com/Yuze075/UnityEvalTool/blob/main/README_zh.md)
+[English](README.md) | **简体中文** | [完整文档](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md)
 
-[UnityEvalTool](https://github.com/Yuze075/UnityEvalTool) 的原生 C# Broker、Streamable HTTP
+[Yuze Eval Tool](https://github.com/Yuze075/YuzeEvalTool) 的原生 C# Broker、Streamable HTTP
 MCP Server 和 `unity` CLI。npm 入口包会为 macOS、Linux 或 Windows 的 x64/arm64
 选择匹配的原生包。
 
-每个需要使用 UnityEvalTool 的 Unity 项目还必须安装 Unity 侧 UPM Package。
+每个需要使用 Yuze Eval Tool 的 Unity 项目还必须安装 Unity 侧 UPM Package。
 
 ## 安装
 
@@ -24,7 +24,7 @@ macOS 使用 LaunchAgent，Linux 使用 systemd user unit，Windows 使用计划
 通过 Unity Package Manager 添加 Unity 侧 Package：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7
 ```
 
 打开 Unity 项目并等待编译完成，然后执行 `unity list`。只有看到该 Editor 才完成
@@ -64,8 +64,8 @@ Broker 会把传入值保存到 `~/.unityevaltool/auth.json`，之后可省略 H
 `~/.unityevaltool/config.json` 用 `maxStoredTokens` 调整，硬上限 32。Broker 只转发候选值；
 每个 Unity 自行验证，匹配前保持可发现但不可执行。MCP 流程始终是
 `unity_status` → `unity_connect` → `eval`；必须先发现并明确选择。详见
-[使用指南](https://github.com/Yuze075/UnityEvalTool/blob/main/README_zh.md) 和
-[Broker 协议](https://github.com/Yuze075/UnityEvalTool/blob/main/Packages/com.yuzetoolkit.unityevaltool/docs/BROKER_PROTOCOL_zh.md)。
+[使用指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md) 和
+[Broker 协议](https://github.com/Yuze075/YuzeEvalTool/blob/main/Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
 
 ## 服务管理
 
@@ -93,4 +93,4 @@ npm uninstall --global @yuzetoolkit/unityevaltool
 
 ## 许可证
 
-[MIT](https://github.com/Yuze075/UnityEvalTool/blob/main/LICENSE)
+[MIT](https://github.com/Yuze075/YuzeEvalTool/blob/main/LICENSE)

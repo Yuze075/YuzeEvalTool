@@ -61,7 +61,7 @@ internal static class InstallMetadataStore
             }
         }
 
-        throw new IOException($"Timed out waiting to update UnityEvalTool install metadata '{lockPath}'.", lastError);
+        throw new IOException($"Timed out waiting to update Yuze Eval Tool install metadata '{lockPath}'.", lastError);
     }
 
     private static void WriteAtomically(string path, string contents)
@@ -102,7 +102,7 @@ internal static class InstallMetadataStore
             }
         }
 
-        throw new IOException($"Timed out publishing UnityEvalTool install metadata '{path}'.", lastError);
+        throw new IOException($"Timed out publishing Yuze Eval Tool install metadata '{path}'.", lastError);
     }
 
     private static void SetOwnerOnlyMode(string path)

@@ -1,9 +1,9 @@
 # @yuzetoolkit/unityevaltool
 
-**English** | [简体中文](README_zh.md) | [Full documentation](https://github.com/Yuze075/UnityEvalTool#readme)
+**English** | [简体中文](README_zh.md) | [Full documentation](https://github.com/Yuze075/YuzeEvalTool#readme)
 
 Native C# Broker, Streamable HTTP MCP server, and `unity` CLI for
-[UnityEvalTool](https://github.com/Yuze075/UnityEvalTool). The npm entry package selects a
+[Yuze Eval Tool](https://github.com/Yuze075/YuzeEvalTool). The npm entry package selects a
 matching native package for macOS, Linux, or Windows on x64 or arm64.
 
 The Unity-side UPM package must also be installed in every Unity project you want to use.
@@ -24,7 +24,7 @@ because npm dependency lifecycle scripts may be disabled; check the command's ex
 Add the Unity-side package through Unity Package Manager:
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7
 ```
 
 Open the Unity project, wait for compilation, then run `unity list`. Seeing that Editor is
@@ -67,8 +67,8 @@ directly. Its default capacity is five tokens; set `maxStoredTokens` in
 each Unity verifies its own token and stays discoverable but non-executable while pending.
 The MCP workflow is always
 `unity_status` → `unity_connect` → `eval`; discovery and explicit selection are mandatory.
-See the [user guide](https://github.com/Yuze075/UnityEvalTool#readme) and
-[protocol specification](https://github.com/Yuze075/UnityEvalTool/blob/main/Packages/com.yuzetoolkit.unityevaltool/docs/BROKER_PROTOCOL.md).
+See the [user guide](https://github.com/Yuze075/YuzeEvalTool#readme) and
+[protocol specification](https://github.com/Yuze075/YuzeEvalTool/blob/main/Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL.md).
 
 ## Service management
 
@@ -97,4 +97,4 @@ If the first command fails, resolve the reported service error before continuing
 
 ## License
 
-[MIT](https://github.com/Yuze075/UnityEvalTool/blob/main/LICENSE)
+[MIT](https://github.com/Yuze075/YuzeEvalTool/blob/main/LICENSE)

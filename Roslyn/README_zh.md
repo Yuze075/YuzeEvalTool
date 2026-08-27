@@ -1,4 +1,4 @@
-# UnityEvalTool Roslyn Source Generator
+# Yuze Eval Tool Roslyn Source Generator
 
 [English](README.md) | **简体中文** | [使用指南](../README_zh.md)
 
@@ -6,7 +6,7 @@ Source Generator 会读取带 `YuzeToolkit.EvalToolAttribute` 的 partial C# Too
 以及带 `YuzeToolkit.EvalFunctionAttribute` 的方法。它生成 `EvalToolRegistry`
 使用的 `IEvalTool` 元数据，包括函数描述、参数和安全声明。
 
-生成的 Analyzer DLL 会提交到 UnityEvalTool UPM Package，因此通过 Git 安装 UPM Package
+生成的 Analyzer DLL 会提交到 Yuze Eval Tool UPM Package，因此通过 Git 安装 UPM Package
 时不需要额外构建。
 
 ## 前置条件
@@ -34,7 +34,7 @@ Roslyn/src/UnityEvalTool.SourceGenerator/bin/Release/netstandard2.0/UnityEvalToo
 Unity 会导入以下已提交 Analyzer：
 
 ```text
-Packages/com.yuzetoolkit.unityevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
+Packages/com.yuzetoolkit.yuzeevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
 ```
 
 修改 Generator 源码后，以 Release 构建并用新 DLL 替换该文件。保留现有 `.meta`
@@ -45,7 +45,7 @@ Packages/com.yuzetoolkit.unityevaltool/Analyzers/UnityEvalTool.SourceGenerator.d
 
 ```bash
 dotnet test Roslyn/UnityEvalToolRoslyn.sln -c Release --artifacts-path <temporary-output-directory>
-cmp <temporary-output-directory>/bin/UnityEvalTool.SourceGenerator/release/UnityEvalTool.SourceGenerator.dll Packages/com.yuzetoolkit.unityevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
+cmp <temporary-output-directory>/bin/UnityEvalTool.SourceGenerator/release/UnityEvalTool.SourceGenerator.dll Packages/com.yuzetoolkit.yuzeevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
 ```
 
 如果当前平台没有 `cmp`，使用等价的二进制比较命令。如果存在差异，表示已提交的

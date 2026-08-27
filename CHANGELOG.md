@@ -35,15 +35,15 @@
   surfaces, request-time exposure filtering, execution-time enforcement, bounded file roots, and protected deletion.
 - Add SHA-256 guarded atomic `file_apply_patch`, safe `unity_snapshot` / `unity_scene_query` inspection Tools,
   explicit `AgentTurnResult`, complete Host stream forwarding, and compilation-resume failure detection.
-- Add six focused UnityAgentTool EditMode tests for policy, registration lifetime, path boundaries, exact patching,
+- Add six focused Yuze Agent Tool EditMode tests for policy, registration lifetime, path boundaries, exact patching,
   terminal failure results, and Tool execution events; bump the Agent package to 0.3.0.
 - Let each AGENTS.md and Skill root opt in or out of the `.unityagenttool` namespace, include every package-default
   root in Player content, and make the project defaults resolve directly from ProjectRoot.
 - Render long Tool arguments and results as bounded plain-text chunks inside a capped scroll region so one UI Toolkit
   text element cannot exceed Unity 2022.3's vertex limit.
-- Make the package JSON the single built-in source for provider-free Unity Agent defaults, add an optional
+- Make the package JSON the single built-in source for provider-free Yuze Agent Tool defaults, add an optional
   project Resources override, and rebuild missing or invalid machine settings while retaining malformed files.
-- Unify Project Settings persistence with the Unity Agent workspace action that explicitly overwrites the
+- Unify Project Settings persistence with the Yuze Agent Tool workspace action that explicitly overwrites the
   provider-free project defaults.
 - Keep settings, secrets, histories, and compilation recovery under
   `Application.persistentDataPath/.unityagenttool`, migrating data from the previous direct persistent-data layout.
@@ -91,8 +91,8 @@
   assembly, and regenerate the committed analyzer so byte-for-byte validation is stable
   across repository layouts.
 - Correct committed-version evaluation in build automation before package validation.
-- Prepare version `2.0.2`: UnityEvalTool, Broker, and npm packages use 2.0.2;
-  UnityDebugTool 1.0.1 depends on UnityEvalTool 2.0.2.
+- Prepare version `2.0.2`: Yuze Eval Tool, Broker, and npm packages use 2.0.2;
+  UnityDebugTool 1.0.1 depends on Yuze Eval Tool 2.0.2.
 - Make multi-package artifact validation SHA-bound, concurrency-safe, smoke-tested,
   version-preflighted, and recoverable when an immutable artifact already exists.
 - Store the committed Unity analyzer as a normal Git blob so UPM Git installs and binary
@@ -120,7 +120,7 @@
 - Preserve authenticated arbitrary JavaScript eval in supported non-WebGL Release Players
   as an intentional runtime contract independent of the optional UnityDebugTool UI.
 - Add `com.yuzetoolkit.unitydebugtool` under `Packages` so the runtime debug UI and
-  UnityEvalTool share one source repository while retaining package-specific READMEs.
+  Yuze Eval Tool share one source repository while retaining package-specific READMEs.
 - Keep MCP/CLI executable in `CompilationFailed` repair mode through the last successful
   Unity assemblies while continuing to reject compile/import/reload transitions.
 - Clarify event-driven compilation waits and same-process handle reuse across registry
@@ -159,7 +159,7 @@
   Windows Scheduled Tasks.
 - Add npm packaging for macOS, Linux, and Windows on x64 and arm64, with a six-platform
   artifact build matrix.
-- Move the Unity Package Manager package to `Packages/com.yuzetoolkit.unityevaltool` and the
+- Move the Unity Package Manager package to `Packages/com.yuzetoolkit.yuzeevaltool` and the
   Broker source to `Broker`.
 
 This is a protocol and distribution breaking release. Remove legacy UnityCLI installations

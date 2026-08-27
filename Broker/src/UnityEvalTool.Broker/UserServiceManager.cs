@@ -4,6 +4,7 @@ namespace YuzeToolkit.UnityEvalTool.Broker;
 
 internal static class UserServiceManager
 {
+    // Deployed service compatibility ID. This intentionally follows the retained npm/CLI identity.
     private const string ServiceId = "com.yuzetoolkit.unityevaltool";
 
     public static async Task<string> ExecuteAsync(string action, CancellationToken cancellationToken)
@@ -14,7 +15,7 @@ internal static class UserServiceManager
         if (OperatingSystem.IsMacOS()) return await ExecuteMacAsync(action, executable, cancellationToken);
         if (OperatingSystem.IsLinux()) return await ExecuteLinuxAsync(action, executable, cancellationToken);
         if (OperatingSystem.IsWindows()) return await ExecuteWindowsAsync(action, executable, cancellationToken);
-        throw new PlatformNotSupportedException("UnityEvalTool user services support macOS, Linux, and Windows.");
+        throw new PlatformNotSupportedException("Yuze Eval Tool user services support macOS, Linux, and Windows.");
     }
 
     private static async Task<string> ExecuteMacAsync(string action, string executable,
@@ -116,7 +117,7 @@ internal static class UserServiceManager
     private static async Task<string> ExecuteWindowsAsync(string action, string executable,
         CancellationToken cancellationToken)
     {
-        const string taskName = "UnityEvalTool Broker";
+        const string taskName = "Yuze Eval Tool Broker";
         var taskRun = $"\"{executable}\" broker";
         switch (action)
         {
@@ -174,7 +175,7 @@ internal static class UserServiceManager
 
     internal static string BuildSystemdUnit(string executable) => $"""
 [Unit]
-Description=UnityEvalTool local Broker
+Description=Yuze Eval Tool local Broker
 After=default.target
 
 [Service]
@@ -240,7 +241,7 @@ WantedBy=default.target
         }
 
         throw new InvalidOperationException(
-            $"The user service command completed, but the UnityEvalTool Broker did not become ready on " +
+            $"The user service command completed, but the Yuze Eval Tool Broker did not become ready on " +
             $"{BrokerConstants.Host}:{BrokerConstants.Port}.", lastError);
     }
 }

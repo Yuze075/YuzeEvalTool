@@ -17,6 +17,6 @@ try {
       : `service uninstall exited with status ${result.status}`);
   }
 } catch (error) {
-  console.error(`UnityEvalTool service removal failed: ${error.message}`);
+  console.error(`Yuze Eval Tool service removal failed: ${error.message}`);
   process.exitCode = 1;
 }

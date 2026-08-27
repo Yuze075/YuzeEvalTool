@@ -5,4 +5,4 @@
 # embedding RelicLight repository tracks *.dll with LFS, but the standalone
 # UnityEvalTool Git tree must contain the real DLL so Git URL installs and
 # GitHub Actions checkouts work without an external LFS object.
-Packages/com.yuzetoolkit.unityevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll -lfs -filter -diff -merge -text
+Packages/com.yuzetoolkit.yuzeevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll -lfs -filter -diff -merge -text

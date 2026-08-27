@@ -1,4 +1,4 @@
-name: Release UnityEvalTool
+name: Release Yuze Eval Tool
 
 on:
   workflow_dispatch:
@@ -50,7 +50,7 @@ jobs:
       - name: Test Roslyn source generator
         run: dotnet test Roslyn/UnityEvalToolRoslyn.sln -c Release --artifacts-path "$RUNNER_TEMP/unityevaltool-roslyn"
       - name: Verify committed Unity analyzer
-        run: cmp "$RUNNER_TEMP/unityevaltool-roslyn/bin/UnityEvalTool.SourceGenerator/release/UnityEvalTool.SourceGenerator.dll" Packages/com.yuzetoolkit.unityevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
+        run: cmp "$RUNNER_TEMP/unityevaltool-roslyn/bin/UnityEvalTool.SourceGenerator/release/UnityEvalTool.SourceGenerator.dll" Packages/com.yuzetoolkit.yuzeevaltool/Analyzers/UnityEvalTool.SourceGenerator.dll
 
   native:
     needs: validate
@@ -293,5 +293,5 @@ jobs:
           if gh release view "v$VERSION" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "v$VERSION" packages/*.tgz --repo "${{ github.repository }}" --clobber
           else
-            gh release create "v$VERSION" packages/*.tgz --repo "${{ github.repository }}" --target "${{ github.sha }}" --generate-notes --title "UnityEvalTool v$VERSION"
+            gh release create "v$VERSION" packages/*.tgz --repo "${{ github.repository }}" --target "${{ github.sha }}" --generate-notes --title "Yuze Eval Tool v$VERSION"
           fi

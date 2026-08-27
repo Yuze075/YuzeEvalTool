@@ -17,6 +17,6 @@ try {
       : `service install exited with status ${result.status}`);
   }
 } catch (error) {
-  console.error(`UnityEvalTool service installation failed: ${error.message}`);
+  console.error(`Yuze Eval Tool service installation failed: ${error.message}`);
   process.exitCode = 1;
 }

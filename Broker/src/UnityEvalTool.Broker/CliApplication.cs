@@ -313,7 +313,7 @@ internal static class CliApplication
         : StringComparison.Ordinal;
 
     private const string HelpText = """
-UnityEvalTool Broker CLI
+Yuze Eval Tool Broker CLI
 
   unity --token <token[/token...]> [command]
                                 Persist one or more Unity project tokens before continuing.

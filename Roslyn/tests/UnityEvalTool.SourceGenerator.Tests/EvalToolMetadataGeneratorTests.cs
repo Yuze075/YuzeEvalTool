@@ -166,7 +166,7 @@ public sealed partial class AsyncTool
         public void GeneratesMetadataForBuiltInUnityEvalToolSources()
         {
             var packageRoot = FindPackageRoot();
-            var files = Directory.GetFiles(Path.Combine(packageRoot, "com.yuzetoolkit.unityevaltool"), "*.cs", SearchOption.AllDirectories)
+            var files = Directory.GetFiles(Path.Combine(packageRoot, "com.yuzetoolkit.yuzeevaltool"), "*.cs", SearchOption.AllDirectories)
                 .Where(path =>
                     path.EndsWith("Tool.cs", StringComparison.Ordinal) ||
                     path.EndsWith("Tools.cs", StringComparison.Ordinal))
@@ -284,10 +284,10 @@ namespace YuzeToolkit
                 .GetCustomAttributes<AssemblyMetadataAttribute>()
                 .SingleOrDefault(attribute => attribute.Key == "UnityEvalToolPackageRoot")?.Value;
             if (!string.IsNullOrWhiteSpace(configured) &&
-                Directory.Exists(Path.Combine(configured, "com.yuzetoolkit.unityevaltool")))
+                Directory.Exists(Path.Combine(configured, "com.yuzetoolkit.yuzeevaltool")))
                 return configured;
             throw new DirectoryNotFoundException(
-                $"Could not locate the configured UnityEvalTool Packages directory '{configured}'.");
+                $"Could not locate the configured Yuze Eval Tool Packages directory '{configured}'.");
         }
 
         private sealed class TestGeneratorResult

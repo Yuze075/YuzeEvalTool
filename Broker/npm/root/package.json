@@ -1,7 +1,7 @@
 {
   "name": "@yuzetoolkit/unityevaltool",
   "version": "2.0.7",
-  "description": "Local Broker, MCP server and CLI for UnityEvalTool",
+  "description": "Local Broker, MCP server and CLI for Yuze Eval Tool",
   "keywords": [
     "unity",
     "mcp",
@@ -15,13 +15,13 @@
     "url": "https://github.com/Yuze075"
   },
   "license": "MIT",
-  "homepage": "https://github.com/Yuze075/UnityEvalTool#readme",
+  "homepage": "https://github.com/Yuze075/YuzeEvalTool#readme",
   "bugs": {
-    "url": "https://github.com/Yuze075/UnityEvalTool/issues"
+    "url": "https://github.com/Yuze075/YuzeEvalTool/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yuze075/UnityEvalTool.git",
+    "url": "git+https://github.com/Yuze075/YuzeEvalTool.git",
     "directory": "Broker/npm/root"
   },
   "bin": {

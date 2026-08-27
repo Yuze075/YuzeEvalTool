@@ -32,15 +32,15 @@
   请求前暴露过滤、执行时二次校验、有界文件根与受保护删除。
 - 增加由 SHA-256 保护的原子 `file_apply_patch`、安全的 `unity_snapshot` / `unity_scene_query`
   查询 Tool、明确 `AgentTurnResult`、完整 Host 流事件转发与编译续跑失败识别。
-- 增加 6 个定向 UnityAgentTool EditMode 测试，覆盖策略、注册生命期、路径边界、精确 Patch、
+- 增加 6 个定向 Yuze Agent Tool EditMode 测试，覆盖策略、注册生命期、路径边界、精确 Patch、
   Turn 失败结果与 Tool 执行事件；Agent Package 版本升至 0.3.0。
 - 让每条 AGENTS.md 与 Skill 根独立选择是否使用 `.unityagenttool` 命名空间，将四条 Package 默认根全部加入
   Player 内容，并让 ProjectRoot 默认根直接从项目根解析。
 - 将长 Tool 参数与结果拆成有界纯文本块，并放入限制高度的滚动区域，避免单个 UI Toolkit 文本元素超过
   Unity 2022.3 的顶点上限。
-- 将 Package JSON 设为 Unity Agent 无 Provider 默认值的唯一内置来源，增加可选的项目 Resources 覆盖，
+- 将 Package JSON 设为 Yuze Agent Tool 无 Provider 默认值的唯一内置来源，增加可选的项目 Resources 覆盖，
   并在本机配置缺失或损坏时重建，同时保留损坏文件。
-- 让 Project Settings 持久化与 Unity Agent 工作台中显式覆盖无 Provider 项目默认值的动作共用同一入口。
+- 让 Project Settings 持久化与 Yuze Agent Tool 工作台中显式覆盖无 Provider 项目默认值的动作共用同一入口。
 - 将设置、密钥、历史与编译恢复数据统一放在 `Application.persistentDataPath/.unityagenttool`，并从上一版直接
   写入 persistentDataPath 的布局迁移数据。
 - 使用稳定 `AgentPathBase`、可选 `.unityagenttool` 命名空间、Skill 固定 `.agents/skills` 后缀与 JSON 相对
@@ -79,8 +79,8 @@
 - 锁定 .NET SDK 10.0.300，从 SourceGenerator 程序集中排除源码控制 revision，并重新生成
   已提交 Analyzer，使字节级验证不受仓库布局影响。
 - 修正构建自动化中已提交版本的求值方式，再执行 Package 校验。
-- 准备版本 `2.0.2`：UnityEvalTool、Broker 与 npm Package 使用 2.0.2；
-  UnityDebugTool 1.0.1 依赖 UnityEvalTool 2.0.2。
+- 准备版本 `2.0.2`：Yuze Eval Tool、Broker 与 npm Package 使用 2.0.2；
+  UnityDebugTool 1.0.1 依赖 Yuze Eval Tool 2.0.2。
 - 让多 Package 产物校验具备 SHA 绑定、并发安全、冒烟测试、版本预检，以及遇到已有不可变
   产物时的可恢复性。
 - 将已提交 Unity Analyzer 存为普通 Git blob，确保 UPM Git 安装和二进制校验获得真实 DLL。
@@ -101,7 +101,7 @@
   保留。视觉布局 metadata 不再隐式创建 Eval Tool，调用方使用显式 Tool 树。
 - 将受支持的非 WebGL Release Player 中经认证的任意 JavaScript eval 作为正式 Runtime 契约保留，
   不依赖可选 UnityDebugTool UI。
-- 在 `Packages` 下增加 `com.yuzetoolkit.unitydebugtool`，让 Runtime Debug UI 与 UnityEvalTool
+- 在 `Packages` 下增加 `com.yuzetoolkit.unitydebugtool`，让 Runtime Debug UI 与 Yuze Eval Tool
   共享一个源码仓库，同时保留各自 Package README。
 - 编译失败时通过上一次成功的 Unity 程序集保持 MCP/CLI 的 `CompilationFailed` repair mode
   可执行，同时继续拒绝编译/导入/重载过渡。
@@ -129,7 +129,7 @@
   交互控制台。
 - 增加 macOS LaunchAgent、Linux systemd user unit 和 Windows 计划任务的当前用户服务集成。
 - 增加面向 macOS、Linux 和 Windows x64/arm64 的 npm 打包及六平台产物构建矩阵。
-- 将 Unity Package Manager Package 移到 `Packages/com.yuzetoolkit.unityevaltool`，将 Broker 源码移到 `Broker`。
+- 将 Unity Package Manager Package 移到 `Packages/com.yuzetoolkit.yuzeevaltool`，将 Broker 源码移到 `Broker`。
 
 该版本对协议和分发方式都有破坏性变更。请移除旧 UnityCLI 安装，并把 MCP Client 配置为经认证的
 2347 端口。

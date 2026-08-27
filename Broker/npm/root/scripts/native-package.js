@@ -15,7 +15,7 @@ function resolveNativeExecutable() {
   const key = `${process.platform}-${process.arch}`;
   const packageName = supported.get(key);
   if (!packageName) {
-    throw new Error(`UnityEvalTool does not publish a native binary for ${key}.`);
+    throw new Error(`Yuze Eval Tool does not publish a native binary for ${key}.`);
   }
 
   let manifest;

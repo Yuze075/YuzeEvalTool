@@ -1,4 +1,4 @@
-# UnityEvalTool
+# Yuze Eval Tool
 
 [![Unity 2022.3+](https://img.shields.io/badge/Unity-2022.3%2B-222?logo=unity)](https://unity.com/releases/editor/archive)
 [![npm](https://img.shields.io/badge/npm-%40yuzetoolkit%2Funityevaltool-CB3837?logo=npm)](https://www.npmjs.com/package/@yuzetoolkit/unityevaltool)
@@ -6,21 +6,21 @@
 
 [English](README.md) | **简体中文**
 
-UnityEvalTool 让 AI Agent 和终端用户检查、操作本机的 Unity Editor 与 Player。
+Yuze Eval Tool 让 AI Agent 和终端用户检查、操作本机的 Unity Editor 与 Player。
 原生的电脑级 Broker 提供 MCP 端点和 `unity` CLI，Unity Package Manager
 包则让每个 Unity 进程向 Broker 注册。编译、Domain Reload、进程替换和临时断线
 都会被明确报告，不再被 Unity Editor 内部的网络监听器遮蔽。
 
-仓库还包含可选的 UnityAgentTool Package，它统一拥有 Editor/Runtime Agent 工作台、
+仓库还包含可选的 Yuze Agent Tool Package，它统一拥有 Editor/Runtime Agent 工作台、
 DebugPanel、Command Line、日志与系统监控。
 
 ## 需要安装的组件
 
 | 组件 | 用途 | 是否必需 |
 |---|---|---|
-| `com.yuzetoolkit.unityevaltool` | Unity 侧 Broker Client、状态报告、PuerTS eval session、CLI 命令和 helper module | 是 |
+| `com.yuzetoolkit.yuzeevaltool` | Unity 侧 Broker Client、状态报告、PuerTS eval session、CLI 命令和 helper module | 是 |
 | `@yuzetoolkit/unityevaltool` | 原生 Broker、MCP Server、`unity` CLI 和当前用户后台服务 | 是 |
-| `com.yuzetoolkit.unityagenttool` | 统一 Agent 工作台、Runtime DebugPanel、性能/系统 HUD、日志、命令行和 Tool 目录 | 否 |
+| `com.yuzetoolkit.yuzeagenttool` | 统一 Agent 工作台、Runtime DebugPanel、性能/系统 HUD、日志、命令行和 Tool 目录 | 否 |
 
 Broker/CLI 支持 macOS、Linux 和 Windows 的 x64 与 arm64。Unity Package 需要
 Unity 2022.3 或更高版本。安装 Broker 需要 Node.js 18 或更高版本与 npm。WebGL 不是
@@ -30,7 +30,7 @@ Unity 2022.3 或更高版本。安装 Broker 需要 Node.js 18 或更高版本�
 
 ### 1. 准备 PuerTS backend
 
-UnityEvalTool 需要 `com.tencent.puerts.core` 3.0.2，以及且仅需一个兼容的 PuerTS
+Yuze Eval Tool 需要 `com.tencent.puerts.core` 3.0.2，以及且仅需一个兼容的 PuerTS
 JavaScript backend。已验证的组合是 `com.tencent.puerts.quickjs` 3.0.2 和与之
 匹配的 core Package；也可使用同一 PuerTS 发行系列中受支持的 V8 backend/core。
 不得同时安装 QuickJS 与 V8 backend。
@@ -43,14 +43,14 @@ JavaScript backend。已验证的组合是 `com.tencent.puerts.quickjs` 3.0.2 �
 [PuerTS 官方安装指南](https://github.com/Tencent/puerts/blob/Unity_v3.0.2/doc/unity/en/install.md)
 也说明了其它 backend 的安装方式。
 
-UnityEvalTool Package 会声明 core 依赖，但不会替项目选择 JavaScript backend。
+Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScript backend。
 
-### 2. 添加 UnityEvalTool Package
+### 2. 添加 Yuze Eval Tool Package
 
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -58,13 +58,13 @@ https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unit
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.unityevaltool": "https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityevaltool#v2.0.7"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v2.0.7"
   }
 }
 ```
 
 如果要直接针对本地 clone 开发，使用 Package Manager 的 **Add package from disk**，
-选择 clone 中的 `Packages/com.yuzetoolkit.unityevaltool/package.json`。
+选择 clone 中的 `Packages/com.yuzetoolkit.yuzeevaltool/package.json`。
 
 ### 3. 安装 Broker 与 CLI
 
@@ -82,7 +82,7 @@ lifecycle script，服务安装是一条明确命令；继续前应确认 `unity
 
 ### 4. 验证 Unity 连接
 
-打开一个已安装 UnityEvalTool Package 的项目，等待 Unity 编译完成，然后执行：
+打开一个已安装 Yuze Eval Tool Package 的项目，等待 Unity 编译完成，然后执行：
 
 ```bash
 unity doctor
@@ -93,7 +93,7 @@ unity connect <instance-id> -- Runtime getState
 `unity doctor` 应报告 Broker 可连接；`unity list` 应列出打开的 Editor、项目路径和
 当前 phase；把该行 ID 替换到最后一条命令中。最后一条命令用于证明 Broker 到 Unity 的端到端
 执行可用。也可以在 Editor 中
-打开 **YuzeToolkit > UnityEvalTool**，检查注册、连接状态和 eval 可用性。如果没有实例，
+打开 **YuzeToolkit > Yuze Eval Tool**，检查注册、连接状态和 eval 可用性。如果没有实例，
 请检查 `unity service status`，确认 Package 已成功编译，并确认 loopback 端口 `2347`
 未被其它进程占用。
 
@@ -123,7 +123,7 @@ http://127.0.0.1:2347/mcp
 ```
 
 项目 token 验证默认关闭，因此 MCP Client 通常只需配置端点 URL。若要保护某个项目或
-发行 Player，请打开 **Project Settings > YuzeToolkit > UnityEvalTool**，生成或输入 token，
+发行 Player，请打开 **Project Settings > YuzeToolkit > Yuze Eval Tool**，生成或输入 token，
 Apply 后开启验证。Unity 只会把加盐 verifier 保存到
 `Assets/Resources/UnityEvalToolAuthorizationSettings.asset`，原始 token 不会写入项目。
 Unity 会把该资源直接打进 Player，并通过标准 Resources API 读取。
@@ -158,36 +158,36 @@ async function execute() {
 内置 `tools://` helper 覆盖常见 Unity 工作流。其中 `tools://Editor/Profiler` 可从全局 Profiler
 registry 枚举精确 category/name，并在 PlayMode 中执行有界跨帧主线程 CPU
 `ProfilerRecorder` session，无需开启全局 Profiler recording。详见
-[helper 参考](Packages/com.yuzetoolkit.unityevaltool/docs/HELPER_MODULES_zh.md)。
+[helper 参考](Packages/com.yuzetoolkit.yuzeevaltool/docs/HELPER_MODULES_zh.md)。
 
 同一 Unity 进程发生 Domain Reload 或 registry 变化后应继续复用有效 handle；只有
 handle 过期、失效或 Unity 进程被替换时才重新连接。修改型 `eval` 如果在派发后
-连接中断，不得自动重试，因为其结果可能不确定。详见[进阶使用](Packages/com.yuzetoolkit.unityevaltool/docs/ADVANCED_USAGE_zh.md)
-和 [Broker 协议](Packages/com.yuzetoolkit.unityevaltool/docs/BROKER_PROTOCOL_zh.md)。
+连接中断，不得自动重试，因为其结果可能不确定。详见[进阶使用](Packages/com.yuzetoolkit.yuzeevaltool/docs/ADVANCED_USAGE_zh.md)
+和 [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
 
 ## 可选的 Agent 与 Runtime Debug UI
 
-安装 UnityEvalTool 后，使用 **Add package from git URL** 添加 UnityAgentTool：
+安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/UnityEvalTool.git?path=/Packages/com.yuzetoolkit.unityagenttool#v2.0.7
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v2.0.7
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻
 Prefab。面板不会自动创建。模块、持久化模型、默认快捷键和 API 详见
-[UnityAgentTool Package README](Packages/com.yuzetoolkit.unityagenttool/README_zh.md)。
+[Yuze Agent Tool Package README](Packages/com.yuzetoolkit.yuzeagenttool/README_zh.md)。
 
-默认快捷键为：`F8` 打开 Unity Agent，`F10` 打开 Performance 与 System Information HUD。
+默认快捷键为：`F8` 打开 Yuze Agent Tool，`F10` 打开 Performance 与 System Information HUD。
 
 ## 安全边界
 
 Broker 只绑定 `127.0.0.1:2347`，并拒绝非 loopback Host/Origin。Broker 本身不做全局鉴权，
 只负责保存并转发候选 token；每个 Unity 项目或 Player 自己决定是否要求验证，并且只有某个
-候选 token 能生成已保存的加盐 verifier 后才接受操作。包含 UnityEvalTool 的、受支持的非
+候选 token 能生成已保存的加盐 verifier 后才接受操作。包含 Yuze Eval Tool 的、受支持的非
 WebGL Release Player 会有意向 Broker 注册，并保留任意 JavaScript eval 能力；它不仅限于
-Development Build，也不依赖 UnityAgentTool。该 verifier 能阻止不知道 token 的普通 Broker
+Development Build，也不依赖 Yuze Agent Tool。该 verifier 能阻止不知道 token 的普通 Broker
 访问，但不能抵御能够修改 Player 二进制的攻击者。详见
-[Editor 与 Player 注册](Packages/com.yuzetoolkit.unityevaltool/docs/RUNTIME_SERVICES_zh.md)。
+[Editor 与 Player 注册](Packages/com.yuzetoolkit.yuzeevaltool/docs/RUNTIME_SERVICES_zh.md)。
 
 ## 服务管理与卸载
 
@@ -228,13 +228,13 @@ node npm/scripts/pack-root.mjs
 
 ## 文档
 
-- [UnityEvalTool Package](Packages/com.yuzetoolkit.unityevaltool/README_zh.md)
-- [UnityAgentTool Package](Packages/com.yuzetoolkit.unityagenttool/README_zh.md)
-- [进阶使用](Packages/com.yuzetoolkit.unityevaltool/docs/ADVANCED_USAGE_zh.md)
-- [Helper module 参考](Packages/com.yuzetoolkit.unityevaltool/docs/HELPER_MODULES_zh.md)
-- [Editor 与 Player 注册](Packages/com.yuzetoolkit.unityevaltool/docs/RUNTIME_SERVICES_zh.md)
-- [Broker 协议](Packages/com.yuzetoolkit.unityevaltool/docs/BROKER_PROTOCOL_zh.md)
-- [项目架构](Packages/com.yuzetoolkit.unityevaltool/docs/PROJECT_DESIGN_zh.md)
+- [Yuze Eval Tool Package](Packages/com.yuzetoolkit.yuzeevaltool/README_zh.md)
+- [Yuze Agent Tool Package](Packages/com.yuzetoolkit.yuzeagenttool/README_zh.md)
+- [进阶使用](Packages/com.yuzetoolkit.yuzeevaltool/docs/ADVANCED_USAGE_zh.md)
+- [Helper module 参考](Packages/com.yuzetoolkit.yuzeevaltool/docs/HELPER_MODULES_zh.md)
+- [Editor 与 Player 注册](Packages/com.yuzetoolkit.yuzeevaltool/docs/RUNTIME_SERVICES_zh.md)
+- [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)
+- [项目架构](Packages/com.yuzetoolkit.yuzeevaltool/docs/PROJECT_DESIGN_zh.md)
 - [Broker 构建与打包](Broker/README_zh.md)
 - [Roslyn Source Generator](Roslyn/README_zh.md)
 - [变更记录](CHANGELOG_zh.md)

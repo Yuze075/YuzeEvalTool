@@ -19,7 +19,7 @@ const result = spawnSync(executable, process.argv.slice(2), {
 });
 
 if (result.error) {
-  console.error(`Unable to launch UnityEvalTool native executable: ${result.error.message}`);
+  console.error(`Unable to launch Yuze Eval Tool native executable: ${result.error.message}`);
   process.exit(1);
 }
 

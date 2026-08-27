@@ -49,11 +49,11 @@ writeFileSync(join(stage, 'package.json'), JSON.stringify({
     url: 'https://github.com/Yuze075'
   },
   license: 'MIT',
-  homepage: 'https://github.com/Yuze075/UnityEvalTool#readme',
-  bugs: { url: 'https://github.com/Yuze075/UnityEvalTool/issues' },
+  homepage: 'https://github.com/Yuze075/YuzeEvalTool#readme',
+  bugs: { url: 'https://github.com/Yuze075/YuzeEvalTool/issues' },
   repository: {
     type: 'git',
-    url: 'git+https://github.com/Yuze075/UnityEvalTool.git',
+    url: 'git+https://github.com/Yuze075/YuzeEvalTool.git',
     directory: 'Broker'
   },
   os: [target.os],

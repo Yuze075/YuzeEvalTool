@@ -157,15 +157,15 @@ internal sealed class AuthTokenStore
     private static void ValidateToken(string token)
     {
         if (token.Length == 0)
-            throw new InvalidDataException("UnityEvalTool token lists cannot contain empty entries.");
+            throw new InvalidDataException("Yuze Eval Tool token lists cannot contain empty entries.");
         if (token.Length > MaxTokenLength)
-            throw new InvalidDataException($"UnityEvalTool tokens cannot exceed {MaxTokenLength} characters.");
+            throw new InvalidDataException($"Yuze Eval Tool tokens cannot exceed {MaxTokenLength} characters.");
         foreach (var character in token)
         {
             var allowed = character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-';
             if (!allowed)
                 throw new InvalidDataException(
-                    "UnityEvalTool tokens may contain only ASCII letters, digits, underscore, and hyphen; slash separates tokens.");
+                    "Yuze Eval Tool tokens may contain only ASCII letters, digits, underscore, and hyphen; slash separates tokens.");
         }
     }
 
@@ -181,11 +181,11 @@ internal sealed class AuthTokenStore
             if (root.TryGetProperty("tokens", out var tokenArray))
             {
                 if (tokenArray.ValueKind != JsonValueKind.Array)
-                    throw new InvalidDataException($"UnityEvalTool auth token file '{path}' has a non-array tokens value.");
+                    throw new InvalidDataException($"Yuze Eval Tool auth token file '{path}' has a non-array tokens value.");
                 foreach (var element in tokenArray.EnumerateArray())
                 {
                     if (element.ValueKind != JsonValueKind.String)
-                        throw new InvalidDataException($"UnityEvalTool auth token file '{path}' contains a non-string token.");
+                        throw new InvalidDataException($"Yuze Eval Tool auth token file '{path}' contains a non-string token.");
                     var token = element.GetString()!;
                     ValidateToken(token);
                     if (!tokens.Contains(token, StringComparer.Ordinal)) tokens.Add(token);
@@ -200,13 +200,13 @@ internal sealed class AuthTokenStore
             else
             {
                 throw new InvalidDataException(
-                    $"UnityEvalTool auth token file '{path}' does not contain a tokens array or legacy token.");
+                    $"Yuze Eval Tool auth token file '{path}' does not contain a tokens array or legacy token.");
             }
             return tokens;
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException($"UnityEvalTool auth token file '{path}' is invalid JSON.", ex);
+            throw new InvalidDataException($"Yuze Eval Tool auth token file '{path}' is invalid JSON.", ex);
         }
     }
 
@@ -220,12 +220,12 @@ internal sealed class AuthTokenStore
                 return DefaultMaxStoredTokens;
             if (!value.TryGetInt32(out var maximum) || maximum is < 1 or > HardMaxStoredTokens)
                 throw new InvalidDataException(
-                    $"UnityEvalTool config maxStoredTokens must be between 1 and {HardMaxStoredTokens}.");
+                    $"Yuze Eval Tool config maxStoredTokens must be between 1 and {HardMaxStoredTokens}.");
             return maximum;
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException($"UnityEvalTool config file '{_configPath}' is invalid JSON.", ex);
+            throw new InvalidDataException($"Yuze Eval Tool config file '{_configPath}' is invalid JSON.", ex);
         }
     }
 
@@ -233,7 +233,7 @@ internal sealed class AuthTokenStore
     {
         if (tokens.Count > maximum)
             throw new InvalidDataException(
-                $"UnityEvalTool stores at most {maximum} tokens; the requested set contains {tokens.Count}.");
+                $"Yuze Eval Tool stores at most {maximum} tokens; the requested set contains {tokens.Count}.");
     }
 
     private void WriteTokensAtomically(IReadOnlyList<string> tokens)
@@ -283,7 +283,7 @@ internal sealed class AuthTokenStore
             }
         }
 
-        throw new IOException($"Timed out publishing UnityEvalTool auth tokens '{_filePath}'.", lastError);
+        throw new IOException($"Timed out publishing Yuze Eval Tool auth tokens '{_filePath}'.", lastError);
     }
 
     private void EnsureDirectory()

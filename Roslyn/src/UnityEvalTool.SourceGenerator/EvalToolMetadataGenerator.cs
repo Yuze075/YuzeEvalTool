@@ -32,7 +32,7 @@ namespace UnityEvalTool.SourceGenerator
         private static readonly DiagnosticDescriptor ToolMustBePartial = new DiagnosticDescriptor(
             "UET001",
             "Eval tool type must be partial",
-            "Eval tool type '{0}' must be partial so UnityEvalTool can generate IEvalTool metadata",
+            "Eval tool type '{0}' must be partial so Yuze Eval Tool can generate IEvalTool metadata",
             "UnityEvalTool",
             DiagnosticSeverity.Error,
             true);

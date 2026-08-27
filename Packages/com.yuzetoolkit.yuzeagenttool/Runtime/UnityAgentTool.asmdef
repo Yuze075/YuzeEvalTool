@@ -1,0 +1,31 @@
+{
+  "name": "UnityAgentTool",
+  "rootNamespace": "YuzeToolkit.UnityAgent",
+  "references": [
+    "UnityEvalTool",
+    "UnityEvalTool.CLI",
+    "Unity.InputSystem",
+    "UnityEngine.UI",
+    "YuzeLogTool"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.inputsystem",
+      "expression": "1.0.0",
+      "define": "YUZE_USE_UNITY_INPUT_SYSTEM"
+    },
+    {
+      "name": "com.unity.ugui",
+      "expression": "1.0.0",
+      "define": "YUZE_USE_UNITY_UGUI"
+    }
+  ],
+  "noEngineReferences": false
+}
