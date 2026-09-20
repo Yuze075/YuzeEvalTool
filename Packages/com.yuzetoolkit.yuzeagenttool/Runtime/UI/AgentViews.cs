@@ -219,7 +219,7 @@ namespace YuzeToolkit.Agent
             header.style.paddingRight = 20;
             header.style.borderBottomWidth = 1;
             header.style.borderBottomColor = AgentUi.Border;
-            _conversationTitle = new Label("Conversation") { style = { flexGrow = 1, minWidth = 0 } };
+            _conversationTitle = new Label("Conversation") { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             _conversationTitle.style.overflow = Overflow.Hidden;
             _conversationTitle.style.textOverflow = TextOverflow.Ellipsis;
             AgentUi.ApplyTypography(_conversationTitle, AgentTypography.PageTitle);
@@ -273,7 +273,8 @@ namespace YuzeToolkit.Agent
             AgentTooltip.Attach(_composer, "Ctrl/Cmd+Enter to send.");
             AgentUi.ApplyTypography(_composer, AgentTypography.Composer, false);
             _composer.style.minHeight = 24;
-            _composer.style.maxHeight = 336;
+            _conversationPage.RegisterCallback<GeometryChangedEvent>(evt =>
+                _composer.style.maxHeight = Mathf.Clamp(evt.newRect.height * 0.35f, 48f, 336f));
             _composer.style.whiteSpace = WhiteSpace.Normal;
             _composer.RegisterValueChangedCallback(_ => OnComposerChanged());
             _composer.RegisterCallback<KeyDownEvent>(evt =>
@@ -284,23 +285,35 @@ namespace YuzeToolkit.Agent
             });
             composer.Add(_composer);
 
-            var controls = new VisualElement();
-            controls.style.flexDirection = FlexDirection.Row;
-            controls.style.flexWrap = Wrap.NoWrap;
-            controls.style.alignItems = Align.Center;
+            var controls = new VisualElement { name = "unity-agent-composer-controls" };
             controls.style.minWidth = 0;
-            controls.style.paddingTop = 2;
-            controls.style.paddingRight = 8;
-            controls.style.paddingBottom = 0;
-            controls.style.paddingLeft = 0;
             controls.style.marginTop = 10;
             composer.Add(controls);
+
+            var models = new VisualElement { name = "unity-agent-composer-models" };
+            models.style.flexDirection = FlexDirection.Row;
+            models.style.alignItems = Align.Center;
+            models.style.minWidth = 0;
+            models.style.flexGrow = 1;
+            controls.Add(models);
+            var actions = new VisualElement { name = "unity-agent-composer-actions" };
+            actions.style.flexDirection = FlexDirection.Row;
+            actions.style.flexWrap = Wrap.Wrap;
+            actions.style.alignItems = Align.Center;
+            actions.style.minWidth = 0;
+            actions.style.flexShrink = 0;
+            controls.Add(actions);
+            var permissions = new VisualElement();
+            permissions.style.flexDirection = FlexDirection.Row;
+            permissions.style.alignItems = Align.Center;
+            permissions.style.flexShrink = 0;
+            actions.Add(permissions);
 
             var attach = AgentUi.IconButton(AgentIconKind.Add, "Attachments are not available in this build.",
                 () => _showError("Attachments unavailable",
                     "This build does not currently support attaching files to a conversation."),
                 28, AgentUi.Surface3, AgentUi.TextSecondary);
-            controls.Add(attach);
+            permissions.Add(attach);
 
             _permission = AgentUi.CompactDropdown(new[]
             {
@@ -308,19 +321,23 @@ namespace YuzeToolkit.Agent
                 AgentPermissionMode.FullAccess.ToString()
             }, "Execution permission");
             _permission.style.width = 146;
+            _permission.style.minWidth = 146;
+            _permission.OpenUpward = true;
             _permission.ValueFormatter = value => value == AgentPermissionMode.ObserveOnly.ToString()
                 ? "Observe only"
                 : value == AgentPermissionMode.ConfirmWrites.ToString()
                     ? "Confirm writes"
                     : "Full access";
             _permission.RegisterValueChangedCallback(_ => SaveConversationSelection());
-            controls.Add(_permission);
+            permissions.Add(_permission);
             var spacer = new VisualElement();
             spacer.style.flexGrow = 1;
-            spacer.style.minWidth = 14;
-            controls.Add(spacer);
+            actions.Add(spacer);
             _provider = AgentUi.CompactDropdown(Array.Empty<string>(), "API provider profile");
-            _provider.style.width = 148;
+            _provider.style.width = 0;
+            _provider.style.flexGrow = 1;
+            _provider.style.minWidth = 92;
+            _provider.OpenUpward = true;
             _provider.ValueFormatter = value => HumanProviderLabel(value);
             _provider.RegisterValueChangedCallback(_ =>
             {
@@ -328,36 +345,51 @@ namespace YuzeToolkit.Agent
                 RunUiTask(RefreshModelsAsync);
                 SaveConversationSelection();
             });
-            controls.Add(_provider);
+            models.Add(_provider);
             _model = AgentUi.CompactDropdown(Array.Empty<string>(),
                 "Choose a remotely discovered model or a curated offline fallback.");
-            _model.style.width = 190;
-            _model.style.flexGrow = 0;
-            _model.style.minWidth = 80;
+            _model.style.width = 0;
+            _model.style.flexGrow = 2;
+            _model.style.minWidth = 112;
             _model.OpenUpward = true;
             _model.RegisterValueChangedCallback(evt =>
             {
                 ApplyChatModelOptions(evt.newValue);
                 SaveConversationSelection();
             });
-            controls.Add(_model);
+            models.Add(_model);
             _refreshModels = AgentUi.IconButton(AgentIconKind.Refresh, "Refresh the model catalog",
                 () => RunUiTask(RefreshModelsAsync), 28, AgentUi.Surface3, AgentUi.TextSecondary);
-            controls.Add(_refreshModels);
+            models.Add(_refreshModels);
+            var submission = new VisualElement();
+            submission.style.flexDirection = FlexDirection.Row;
+            submission.style.alignItems = Align.Center;
+            submission.style.flexShrink = 0;
+            submission.style.marginLeft = StyleKeyword.Auto;
+            actions.Add(submission);
             _effort = AgentUi.CompactDropdown(new[] { "default", "none", "low", "medium", "high", "xhigh" },
                 "Reasoning effort");
-            _effort.style.width = 132;
-            _effort.style.minWidth = 132;
-            _effort.style.maxWidth = 132;
+            _effort.style.width = 114;
+            _effort.style.minWidth = 114;
+            _effort.style.maxWidth = 114;
             _effort.style.flexShrink = 0;
-            _effort.ValueFormatter = value => "Effort: " + HumanEffort(value);
+            _effort.ValueFormatter = HumanEffort;
             _effort.OptionFormatter = HumanEffort;
+            _effort.OpenUpward = true;
             _effort.RegisterValueChangedCallback(_ => SaveConversationSelection());
-            controls.Add(_effort);
+            submission.Add(_effort);
             _action = AgentUi.IconButton(AgentIconKind.Send, "Send", () => RunUiTask(ActAsync), 34,
                 AgentUi.Send, AgentUi.SendForeground);
             _action.style.marginLeft = 7;
-            controls.Add(_action);
+            submission.Add(_action);
+            controls.RegisterCallback<GeometryChangedEvent>(evt =>
+            {
+                var stacked = evt.newRect.width < 680;
+                controls.style.flexDirection = stacked ? FlexDirection.Column : FlexDirection.Row;
+                models.style.marginBottom = stacked ? 6 : 0;
+                models.style.marginRight = stacked ? 0 : 8;
+                actions.style.width = stacked ? Length.Percent(100) : StyleKeyword.Auto;
+            });
 
             _modelSource = new Label("MODEL CATALOG · WAITING");
             AgentUi.ApplyTypography(_modelSource, AgentTypography.Caption);
@@ -412,9 +444,9 @@ namespace YuzeToolkit.Agent
             sidebar.Add(brandRow);
 
             sidebar.Add(CreateWorkspaceNavigation("New conversation", AgentIconKind.Add,
-                BeginNewConversation, showTooltipWhenCollapsed: false));
+                BeginNewConversation));
             sidebar.Add(CreateWorkspaceNavigation("New command line", AgentIconKind.Sliders,
-                () => RunUiTask(CreateCommandLineSessionAsync), showTooltipWhenCollapsed: false));
+                () => RunUiTask(CreateCommandLineSessionAsync)));
             sidebar.Add(CreateWorkspaceNavigation("Debug Panel", AgentIconKind.Provider,
                 () => ShowWorkspace(AgentWorkspacePage.DebugPanel)));
             sidebar.Add(CreateWorkspaceNavigation("Log", AgentIconKind.History,
@@ -449,10 +481,9 @@ namespace YuzeToolkit.Agent
         private static AgentButton CreateWorkspaceNavigation(
             string text,
             AgentIconKind icon,
-            Action clicked,
-            bool showTooltipWhenCollapsed = true)
+            Action clicked)
         {
-            var button = AgentUi.Button(text, showTooltipWhenCollapsed ? text : string.Empty, clicked, 0,
+            var button = AgentUi.Button(text, text, clicked, 0,
                 AgentUi.Transparent,
                 AgentUi.TextSecondary, icon);
             button.style.height = 36;
@@ -1204,9 +1235,9 @@ namespace YuzeToolkit.Agent
             sidebar.style.minWidth = rail ? 56 : 264;
             sidebar.style.maxWidth = rail ? 56 : 420;
             sidebar.style.height = StyleKeyword.Auto;
-            sidebar.style.paddingLeft = rail ? 10 : 12;
-            sidebar.style.paddingRight = rail ? 10 : 12;
-            sidebar.style.paddingTop = rail ? 18 : 6;
+            sidebar.style.paddingLeft = rail ? 6 : 12;
+            sidebar.style.paddingRight = rail ? 6 : 12;
+            sidebar.style.paddingTop = 6;
             sidebar.style.borderRightWidth = 1;
             sidebar.style.borderBottomWidth = 0;
             var brandCopy = sidebar.Q<VisualElement>("unity-agent-sidebar-brand-copy");
@@ -1216,25 +1247,23 @@ namespace YuzeToolkit.Agent
             var logo = sidebar.Q<VisualElement>("unity-agent-sidebar-logo");
             if (logo != null)
             {
-                logo.style.height = rail ? 36 : 60;
+                logo.style.height = rail ? 48 : 60;
+                logo.style.flexShrink = 0;
+                logo.style.justifyContent = rail ? Justify.Center : Justify.FlexStart;
                 logo.style.paddingLeft = rail ? 0 : 4;
                 logo.style.paddingTop = rail ? 0 : 8;
                 logo.style.paddingBottom = rail ? 0 : 8;
             }
-            var newConversation = sidebar.Q<AgentButton>("unity-agent-sidebar-new");
-            if (newConversation != null)
+            foreach (var button in sidebar.Children().OfType<AgentButton>())
             {
-                newConversation.ShowLabel(!rail);
-                newConversation.style.width = rail ? 36 : StyleKeyword.Auto;
-                newConversation.style.height = rail ? 36 : 38;
+                button.SetIconOnly(rail);
+                button.style.width = StyleKeyword.Auto;
+                button.style.marginLeft = rail ? 0 : 3;
+                button.style.marginRight = rail ? 0 : 3;
             }
             var settings = sidebar.Q<AgentButton>("unity-agent-sidebar-settings");
-            if (settings != null)
-            {
-                settings.ShowLabel(!rail);
-                settings.style.width = rail ? 36 : StyleKeyword.Auto;
-                settings.style.height = rail ? 36 : 38;
-            }
+            settings.style.marginTop = rail ? StyleKeyword.Auto : 8;
+
         }
 
         private AgentProviderProfile? ResolveSelectedProfile()
@@ -1265,7 +1294,9 @@ namespace YuzeToolkit.Agent
             empty.style.justifyContent = Justify.Center;
             empty.style.minHeight = 160;
             var title = new Label("What would you like to build?");
-            AgentUi.ApplyTypography(title, AgentTypography.EmptyHero);
+            AgentUi.ApplyTypography(title, AgentTypography.EmptyHero, false);
+            title.style.maxWidth = Length.Percent(100);
+            title.style.unityTextAlign = TextAnchor.MiddleCenter;
             empty.Add(title);
             var hint = new Label("The workspace is bound to this Unity project. Agent instructions and tools are ready.");
             hint.style.color = AgentUi.Muted;
@@ -1577,7 +1608,10 @@ namespace YuzeToolkit.Agent
             workspace.style.overflow = Overflow.Hidden;
             Add(workspace);
 
-            var navigation = new VisualElement { name = "unity-agent-settings-navigation" };
+            var navigation = AgentUi.Scroll(ScrollViewMode.Vertical);
+            navigation.name = "unity-agent-settings-navigation";
+            navigation.contentContainer.style.minWidth = 0;
+            navigation.contentContainer.style.width = Length.Percent(100);
             navigation.style.width = 240;
             navigation.style.minWidth = 240;
             navigation.style.flexShrink = 0;
@@ -1605,11 +1639,11 @@ namespace YuzeToolkit.Agent
                 navigation.style.borderBottomWidth = 0;
                 foreach (var cell in navigation.Children().OfType<AgentButton>())
                 {
-                    cell.ShowLabel(!compact);
-                    cell.style.width = new Length(100, LengthUnit.Percent);
+                    cell.SetIconOnly(compact);
+                    cell.style.width = StyleKeyword.Auto;
                     cell.style.flexGrow = 0;
+                    cell.style.marginLeft = 0;
                     cell.style.marginRight = 0;
-                    cell.style.justifyContent = compact ? Justify.Center : Justify.FlexStart;
                 }
             });
 
@@ -1851,6 +1885,7 @@ namespace YuzeToolkit.Agent
                 });
                 navigationButtons.Add(button);
                 navigation.Add(button);
+                button.RegisterCallback<FocusInEvent>(_ => navigation.ScrollTo(button));
                 SetSettingsNavigationSelected(button, selected);
             }
             for (var index = 1; index < settingsPages.Length; index++)
@@ -2335,7 +2370,7 @@ namespace YuzeToolkit.Agent
             var row = AgentUi.Inset();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
-            var title = new Label(session.Title) { style = { flexGrow = 1, minWidth = 0 } };
+            var title = new Label(session.Title) { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             title.style.overflow = Overflow.Hidden;
             title.style.textOverflow = TextOverflow.Ellipsis;
             row.Add(title);
@@ -2362,7 +2397,7 @@ namespace YuzeToolkit.Agent
             var row = AgentUi.Inset();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
-            var title = new Label(session.Title) { style = { flexGrow = 1, minWidth = 0 } };
+            var title = new Label(session.Title) { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             title.style.overflow = Overflow.Hidden;
             title.style.textOverflow = TextOverflow.Ellipsis;
             row.Add(title);
@@ -2793,7 +2828,7 @@ namespace YuzeToolkit.Agent
             dialog.style.borderRightColor = AgentUi.BorderStrong;
             Add(dialog);
             _title = new Label();
-            AgentUi.ApplyTypography(_title, AgentTypography.PageTitle);
+            AgentUi.ApplyTypography(_title, AgentTypography.PageTitle, false);
             dialog.Add(_title);
             var body = AgentUi.Scroll(ScrollViewMode.Vertical);
             body.style.flexShrink = 1;
@@ -3089,8 +3124,7 @@ namespace YuzeToolkit.Agent
         {
             var button = Button(string.Empty, tooltip, clicked, size, background, foreground, icon);
             button.style.height = size;
-            button.style.paddingLeft = 0;
-            button.style.paddingRight = 0;
+            button.SetIconOnly(true);
             return button;
         }
 
@@ -3126,7 +3160,7 @@ namespace YuzeToolkit.Agent
         public static AgentChoiceField CompactDropdown(IEnumerable<string> choices, string tooltip)
         {
             var list = choices.ToList();
-            var field = new AgentChoiceField(string.Empty, list, true);
+            var field = new AgentChoiceField(string.Empty, list, true) { HelpText = tooltip };
             if (list.Count > 0) field.SetValueWithoutNotify(list[0]);
             field.style.width = 120;
             field.style.flexGrow = 0;
@@ -3234,7 +3268,7 @@ namespace YuzeToolkit.Agent
             root.style.minWidth = 0;
             root.style.marginBottom = 14;
             var heading = new Label(title);
-            ApplyTypography(heading, AgentTypography.PageTitle);
+            ApplyTypography(heading, AgentTypography.PageTitle, false);
             root.Add(heading);
             var help = new Label(subtitle);
             ApplyTypography(help, AgentTypography.Caption, false);
@@ -3260,7 +3294,7 @@ namespace YuzeToolkit.Agent
             card.style.backgroundColor = Panel;
             SetBorder(card, Border, 1);
             var heading = new Label(title);
-            ApplyTypography(heading, AgentTypography.BodyStrong);
+            ApplyTypography(heading, AgentTypography.BodyStrong, false);
             card.Add(heading);
             var help = new Label(subtitle);
             help.style.color = Muted;

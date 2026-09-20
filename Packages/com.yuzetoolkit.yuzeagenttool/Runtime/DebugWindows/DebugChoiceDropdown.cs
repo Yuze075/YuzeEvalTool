@@ -48,6 +48,8 @@ namespace YuzeToolkit.Agent
             _button.tabIndex = -1;
             _button.AddToClassList(DebugWindowUss.EnumButtonClass);
             _button.style.flexGrow = 1;
+            _button.style.flexShrink = 1;
+            _button.style.flexBasis = 0;
             _button.style.minHeight = 32;
             _button.style.height = StyleKeyword.Auto;
             _button.style.minWidth = 0;
@@ -118,7 +120,9 @@ namespace YuzeToolkit.Agent
             popup.style.borderBottomRightRadius = 10;
             AgentUi.SetBorder(popup, AgentUi.BorderStrong, 1);
 
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            var scroll = AgentUi.Scroll(ScrollViewMode.Vertical);
+            scroll.contentContainer.style.width = Length.Percent(100);
+            scroll.contentContainer.style.minWidth = 0;
             scroll.AddToClassList(DebugWindowUss.EnumPopupScrollClass);
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;

@@ -33,16 +33,27 @@ namespace YuzeToolkit.Agent
             header.style.paddingRight = 20;
             header.style.borderBottomWidth = 1;
             header.style.borderBottomColor = AgentUi.Border;
-            var copy = new VisualElement { style = { flexGrow = 1, minWidth = 0 } };
+            var copy = new VisualElement { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             var heading = new Label(title);
             AgentUi.ApplyTypography(heading, AgentTypography.PageTitle);
+            heading.style.overflow = Overflow.Hidden;
+            heading.style.textOverflow = TextOverflow.Ellipsis;
             copy.Add(heading);
             if (!string.IsNullOrWhiteSpace(subtitle))
             {
                 var help = new Label(subtitle);
                 AgentUi.ApplyTypography(help, AgentTypography.Caption);
                 help.style.color = AgentUi.Muted;
+                help.style.overflow = Overflow.Hidden;
+                help.style.textOverflow = TextOverflow.Ellipsis;
                 copy.Add(help);
+                AgentTooltip.Attach(heading, subtitle);
+                header.RegisterCallback<GeometryChangedEvent>(evt =>
+                {
+                    var compact = evt.newRect.width < 560;
+                    help.style.display = compact ? DisplayStyle.None : DisplayStyle.Flex;
+                    header.style.height = compact ? 54 : 66;
+                });
             }
             header.Add(copy);
             return header;
@@ -64,6 +75,7 @@ namespace YuzeToolkit.Agent
 
     internal sealed class AgentDebugWorkspaceView : VisualElement, IDisposable
     {
+        private readonly ScrollView _tabScroll;
         private readonly VisualElement _tabs;
         private readonly VisualElement _content;
         private readonly Dictionary<DebugWindowRegistration, AgentButton> _buttons = new();
@@ -80,7 +92,14 @@ namespace YuzeToolkit.Agent
             style.minWidth = 0;
             style.minHeight = 0;
             Add(AgentWorkspaceUi.Header("Debug Panel", "Every registered DebugWindow is available as an independent tab."));
-            _tabs = new VisualElement();
+            _tabScroll = AgentUi.Scroll(ScrollViewMode.Vertical);
+            _tabScroll.name = "unity-agent-debug-tabs";
+            _tabScroll.style.minHeight = 44;
+            _tabScroll.style.maxHeight = Length.Percent(25);
+            _tabScroll.style.flexShrink = 0;
+            _tabs = _tabScroll.contentContainer;
+            _tabs.style.width = Length.Percent(100);
+            _tabs.style.minWidth = 0;
             _tabs.style.minHeight = 44;
             _tabs.style.flexShrink = 0;
             _tabs.style.flexDirection = FlexDirection.Row;
@@ -90,7 +109,7 @@ namespace YuzeToolkit.Agent
             _tabs.style.paddingRight = 14;
             _tabs.style.borderBottomWidth = 1;
             _tabs.style.borderBottomColor = AgentUi.Border;
-            Add(_tabs);
+            Add(_tabScroll);
             _content = new VisualElement { style = { flexGrow = 1, minHeight = 0, minWidth = 0 } };
             Add(_content);
             Rebuild();
@@ -152,6 +171,7 @@ namespace YuzeToolkit.Agent
                 button.style.marginRight = 6;
                 _buttons.Add(registration, button);
                 _tabs.Add(button);
+                button.RegisterCallback<FocusInEvent>(_ => _tabScroll.ScrollTo(button));
             }
             if (_registrations.Count == 0)
             {
@@ -266,7 +286,11 @@ namespace YuzeToolkit.Agent
     {
         private readonly RuntimeLogStore _store = RuntimeLogStore.Shared;
         private readonly ScrollView _list;
+        private readonly VisualElement _split;
+        private readonly VisualElement _splitter;
+        private readonly AgentButton _detailBack;
         private readonly VisualElement _detailPane;
+        private bool _compactDetails;
         private readonly ScrollView _detailScroll;
         private readonly Label _detailMeta;
         private readonly VisualElement _detailBody;
@@ -300,6 +324,7 @@ namespace YuzeToolkit.Agent
                 () => _autoScroll, value => _autoScroll = value));
             _search = new AgentTextField { Placeholder = "Search message or stack trace…" };
             _search.style.width = 220;
+            _search.style.height = 32;
             _search.style.minWidth = 120;
             _search.style.flexGrow = 1;
             _search.RegisterValueChangedCallback(_ => _dirty = true);
@@ -316,27 +341,28 @@ namespace YuzeToolkit.Agent
                 AgentUi.Surface3));
             Add(toolbar);
 
-            var split = new VisualElement { style = { flexGrow = 1, minHeight = 0, minWidth = 0 } };
+            _split = new VisualElement { name = "unity-agent-log-split", style = { flexGrow = 1, minHeight = 0, minWidth = 0 } };
             _list = AgentUi.Scroll(ScrollViewMode.Vertical);
             _list.style.flexGrow = 0.65f;
             _list.style.flexBasis = 0;
-            _list.style.minHeight = 96;
+            _list.name = "unity-agent-log-list";
+            _list.style.minHeight = 0;
             _list.contentContainer.style.width = new Length(100, LengthUnit.Percent);
             _list.contentContainer.style.minWidth = 0;
             _list.contentContainer.style.alignItems = Align.Stretch;
             _list.contentViewport.style.overflow = Overflow.Hidden;
-            split.Add(_list);
+            _split.Add(_list);
 
-            var splitter = new VisualElement { name = "unity-agent-log-splitter" };
-            splitter.style.height = 9;
-            splitter.style.flexShrink = 0;
-            splitter.style.alignItems = Align.Center;
-            splitter.style.justifyContent = Justify.Center;
-            splitter.style.backgroundColor = AgentUi.PanelInset;
-            splitter.style.borderTopWidth = 1;
-            splitter.style.borderTopColor = AgentUi.Border;
-            splitter.style.borderBottomWidth = 1;
-            splitter.style.borderBottomColor = AgentUi.Border;
+            _splitter = new VisualElement { name = "unity-agent-log-splitter" };
+            _splitter.style.height = 9;
+            _splitter.style.flexShrink = 0;
+            _splitter.style.alignItems = Align.Center;
+            _splitter.style.justifyContent = Justify.Center;
+            _splitter.style.backgroundColor = AgentUi.PanelInset;
+            _splitter.style.borderTopWidth = 1;
+            _splitter.style.borderTopColor = AgentUi.Border;
+            _splitter.style.borderBottomWidth = 1;
+            _splitter.style.borderBottomColor = AgentUi.Border;
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
             grip.style.width = 42;
             grip.style.height = 2;
@@ -345,14 +371,14 @@ namespace YuzeToolkit.Agent
             grip.style.borderTopRightRadius = 1;
             grip.style.borderBottomLeftRadius = 1;
             grip.style.borderBottomRightRadius = 1;
-            splitter.Add(grip);
-            AgentTooltip.Attach(splitter, "Drag to resize the log list and stack trace detail panes.");
-            split.Add(splitter);
+            _splitter.Add(grip);
+            AgentTooltip.Attach(_splitter, "Drag to resize the log list and stack trace detail panes.");
+            _split.Add(_splitter);
 
             _detailPane = new VisualElement { name = "unity-agent-log-detail-pane" };
             _detailPane.style.flexGrow = 0.35f;
             _detailPane.style.flexBasis = 0;
-            _detailPane.style.minHeight = 80;
+            _detailPane.style.minHeight = 0;
             _detailPane.style.minWidth = 0;
             _detailPane.style.backgroundColor = AgentUi.PanelInset;
 
@@ -365,7 +391,17 @@ namespace YuzeToolkit.Agent
             detailHeader.style.paddingRight = 14;
             detailHeader.style.borderBottomWidth = 1;
             detailHeader.style.borderBottomColor = AgentUi.Border;
+            _detailBack = AgentUi.IconButton(AgentIconKind.Back, "Back to log list", () =>
+            {
+                _compactDetails = false;
+                ApplySplitLayout();
+            }, 28, AgentUi.Transparent);
+            detailHeader.Add(_detailBack);
             var detailTitle = new Label("Log Details");
+            detailTitle.style.minWidth = 0;
+            detailTitle.style.flexShrink = 1;
+            detailTitle.style.overflow = Overflow.Hidden;
+            detailTitle.style.textOverflow = TextOverflow.Ellipsis;
             detailTitle.style.flexGrow = 1;
             AgentUi.ApplyTypography(detailTitle, AgentTypography.BodyStrong);
             detailHeader.Add(detailTitle);
@@ -388,10 +424,24 @@ namespace YuzeToolkit.Agent
             _detailScroll.contentContainer.style.paddingBottom = 14;
             _detailBody = _detailScroll.contentContainer;
             _detailPane.Add(_detailScroll);
-            split.Add(_detailPane);
-            splitter.AddManipulator(new VerticalSplitManipulator(split, _list, _detailPane, 96, 80));
-            Add(split);
+            _split.Add(_detailPane);
+            _splitter.AddManipulator(new VerticalSplitManipulator(_split, _list, _detailPane, 96, 80));
+            Add(_split);
+            _split.RegisterCallback<GeometryChangedEvent>(_ => ApplySplitLayout());
             ShowDetail(null);
+        }
+
+        private void ApplySplitLayout()
+        {
+            var compact = _split.contentRect.height < 240;
+            _list.style.display = compact && _compactDetails ? DisplayStyle.None : DisplayStyle.Flex;
+            _detailPane.style.display = !compact || _compactDetails ? DisplayStyle.Flex : DisplayStyle.None;
+            _splitter.style.display = compact ? DisplayStyle.None : DisplayStyle.Flex;
+            _detailBack.style.display = compact ? DisplayStyle.Flex : DisplayStyle.None;
+            _list.style.flexBasis = compact ? Length.Percent(100) : new Length(0);
+            _detailPane.style.flexBasis = compact ? Length.Percent(100) : new Length(0);
+            _list.style.minHeight = compact ? 0 : 96;
+            _detailPane.style.minHeight = compact ? 0 : 80;
         }
 
         public void Tick()
@@ -435,6 +485,8 @@ namespace YuzeToolkit.Agent
         {
             _store.Clear();
             _selected = null;
+            _compactDetails = false;
+            ApplySplitLayout();
             ShowDetail(null);
             _dirty = true;
         }
@@ -520,6 +572,8 @@ namespace YuzeToolkit.Agent
                 if (evt.button != 0) return;
                 _selected = entry;
                 ShowDetail(entry);
+                _compactDetails = true;
+                ApplySplitLayout();
                 _dirty = true;
                 if (evt.clickCount >= 2) OpenSource(entry);
             });
@@ -588,9 +642,8 @@ namespace YuzeToolkit.Agent
             message.style.maxWidth = new Length(100, LengthUnit.Percent);
             message.style.minWidth = 0;
             message.style.flexShrink = 0;
-            message.style.whiteSpace = WhiteSpace.Normal;
             message.style.color = AgentUi.Text;
-            AgentUi.ApplyTypography(message, AgentTypography.Body);
+            AgentUi.ApplyTypography(message, AgentTypography.Body, false);
             messageCard.Add(message);
             _detailBody.Add(messageCard);
 
@@ -618,10 +671,9 @@ namespace YuzeToolkit.Agent
             {
                 var noStack = new Label("No stack trace was captured for this entry.");
                 noStack.style.color = AgentUi.TextCaption;
-                noStack.style.whiteSpace = WhiteSpace.Normal;
                 noStack.style.paddingTop = 6;
                 noStack.style.paddingBottom = 10;
-                AgentUi.ApplyTypography(noStack, AgentTypography.Body);
+                AgentUi.ApplyTypography(noStack, AgentTypography.Body, false);
                 _detailBody.Add(noStack);
             }
             else
@@ -672,9 +724,8 @@ namespace YuzeToolkit.Agent
             callLabel.style.width = new Length(100, LengthUnit.Percent);
             callLabel.style.maxWidth = new Length(100, LengthUnit.Percent);
             callLabel.style.minWidth = 0;
-            callLabel.style.whiteSpace = WhiteSpace.Normal;
             callLabel.style.color = AgentUi.TextSecondary;
-            AgentUi.ApplyTypography(callLabel, AgentTypography.Control);
+            AgentUi.ApplyTypography(callLabel, AgentTypography.Control, false);
             content.Add(callLabel);
             if (!string.IsNullOrWhiteSpace(source))
             {
@@ -1110,6 +1161,7 @@ namespace YuzeToolkit.Agent
                 item.style.backgroundColor = session.Id == _selected.Id ? AgentUi.Selected : AgentUi.Transparent;
                 var label = new Label(session.Title);
                 label.style.flexGrow = 1;
+                label.style.flexShrink = 1;
                 label.style.minWidth = 0;
                 label.style.whiteSpace = WhiteSpace.NoWrap;
                 label.style.overflow = Overflow.Hidden;

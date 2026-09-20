@@ -19,8 +19,8 @@ namespace YuzeToolkit.Agent
         private Key toggleKey = Key.F8;
 #endif
 
-        [SerializeField] private Vector2 initialSize = new(1100f, 700f);
-        [SerializeField] private Vector2 minimumSize = new(520f, 360f);
+        [SerializeField, Tooltip("Initial Agent window size before a saved geometry is available.")] private Vector2 initialSize = new(1100f, 700f);
+        [SerializeField, Tooltip("Minimum expanded Agent window size, constrained by the available screen.")] private Vector2 minimumSize = new(520f, 360f);
 
         private VisualElement? _layer;
         private VisualElement? _window;
@@ -47,6 +47,7 @@ namespace YuzeToolkit.Agent
             _layer.pickingMode = PickingMode.Ignore;
 
             _window = new VisualElement { name = "unity-agent-runtime-window" };
+            AgentUi.ApplyRoot(_window);
             _window.style.position = Position.Absolute;
             var hasBottomLeftGeometry = PlayerPrefs.GetInt(GeometryVersionKey) == GeometryVersion;
             _window.style.left = hasBottomLeftGeometry
@@ -81,6 +82,10 @@ namespace YuzeToolkit.Agent
             header.style.borderBottomColor = AgentUi.Border;
             var title = new Label("Yuze Agent Tool");
             title.style.flexGrow = 1;
+            title.style.flexShrink = 1;
+            title.style.minWidth = 0;
+            title.style.overflow = Overflow.Hidden;
+            title.style.textOverflow = TextOverflow.Ellipsis;
             AgentUi.ApplyTypography(title, AgentTypography.BodyStrong);
             header.Add(title);
             _collapseButton = AgentUi.IconButton(AgentIconKind.ChevronDown,

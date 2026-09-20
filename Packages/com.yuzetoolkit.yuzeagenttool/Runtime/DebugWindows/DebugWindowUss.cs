@@ -123,6 +123,8 @@ namespace YuzeToolkit.Agent
             DisableKeyboardFocus(content);
             if (content is ScrollView scrollView)
             {
+                scrollView.contentContainer.style.width = Length.Percent(100);
+                scrollView.contentContainer.style.minWidth = 0;
                 DisableKeyboardFocus(scrollView.horizontalScroller);
                 DisableKeyboardFocus(scrollView.verticalScroller);
             }
@@ -148,7 +150,8 @@ namespace YuzeToolkit.Agent
         public static void ApplyFoldoutHeader(AgentButton header)
         {
             header.AddToClassList(HeaderClass);
-            header.style.width = Length.Percent(100);
+            header.style.width = StyleKeyword.Auto;
+            header.style.alignSelf = Align.Stretch;
             header.style.justifyContent = Justify.FlexStart;
             header.style.marginBottom = 6;
             header.style.backgroundColor = AgentUi.Transparent;

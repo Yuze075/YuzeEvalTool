@@ -16,7 +16,7 @@ namespace YuzeToolkit.Agent
             var window = new VisualElement { name = "unity-debug-tool-window-page" };
             DebugWindowUss.ApplyWindow(window);
 
-            var content = new ScrollView(ScrollViewMode.Vertical);
+            var content = AgentUi.Scroll(ScrollViewMode.Vertical);
             DebugWindowUss.ApplyWindowContent(content);
             content.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             for (var index = 0; index < node.Children.Count; index++)
@@ -316,6 +316,11 @@ namespace YuzeToolkit.Agent
             button.focusable = false;
             button.tabIndex = -1;
             DebugWindowUss.ApplyButton(button, style);
+            if (style is DebugButtonStyle.Previous or DebugButtonStyle.Next)
+            {
+                button.SetIconOnly(true);
+                button.HelpText = style == DebugButtonStyle.Previous ? "Previous" : "Next";
+            }
             return button;
         }
 

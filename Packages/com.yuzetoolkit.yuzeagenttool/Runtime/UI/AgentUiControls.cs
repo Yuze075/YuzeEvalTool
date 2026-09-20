@@ -197,6 +197,7 @@ namespace YuzeToolkit.Agent
         private bool _hovered;
         private bool _pressed;
         private bool _focused;
+        private bool _iconOnly;
 
         public AgentButton(string text, string tooltip, Action clicked, Color surface, Color foreground,
             AgentIconKind icon = AgentIconKind.None)
@@ -262,10 +263,10 @@ namespace YuzeToolkit.Agent
             SetPalette(surface, foreground);
             this.text = text;
             AgentTooltip.Attach(this, () =>
-                string.IsNullOrWhiteSpace(_helpText) ||
-                _textStack.resolvedStyle.display != DisplayStyle.None && !string.IsNullOrWhiteSpace(_label.text)
-                    ? string.Empty
-                    : _helpText);
+            {
+                if (_iconOnly || string.IsNullOrWhiteSpace(_label.text)) return _helpText;
+                return _label.isElided ? _label.text : string.Empty;
+            });
 
             RegisterCallback<PointerEnterEvent>(_ =>
             {
@@ -318,9 +319,7 @@ namespace YuzeToolkit.Agent
             set
             {
                 _label.text = value ?? string.Empty;
-                _icon.style.marginRight = _icon.style.display == DisplayStyle.None || string.IsNullOrEmpty(_label.text)
-                    ? 0
-                    : 6;
+                RefreshContent();
             }
         }
 
@@ -337,13 +336,24 @@ namespace YuzeToolkit.Agent
         {
             _icon.Kind = icon;
             _icon.style.display = icon == AgentIconKind.None ? DisplayStyle.None : DisplayStyle.Flex;
-            _icon.style.marginRight = string.IsNullOrEmpty(_label.text) ? 0 : 6;
+            RefreshContent();
         }
 
-        public void ShowLabel(bool visible)
+        public void SetIconOnly(bool iconOnly)
         {
-            _textStack.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            _icon.style.marginRight = visible && !string.IsNullOrEmpty(_label.text) ? 6 : 0;
+            _iconOnly = iconOnly;
+            style.paddingLeft = iconOnly ? 0 : 10;
+            style.paddingRight = iconOnly ? 0 : 10;
+            style.justifyContent = iconOnly ? Justify.Center : Justify.FlexStart;
+            RefreshContent();
+        }
+
+        private void RefreshContent()
+        {
+            var hasText = !_iconOnly && (!string.IsNullOrEmpty(_label.text) ||
+                                        !string.IsNullOrEmpty(_description.text));
+            _textStack.style.display = hasText ? DisplayStyle.Flex : DisplayStyle.None;
+            _icon.style.marginRight = hasText && _icon.Kind != AgentIconKind.None ? 6 : 0;
         }
 
         public void SetDescription(string description)
@@ -352,6 +362,7 @@ namespace YuzeToolkit.Agent
             _description.style.display = string.IsNullOrWhiteSpace(_description.text)
                 ? DisplayStyle.None
                 : DisplayStyle.Flex;
+            RefreshContent();
         }
 
         public string HelpText
@@ -735,6 +746,12 @@ namespace YuzeToolkit.Agent
             _arrow.style.marginLeft = 4;
             _arrow.Tint = AgentUi.TextSecondary;
             _trigger.Add(_arrow);
+            AgentTooltip.Attach(_trigger, () =>
+            {
+                var purpose = string.IsNullOrWhiteSpace(_caption.text) ? HelpText : string.Empty;
+                if (!_valueLabel.isElided) return purpose;
+                return string.IsNullOrWhiteSpace(purpose) ? _valueLabel.text : purpose + "\n" + _valueLabel.text;
+            });
 
             this.choices = choices.ToList();
             if (_choices.Count > 0) SetValueWithoutNotify(_choices[0]);
@@ -807,6 +824,7 @@ namespace YuzeToolkit.Agent
         public Func<string, string>? OptionFormatter { get; set; }
         public Func<string, string>? OptionDescriptionFormatter { get; set; }
         public bool OpenUpward { get; set; }
+        public string HelpText { get; set; } = string.Empty;
 
         public void SetMenuStatus(AgentChoiceMenuState state, string message = "", Action? retry = null)
         {
@@ -1400,9 +1418,11 @@ namespace YuzeToolkit.Agent
             }
             var textLabel = popup.Q<Label>(LayerName + "-text");
             if (textLabel != null) textLabel.text = text;
+            popup.style.maxWidth = Mathf.Min(360, Mathf.Max(0, root.resolvedStyle.width - 16));
             popup.style.display = DisplayStyle.Flex;
             popup.BringToFront();
             Position(target, worldPosition);
+            popup.schedule.Execute(() => Position(target, worldPosition));
         }
 
         private static void Position(VisualElement target, Vector2 worldPosition)

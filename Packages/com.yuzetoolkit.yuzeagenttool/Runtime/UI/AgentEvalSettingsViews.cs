@@ -145,9 +145,12 @@ namespace YuzeToolkit.Agent
             key.style.flexShrink = 0;
             key.style.color = AgentUi.Muted;
             row.Add(key);
-            var label = new Label(value) { style = { flexGrow = 1, minWidth = 0 } };
+            var label = new Label(value) { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             label.style.whiteSpace = WhiteSpace.Normal;
+            label.style.alignSelf = Align.Stretch;
             row.Add(label);
+            row.RegisterCallback<GeometryChangedEvent>(evt =>
+                row.style.flexDirection = evt.newRect.width < 420 ? FlexDirection.Column : FlexDirection.Row);
             parent.Add(row);
             return label;
         }
@@ -188,6 +191,8 @@ namespace YuzeToolkit.Agent
             _search = AgentUi.Field(string.Empty, string.Empty, "Filter by Tool name, path or description.");
             _search.Placeholder = "Filter Tools…";
             _search.style.flexGrow = 1;
+            _search.style.flexBasis = 160;
+            _search.style.height = 32;
             _search.RegisterValueChangedCallback(_ => { _dirty = true; Refresh(); });
             toolbar.Add(_search);
             toolbar.Add(AgentUi.Button("Refresh registry", "Refresh Tool metadata and rebuild this list.",
@@ -315,9 +320,11 @@ namespace YuzeToolkit.Agent
             var key = new Label(name) { style = { width = 140, flexShrink = 0 } };
             key.style.color = AgentUi.Muted;
             row.Add(key);
-            var content = new Label(value) { style = { flexGrow = 1, minWidth = 0 } };
+            var content = new Label(value) { style = { flexGrow = 1, flexShrink = 1, minWidth = 0 } };
             content.style.whiteSpace = WhiteSpace.Normal;
             row.Add(content);
+            row.RegisterCallback<GeometryChangedEvent>(evt =>
+                row.style.flexDirection = evt.newRect.width < 380 ? FlexDirection.Column : FlexDirection.Row);
             parent.Add(row);
         }
 
