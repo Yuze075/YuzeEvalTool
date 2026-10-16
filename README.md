@@ -73,6 +73,12 @@ disk** command and select
 
 ### 3. Install the Broker and CLI
 
+After installing the Unity Package, choose **Window > YuzeToolkit > Install Eval Tool (npm)**.
+This opens a terminal and runs the commands below in order, stopping on failure and keeping
+the terminal output visible. Node.js/npm must be available in the terminal environment;
+Linux also requires `x-terminal-emulator`. If Windows denies service installation,
+retry `unity service install` in an administrator terminal.
+
 Install the native package globally, then explicitly install its current-user service:
 
 ```bash

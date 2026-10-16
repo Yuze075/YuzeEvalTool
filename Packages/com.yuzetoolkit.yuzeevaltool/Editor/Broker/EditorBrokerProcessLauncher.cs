@@ -3,11 +3,39 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using UnityEditor;
 
 namespace YuzeToolkit.Eval
 {
     internal static class EditorBrokerProcessLauncher
     {
+        [MenuItem("Window/YuzeToolkit/Install Eval Tool (npm)")]
+        private static void InstallFromNpm()
+        {
+            const string command = "npm install --global @yuzetoolkit/unityevaltool && unity service install && unity doctor";
+            var startInfo = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            };
+#if UNITY_EDITOR_WIN
+            startInfo.FileName = Environment.GetEnvironmentVariable("ComSpec")
+                                 ?? throw new InvalidOperationException("The ComSpec environment variable is missing.");
+            startInfo.Arguments = "/d /k \"" + command + "\"";
+#elif UNITY_EDITOR_OSX
+            startInfo.FileName = "osascript";
+            startInfo.Arguments = "-e \"tell application \\\"Terminal\\\" to do script \\\"" + command +
+                                  "\\\"\" -e \"tell application \\\"Terminal\\\" to activate\"";
+#elif UNITY_EDITOR_LINUX
+            startInfo.FileName = "x-terminal-emulator";
+            startInfo.Arguments = "-e sh -lc \"" + command +
+                                  "; printf '\\nPress Enter to close...'; read reply\"";
+#else
+            throw new PlatformNotSupportedException("The npm installer requires a Windows, macOS, or Linux Editor.");
+#endif
+            using var terminal = Process.Start(startInfo);
+        }
+
         public static bool EnsureRunning()
         {
             var executable = ResolveExecutable();

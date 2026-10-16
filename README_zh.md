@@ -70,6 +70,11 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 
 ### 3. 安装 Broker 与 CLI
 
+已安装 Unity Package 后，可点击 **Window > YuzeToolkit > Install Eval Tool (npm)**。
+菜单会打开终端，依次执行以下命令，任一步失败便停止后续命令，并保留终端输出。
+终端环境需要能找到 Node.js/npm；Linux 还需要 `x-terminal-emulator`。
+Windows 若在服务安装时提示拒绝访问，请在管理员终端重试 `unity service install`。
+
 全局安装原生 npm Package，然后显式安装当前用户服务：
 
 ```bash
