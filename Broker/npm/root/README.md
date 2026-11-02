@@ -70,6 +70,31 @@ The MCP workflow is always
 See the [user guide](https://github.com/Yuze075/YuzeEvalTool#readme) and
 [protocol specification](https://github.com/Yuze075/YuzeEvalTool/blob/main/Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL.md).
 
+## Remote projects
+
+Aggregate another machine's directly registered Unity instances into local MCP and
+`unity list`, labeled `[Local]` / `[Remote:remote-id]`. Imports stop after one hop;
+projects the peer imported from elsewhere are never re-exported.
+
+```bash
+# Remote machine: anonymous export on a trusted LAN
+unity remote access none 192.168.1.20 2348
+unity service restart
+# Local machine
+unity remote add office-pc 192.168.1.20 2348
+unity service restart
+unity list
+```
+
+Store a service secret from stdin with `unity remote credential <name> < secret.txt`,
+then add the credential name after the port in `remote add`. The peer uses
+`remote access token <IP> <port> <name>`. Service credentials are separate from Unity
+project tokens. Network export is disabled by default and exposes local-only `/mcp`.
+Changes take effect after restart. Remote execution uses the existing three MCP tools;
+interactive remote CLI execution is not supported yet. See the
+[remote-project guide](https://github.com/Yuze075/YuzeEvalTool#remote-unity-projects)
+for configuration and HTTPS deployment.
+
 ## Service management
 
 ```bash
@@ -80,7 +105,8 @@ unity service restart
 unity service uninstall
 ```
 
-The Broker accepts loopback traffic only and fails explicitly when port `2347` is occupied.
+The local listener accepts loopback traffic only and fails explicitly when port `2347` is occupied;
+optional network export uses a separate port.
 
 ## Uninstall
 

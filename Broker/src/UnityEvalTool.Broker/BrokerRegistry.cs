@@ -1,3 +1,4 @@
+#nullable enable
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Collections.Concurrent;
@@ -5,7 +6,7 @@ using System.Net.WebSockets;
 
 namespace YuzeToolkit.Eval.Broker;
 
-internal sealed class BrokerRegistry
+internal sealed partial class BrokerRegistry
 {
     private sealed record InstanceEntry(UnityConnection? Connection, UnityInstanceSnapshot Snapshot,
         DateTimeOffset DisconnectedAtUtc);
@@ -36,9 +37,10 @@ internal sealed class BrokerRegistry
 
     public UnityConnection Register(System.Net.WebSockets.WebSocket socket, UnityRegistration registration)
     {
-        if (string.IsNullOrWhiteSpace(registration.InstanceId) || string.IsNullOrWhiteSpace(registration.ProjectPath))
+        if (string.IsNullOrWhiteSpace(registration.InstanceId) || string.IsNullOrWhiteSpace(registration.ProjectPath) ||
+            registration.InstanceId.StartsWith("remote:", StringComparison.Ordinal))
             throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest,
-                "Unity registration requires instanceId and projectPath.");
+                "Unity registration requires instanceId and projectPath; the remote: id prefix is reserved.");
 
         var connection = new UnityConnection(socket, registration, OnStatus, OnHeartbeat);
         UnityConnection? previous = null;
@@ -117,13 +119,15 @@ internal sealed class BrokerRegistry
                 selected = _instances.TryGetValue(instanceId, out var entry) ? entry.Snapshot : null;
             }
 
-            var instances = _instances.Values.Select(entry => entry.Snapshot)
+            var instances = _instances.Values.Select(entry => DescribeLocal(entry.Snapshot))
                 .OrderByDescending(snapshot => snapshot.IsConnected)
                 .ThenBy(snapshot => snapshot.ProjectName, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(snapshot => snapshot.InstanceId, StringComparer.Ordinal)
                 .ToList();
             return new RegistrySnapshot(_revision, DateTimeOffset.UtcNow,
-                instances.Count(instance => instance.IsConnected), connectionHandle, selected, instances);
+                instances.Count(instance => instance.IsConnected), connectionHandle,
+                selected == null ? null : DescribeLocal(selected), instances)
+            { Federation = DescribeFederation("local") };
         }
     }
 
@@ -153,7 +157,7 @@ internal sealed class BrokerRegistry
                 SessionId = string.IsNullOrWhiteSpace(sessionId) ? "mcp:" + handle : sessionId,
                 LastUsedAtUtc = now
             };
-            return new ConnectionLeaseResult(handle, now + BrokerConstants.LeaseIdleTimeout, entry.Snapshot);
+            return new ConnectionLeaseResult(handle, now + BrokerConstants.LeaseIdleTimeout, DescribeLocal(entry.Snapshot));
         }
     }
 
@@ -180,10 +184,8 @@ internal sealed class BrokerRegistry
             if (remaining <= TimeSpan.Zero)
                 throw new BrokerOperationException(BrokerErrorCodes.RequestTimedOut,
                     $"Unity did not reach '{waitFor}' within {timeout.TotalSeconds:0}s.");
-            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutSource.CancelAfter(remaining);
-            try { await changedTask.WaitAsync(timeoutSource.Token); }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            try { await changedTask.WaitAsync(remaining, cancellationToken); }
+            catch (TimeoutException)
             {
                 throw new BrokerOperationException(BrokerErrorCodes.RequestTimedOut,
                     $"Unity did not reach '{waitFor}' within {timeout.TotalSeconds:0}s.");
@@ -249,7 +251,11 @@ internal sealed class BrokerRegistry
 
     public async Task RunMaintenanceAsync(CancellationToken cancellationToken)
     {
-        lock (_syncRoot) Cleanup();
+        lock (_syncRoot)
+        {
+            Cleanup();
+            CleanupRemoteState();
+        }
 
         var pendingCount = _pendingSessionReleases.Count;
         for (var index = 0; index < pendingCount; index++)
@@ -393,6 +399,7 @@ internal sealed class BrokerRegistry
     private void SignalRegistryChanged()
     {
         _revision++;
+        _aggregateRevision++;
         SignalStatusChanged();
     }
 

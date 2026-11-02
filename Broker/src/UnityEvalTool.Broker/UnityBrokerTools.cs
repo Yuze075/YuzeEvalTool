@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -9,8 +10,10 @@ namespace YuzeToolkit.Eval.Broker;
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
 [McpServerToolType]
-internal sealed class UnityBrokerTools(BrokerRegistry registry)
+internal sealed class UnityBrokerTools(BrokerRegistry registry, IHttpContextAccessor contexts)
 {
+    private bool LocalOnly => (contexts.HttpContext ?? throw new InvalidOperationException("MCP HTTP context is unavailable."))
+        .Items.ContainsKey(BrokerHost.LocalOnlyRequest);
     // MCP protocol versions through 2025-11-25 require every outputSchema.properties value to be a
     // JSON object, but the MCP SDK derives the boolean JSON Schema "true" for JsonElement returns,
     // which strict clients then reject. "{}" is the object-form equivalent of "true": the SDK wraps
@@ -22,14 +25,14 @@ internal sealed class UnityBrokerTools(BrokerRegistry registry)
     [
         McpServerTool.Create(GetMethod(nameof(StatusAsync)), tools,
             new McpServerToolCreateOptions { OutputSchema = PermissiveOutputSchema.RootElement }),
-        McpServerTool.Create(GetMethod(nameof(Connect)), tools,
+        McpServerTool.Create(GetMethod(nameof(ConnectAsync)), tools,
             new McpServerToolCreateOptions { OutputSchema = PermissiveOutputSchema.RootElement }),
         McpServerTool.Create(GetMethod(nameof(EvalAsync)), tools),
     ];
 
     private static MethodInfo GetMethod(string name) => typeof(UnityBrokerTools).GetMethod(name)!;
     [McpServerTool(Name = "unity_status", UseStructuredContent = true)]
-    [Description("Read Unity instances and lifecycle state, or wait for a state transition without polling eval. Call this before unity_connect. Event-driven waits survive temporary disconnects. ready includes normal Ready and executable CompilationFailed repair mode; compilation-complete returns after either compilation success or failure. Always inspect phase, canEval, and compiler counts in the result.")]
+    [Description("Read Unity instances, source and lifecycle state, or wait for a state transition. Local endpoints aggregate configured remotes; network endpoints export local instances only. Remote ids are source-qualified; never match a remote project by the local working directory. Call this before unity_connect. Before remote compilation, obtain capturedAtUtc with that instanceId or connectionHandle so the timestamp uses the remote clock. ready includes executable CompilationFailed repair mode. Inspect isConnected, source.isStale, phase, canEval and remoteBrokers errors.")]
     public async Task<JsonElement> StatusAsync(
         [Description("Optional handle returned by unity_connect. Pass either this or instanceId when waiting.")] string connectionHandle = "",
         [Description("Optional instanceId returned by an earlier snapshot. Use this to wait before unity_connect, including while Unity is compiling or reloading.")] string instanceId = "",
@@ -55,18 +58,21 @@ internal sealed class UnityBrokerTools(BrokerRegistry registry)
                 "compilationCycleId and its deprecated requestId alias must match when both are provided.");
         var selectedCompilationCycleId = string.IsNullOrWhiteSpace(compilationCycleId) ? requestId : compilationCycleId;
         var timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 0, 3600));
-        var snapshot = await registry.WaitAsync(connectionHandle, instanceId, waitFor, selectedCompilationCycleId, observedAfter, timeout,
-            cancellationToken);
+        var snapshot = LocalOnly
+            ? await registry.WaitAsync(connectionHandle, instanceId, waitFor, selectedCompilationCycleId, observedAfter, timeout, cancellationToken)
+            : await registry.WaitForProjectAsync(connectionHandle, instanceId, waitFor, selectedCompilationCycleId, observedAfter, timeout, cancellationToken);
         return JsonSerializer.SerializeToElement(snapshot, BrokerJsonContext.Default.RegistrySnapshot);
     }
 
     [McpServerTool(Name = "unity_connect", UseStructuredContent = true)]
     [Description("Bind this workflow to one Unity instance. First call unity_status, choose the exact instance, and pass that snapshot's registryRevision. Reuse the returned opaque connectionHandle across compilation, temporary disconnects, and same-process Domain Reload; reconnect only when the handle is invalid, expired, or belongs to a replaced Unity process.")]
-    public JsonElement Connect(
+    public async Task<JsonElement> ConnectAsync(
         [Description("Exact instanceId returned by unity_status.")] string instanceId,
-        [Description("Exact registryRevision returned by the preceding unity_status call.")] long registryRevision)
+        [Description("Exact registryRevision returned by the preceding unity_status call.")] long registryRevision,
+        CancellationToken cancellationToken = default)
     {
-        var result = registry.Connect(instanceId, registryRevision);
+        var result = LocalOnly ? registry.Connect(instanceId, registryRevision)
+            : await registry.ConnectProjectAsync(instanceId, registryRevision, cancellationToken);
         return JsonSerializer.SerializeToElement(result, BrokerJsonContext.Default.ConnectionLeaseResult);
     }
 
@@ -77,7 +83,7 @@ internal sealed class UnityBrokerTools(BrokerRegistry registry)
         [Description("JavaScript defining async function execute(). Return concise serializable data. For unfamiliar Unity work, import tools:// for root summaries and getToolDetails(path), then import the relevant tools://Path module; generated tool methods use positional parameters. Prefer helper modules and use CS.* only for uncovered APIs.")] string code,
         [Description("Unity-side execution timeout in seconds, from 1 to 600.")] int timeout = 30,
         [Description("Dispose and recreate this handle's persistent Unity-side PuerTS VM before execution.")] bool resetSession = false,
-        CancellationToken cancellationToken = default) =>
-        UnityToolResultConverter.Convert(await registry.ExecuteEvalAsync(connectionHandle, code, timeout, resetSession,
-            cancellationToken));
+        CancellationToken cancellationToken = default) => LocalOnly
+            ? UnityToolResultConverter.Convert(await registry.ExecuteEvalAsync(connectionHandle, code, timeout, resetSession, cancellationToken))
+            : await registry.ExecuteProjectEvalAsync(connectionHandle, code, timeout, resetSession, cancellationToken);
 }

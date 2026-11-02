@@ -59,10 +59,17 @@ compilation keeps the old domain loaded and enters executable repair mode.
 
 ## Security
 
-Kestrel listens on loopback only. The Broker rejects non-loopback Host/Origin values and has
+Kestrel's local listener uses loopback. It rejects non-loopback Host/Origin values and has
 no global authorization policy. MCP/CLI input or a user-edited `auth.json` supplies raw
 candidate tokens; the Broker persists and forwards them. Each Unity project defaults to no
 verification, or stores a salted PBKDF2 verifier in a Resources asset and refuses every
 operation until one candidate matches. A matched connection stays authorized for that
 connection lifetime. Port conflicts, invalid credential/config files, invalid project
 verification data, and protocol mismatches fail explicitly.
+
+Optional network export exposes directly registered local instances only, with per-request
+service credentials or explicit anonymous access. The local registry aggregates peer snapshots
+using source-qualified IDs, separate leases and revisions; network exports never include imports.
+Peer lifecycles and routing belong to the Broker; Unity's execution protocol is unchanged.
+The [Broker protocol](BROKER_PROTOCOL.md#single-hop-remote-aggregation) owns configuration,
+provenance, disconnect and authentication contracts.

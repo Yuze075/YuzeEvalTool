@@ -1,3 +1,4 @@
+#nullable enable
 using ModelContextProtocol;
 
 namespace YuzeToolkit.Eval.Broker;
@@ -33,6 +34,10 @@ internal static class BrokerErrorCodes
     public const string RequestTimedOut = nameof(RequestTimedOut);
     public const string ExecutionOutcomeUnknown = nameof(ExecutionOutcomeUnknown);
     public const string BrokerUnavailable = nameof(BrokerUnavailable);
+    public const string RemoteUnavailable = nameof(RemoteUnavailable);
+    public const string RemoteIncompatible = nameof(RemoteIncompatible);
+    public const string RemoteIdentityConflict = nameof(RemoteIdentityConflict);
+    public const string RemoteCliUnsupported = nameof(RemoteCliUnsupported);
 }
 
 internal sealed class BrokerOperationException : McpException

@@ -1,10 +1,11 @@
+#nullable enable
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
 namespace YuzeToolkit.Eval.Broker;
 
-internal static class CliApplication
+internal static partial class CliApplication
 {
     public static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken)
     {
@@ -24,6 +25,7 @@ internal static class CliApplication
             return 0;
         }
         if (command == "doctor") return await DoctorAsync(cancellationToken);
+        if (command == "remote") return ConfigureRemotes(args.Skip(1).ToArray());
 
         await using var connection = await OpenConnectionAsync(suppliedTokenList, cancellationToken);
         if (command is "list" or "status")
@@ -180,8 +182,13 @@ internal static class CliApplication
 
     private static JsonElement ResolveInstance(JsonElement registry, string selector)
     {
+        if (selector.StartsWith("remote:", StringComparison.Ordinal))
+            throw new BrokerOperationException(BrokerErrorCodes.RemoteCliUnsupported,
+                "Remote instances support MCP unity_status / unity_connect / eval; the interactive CLI is local only.");
         var instances = registry.GetProperty("unityInstances").EnumerateArray()
-            .Where(item => item.GetProperty("isConnected").GetBoolean()).Select(item => item.Clone()).ToList();
+            .Where(item => item.GetProperty("isConnected").GetBoolean() &&
+                (!item.TryGetProperty("source", out var source) || source.GetProperty("kind").GetString() == "local"))
+            .Select(item => item.Clone()).ToList();
         if (instances.Count == 0)
             throw new BrokerOperationException(BrokerErrorCodes.UnityNotFound, "No connected Unity instances were found.");
         if (!string.IsNullOrWhiteSpace(selector))
@@ -219,12 +226,17 @@ internal static class CliApplication
         {
             var status = instance.GetProperty("status");
             Console.WriteLine($"{instance.GetProperty("instanceId").GetString()}  " +
-                              $"{instance.GetProperty("projectName").GetString()}  " +
+                              $"{(instance.TryGetProperty("displayName", out var displayName) ? displayName.GetString() : instance.GetProperty("projectName").GetString())}  " +
+                              $"{(instance.GetProperty("isConnected").GetBoolean() ? "Connected" : "Disconnected")}  " +
                               $"{(instance.TryGetProperty("authorizationState", out var auth) ? auth.GetString() : "NotRequired")}  " +
                               $"{status.GetProperty("phase").GetString()}  " +
                               $"PID {instance.GetProperty("processId").GetInt32()}  " +
                               instance.GetProperty("projectPath").GetString());
         }
+        if (registry.TryGetProperty("remoteBrokers", out var remotes))
+            foreach (var remote in remotes.EnumerateArray())
+                Console.WriteLine($"Remote {remote.GetProperty("id").GetString()}: {remote.GetProperty("state").GetString()} " +
+                                  $"{remote.GetProperty("errorCode").GetString()} ({remote.GetProperty("endpoint").GetString()})");
         if (registry.TryGetProperty("selectedUnity", out var selected) && selected.ValueKind != JsonValueKind.Null)
             Console.WriteLine("Selected: " + selected.GetProperty("instanceId").GetString());
     }
@@ -326,7 +338,11 @@ Yuze Eval Tool Broker CLI
   unity <command...>            Auto-select by current directory and execute once.
   unity doctor                  Diagnose executable, optional auth file, port and Broker health.
   unity service <action>        install|uninstall|start|stop|restart|status.
+  unity remote                 Show remote configuration commands.
+  unity remote list            Validate and list configured peers without printing credentials.
   unity broker                  Run the foreground Broker host on 127.0.0.1:2347.
+    --config <file> --local-port <port>
+                                Use an isolated Broker configuration / local listener (advanced).
 
 Inside a console, :status, :wait, :switch, :help and :quit are Broker commands.
 Every other line is parsed inside Unity by the existing EvalCliCommandService.

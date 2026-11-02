@@ -11,8 +11,8 @@ This document defines the stable boundary between the computer-level Yuze Eval T
 - `ws://127.0.0.1:2347/cli`: interactive CLI connection.
 - `http://127.0.0.1:2347/health`: Broker health snapshot.
 
-The Broker binds loopback only. It must not silently choose another port when `2347` is
-unavailable. The Broker has no global authorization gate. It persists candidate tokens and
+The local listener binds loopback only. It must not silently choose another port when `2347` is
+unavailable. The local listener has no global authorization gate. It persists candidate tokens and
 routes them to Unity; each Unity connection owns the verification decision. The health
 snapshot keeps `requireToken: false` and reports `storedTokenCount` and
 `maxStoredTokenCount`.
@@ -34,6 +34,94 @@ older readers):
   "tokens": ["project-one_token", "project-two_token"]
 }
 ```
+
+## Single-hop remote aggregation
+
+Network export is disabled by default. When enabled, a separate address / port exposes only
+`/mcp` and only directly registered local Unity instances. The listener chooses the scope;
+caller headers cannot override it. Network requests cannot access `/unity`, `/cli`, `/health`,
+imported IDs or imported leases. Local MCP and CLI listings provide the aggregate view.
+A→B→C and A↔B never recursively import projects. The Unity wire protocol remains `2.0`;
+local IDs are unchanged, with `remote:` reserved for imports.
+
+`config.json` coexists with the existing token-capacity setting:
+
+```json
+{
+  "maxStoredTokens": 5,
+  "remotes": [
+    { "id": "office-pc", "host": "192.168.1.20", "port": 2348,
+      "scheme": "http", "credentialRef": "office-key", "enabled": true }
+  ],
+  "remoteAccess": {
+    "enabled": false, "listenAddress": "192.168.1.10", "port": 2348,
+    "authMode": "token", "credentialRef": "incoming-key",
+    "allowedHosts": [], "allowedOrigins": []
+  }
+}
+```
+
+Omit outbound `credentialRef` for anonymous access. Inbound `authMode` is `token` or `none`;
+enabled token mode requires a credential. `peer-auth.json` maps names to separate service secrets:
+
+```json
+{ "office-key": "replace-with-peer-secret", "incoming-key": "replace-with-export-secret" }
+```
+
+Service secrets never enter `auth.json`, Unity registration, or another peer's requests.
+Local caller headers are not forwarded. The network listener serves HTTP; terminate HTTPS
+at a reverse proxy, while outbound clients support http/https. HTTP redirects are disabled
+to prevent credential forwarding. An absent Origin is accepted; a supplied Origin must
+exactly match `allowedOrigins`. Host must match the listen IP or `allowedHosts`; wildcard
+listening requires explicit allowed hosts. Network and local ports must differ. Configuration
+is validated and loaded at startup; restart the service after changes.
+
+Optional top-level settings (seconds, except concurrency):
+
+| Setting | Default | Range |
+|---|---:|---:|
+| discoveryIntervalSeconds | 10 | 1–3600 |
+| connectionTimeoutSeconds | 10 | 1–300 |
+| reconnectMaxDelaySeconds | 60 | 1–3600 |
+| remoteRetentionSeconds | 300 | 0–86400 |
+| maxConcurrentDiscoveries | 4 | 1–32 |
+| transportGraceSeconds | 10 | 1–300 |
+
+Each configuration directory persists a GUID in `broker-id`; `brokerInstanceId` changes on
+every process start. Do not copy broker-id across machines. Self-connections, duplicate
+Broker identities behind different addresses, and identity replacement during a run report
+`RemoteIdentityConflict`. Endpoints lacking the export contract report `RemoteIncompatible`.
+
+Snapshots add `federation: { version: 1, brokerId, brokerInstanceId, view, leaseIdleTimeoutSeconds }`.
+Exports must declare `view: local`; local consumer endpoints declare `aggregate`. Importers
+also verify that every entry has local provenance. Entries add `displayName` and
+`source: { kind, remoteId, brokerId, isStale }`; imported IDs are
+`remote:<remoteId>:<original-instance-id>`. Original project names and paths are unchanged.
+`remoteBrokers` reports `id`, `endpoint`, `state` (connecting / online / offline / disabled),
+`errorCode`, `lastSeenAtUtc` and `projectCount`, without credentials.
+
+Local and aggregate registries have separate revisions. Connect validates the aggregate
+revision, then sends the captured peer revision to that peer. Each local opaque handle maps
+to its own remote handle and VM. Targeted remote `unity_status` preserves the remote
+`capturedAtUtc`; capture with the instance ID or handle before compilation, then use that
+marker on the same source. An untargeted aggregate-list timestamp is not a remote compilation marker.
+
+Background discovery uses bounded concurrency and exponential reconnect backoff without
+blocking local sources. Offline snapshots are retained for the configured interval with
+`source.isStale=true`, `isConnected=false`, `canEval=false`, then removed. Short network outages
+do not replace leases; recovery checks the Broker generation and Unity process identity.
+Broker restart, Unity replacement and lease expiry require discovery and reconnect. Active
+status waits are not removed by local idle cleanup; the peer remains authoritative for lease
+validity. Orphaned peer sessions are reclaimed by the existing idle timeout. Interrupted eval
+reports `ExecutionOutcomeUnknown` / `mayHaveExecuted=true` and is never replayed. Complete MCP
+results, including images and errors, are forwarded unchanged.
+
+Interactive CLI execution is local only: remote selection reports `RemoteCliUnsupported`, and
+cwd / path matching considers local instances only. Configuration commands and setup are in
+the [main guide](../../../README.md#remote-unity-projects). For isolated deployment use
+`unity broker --config <config.json> --local-port <port>`; credentials and identity are relative
+to that configuration directory, without updating the default install record.
+`unity remote --config <config.json> ...` manages the same isolated configuration.
 
 ## Envelope
 

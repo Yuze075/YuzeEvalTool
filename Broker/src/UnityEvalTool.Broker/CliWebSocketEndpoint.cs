@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.WebSockets;
 using System.Text.Json;
 
@@ -71,7 +72,7 @@ internal static class CliWebSocketEndpoint
                     {
                         result = envelope.Method switch
                         {
-                            "unity/list" => Serialize(registry.GetSnapshot(selectedHandle)),
+                            "unity/list" => Serialize(registry.GetProjectSnapshot(selectedHandle)),
                             "unity/connect" => Connect(registry, envelope.Payload, consoleId,
                                 selectedHandle, out selectedHandle),
                             "unity/status" => await StatusAsync(registry, selectedHandle, envelope.Payload,
@@ -136,7 +137,7 @@ internal static class CliWebSocketEndpoint
         var revision = payload.TryGetProperty("registryRevision", out var revisionElement)
             ? revisionElement.GetInt64()
             : 0;
-        var result = registry.Connect(instanceId, revision, "cli:" + consoleId);
+        var result = registry.ConnectCli(instanceId, revision, "cli:" + consoleId);
         handle = result.ConnectionHandle;
         if (!string.IsNullOrWhiteSpace(previousHandle))
             registry.ReleaseSupersededLease(previousHandle, handle);
@@ -154,7 +155,7 @@ internal static class CliWebSocketEndpoint
         var timeout = payload.TryGetProperty("timeoutSeconds", out var timeoutElement)
             ? TimeSpan.FromSeconds(Math.Clamp(timeoutElement.GetInt32(), 0, 3600))
             : TimeSpan.Zero;
-        var snapshot = await registry.WaitAsync(handle, null, waitFor, selectedCompilationCycleId, observedAfterUtc, timeout,
+        var snapshot = await registry.WaitForProjectAsync(handle, null, waitFor, selectedCompilationCycleId, observedAfterUtc, timeout,
             cancellationToken);
         return Serialize(snapshot);
     }

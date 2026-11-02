@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- Added configurable remote MCP peers, IP/port and optional service credentials to the native Broker, with source-prefixed project aggregation and local-only network export preventing recursive imports.
+- Added remote configuration CLI, separate credentials and persistent Broker identity, diagnostics, remote leases and compilation waits. Full results and outcome-unknown errors are preserved without replaying eval. Configuration applies after restart; interactive CLI execution remains local only.
+
 - Replace the Utility Tool LitJson dependency with the standalone Yuze JSON Tool; `EvalJson` keeps the same dynamic CLR object-tree contract while using the new DOM and serializer directly.
 
 ## 3.0.0 - 2026-08-27

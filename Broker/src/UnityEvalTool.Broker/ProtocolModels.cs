@@ -1,3 +1,4 @@
+#nullable enable
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -53,7 +54,17 @@ internal sealed record UnityInstanceSnapshot(
 {
     public bool AuthorizationRequired { get; init; }
     public string AuthorizationState { get; init; } = "NotRequired";
+    public UnityProjectSource Source { get; init; } = new("local", null, string.Empty, false);
+    public string DisplayName => Source.Kind == "remote"
+        ? $"[Remote:{Source.RemoteId}] {ProjectName}"
+        : $"[Local] {ProjectName}";
 }
+
+internal sealed record UnityProjectSource(string Kind, string? RemoteId, string BrokerId, bool IsStale);
+internal sealed record FederationInfo(int Version, string BrokerId, string BrokerInstanceId, string View,
+    int LeaseIdleTimeoutSeconds);
+internal sealed record RemoteBrokerSnapshot(string Id, string Endpoint, string State, string? ErrorCode,
+    DateTimeOffset? LastSeenAtUtc, int ProjectCount);
 
 internal sealed record RegistrySnapshot(
     long RegistryRevision,
@@ -61,7 +72,11 @@ internal sealed record RegistrySnapshot(
     int ConnectedCount,
     string? ConnectionHandle,
     UnityInstanceSnapshot? SelectedUnity,
-    IReadOnlyList<UnityInstanceSnapshot> UnityInstances);
+    IReadOnlyList<UnityInstanceSnapshot> UnityInstances)
+{
+    public FederationInfo? Federation { get; init; }
+    public IReadOnlyList<RemoteBrokerSnapshot> RemoteBrokers { get; init; } = [];
+}
 
 internal sealed record ConnectionLeaseResult(
     string ConnectionHandle,
@@ -124,4 +139,7 @@ internal sealed record ProtocolError(string Code, string Message, bool MayHaveEx
 [JsonSerializable(typeof(ProtocolEnvelope))]
 [JsonSerializable(typeof(ProtocolError))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(BrokerConfiguration))]
+[JsonSerializable(typeof(RemoteBrokerOptions))]
+[JsonSerializable(typeof(RemoteAccessOptions))]
 internal sealed partial class BrokerJsonContext : JsonSerializerContext;

@@ -67,6 +67,27 @@ Broker 会把传入值保存到 `~/.unityevaltool/auth.json`，之后可省略 H
 [使用指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md) 和
 [Broker 协议](https://github.com/Yuze075/YuzeEvalTool/blob/main/Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
 
+## 远程项目
+
+支持把其他机器上的 Broker 本地实例聚合到自己的 MCP 和 `unity list`，显示为
+`[Local]` / `[Remote:远端ID]`。只导入一跳，不会再次导入对方的远程项目。
+
+```bash
+# 远端：可信局域网的无密钥导出示例
+unity remote access none 192.168.1.20 2348
+unity service restart
+# 本机
+unity remote add office-pc 192.168.1.20 2348
+unity service restart
+unity list
+```
+
+服务密钥可用 `unity remote credential <名称> < secret.txt` 从 stdin 保存，然后在
+`remote add` 的端口后指定名称；远端使用 `remote access token <IP> <端口> <名称>`。
+服务密钥与现有 Unity 项目 token 分开管理。网络入口默认关闭，仅开放本地实例的 `/mcp`。
+配置在重启后生效。远程项目使用现有三个 MCP 工具；交互式 CLI 远程执行暂不支持。
+更多配置和 HTTPS 部署说明见[远程项目指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md#远程-unity-项目)。
+
 ## 服务管理
 
 ```bash
@@ -77,7 +98,7 @@ unity service restart
 unity service uninstall
 ```
 
-Broker 只接受 loopback 流量，并在端口 `2347` 被占用时明确失败。
+本机入口只接受 loopback 流量，并在端口 `2347` 被占用时明确失败；可选网络导出使用独立端口。
 
 ## 卸载
 

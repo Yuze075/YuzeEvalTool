@@ -129,10 +129,14 @@ or data composed from those types whenever possible.
 | `ws://127.0.0.1:2347/unity` | Unity registration and routing |
 | `ws://127.0.0.1:2347/cli` | Native CLI consoles |
 
-The Broker binds loopback only and fails explicitly if port `2347` is unavailable. It does
-not own the authorization decision: MCP and CLI may provision candidate tokens into
+The Broker's local listener binds loopback only and fails explicitly if port `2347` is unavailable. It does
+not own the project authorization decision: MCP and CLI may provision candidate tokens into
 `~/.unityevaltool/auth.json`, while each Unity connection verifies them and remains visible
 but non-executable in `Pending` state until one matches.
+
+The native Broker can also expose a separate local-project-only network listener and aggregate
+configured peers, using separate service credentials. Unity registration remains unchanged.
+See the [Broker protocol](docs/BROKER_PROTOCOL.md#single-hop-remote-aggregation).
 
 ## Build from source
 

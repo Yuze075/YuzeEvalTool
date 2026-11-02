@@ -115,9 +115,12 @@ Tool 树和函数契约，不依赖任何 Debug UI。根 Tool 可通过 `EvalToo
 | `ws://127.0.0.1:2347/unity` | Unity 注册与中转 |
 | `ws://127.0.0.1:2347/cli` | 原生 CLI 控制台 |
 
-Broker 只绑定 loopback，并在 `2347` 端口不可用时明确失败。它不决定鉴权结果：MCP 与 CLI
+Broker 的本机入口绑定 loopback，并在 `2347` 端口不可用时明确失败。它不决定项目鉴权结果：MCP 与 CLI
 可把候选 token 录入 `~/.unityevaltool/auth.json`；每条 Unity 连接自行验证，在匹配前以
 `Pending` 状态保持可发现但不可执行。
+
+原生 Broker 还可配置独立的网络导出入口与远端聚合；网络入口只开放本地项目，并使用独立服务密钥。
+Unity Package 的注册方式不变。配置与来源语义见 [Broker 协议](docs/BROKER_PROTOCOL_zh.md#单跳远程聚合)。
 
 ## 从源码构建
 

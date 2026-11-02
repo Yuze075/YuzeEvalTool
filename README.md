@@ -185,6 +185,52 @@ Never automatically retry a mutating `eval` whose connection was interrupted aft
 dispatch; its result can be outcome-unknown. See [Advanced usage](Packages/com.yuzetoolkit.yuzeevaltool/docs/ADVANCED_USAGE.md)
 and the [Broker protocol](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL.md).
 
+## Remote Unity projects
+
+The local MCP endpoint and `unity list` aggregate registered Unity instances from configured
+machines. Display names use `[Local] Project` and `[Remote:remote-id] Project`; original
+`projectName` and `projectPath` values remain unchanged. Only registered Editors / Players
+are discovered, not unopened projects or instances that the peer imported from elsewhere.
+
+Both machines need a Broker supporting federation. Minimal anonymous setup on a trusted LAN:
+
+```bash
+# Remote machine B: use B's network-interface address and an available port
+unity remote access none 192.168.1.20 2348
+unity service restart
+
+# Local machine A
+unity remote add office-pc 192.168.1.20 2348
+unity service restart
+unity list
+```
+
+For service authentication, provision the same secret on both machines with
+`unity remote credential office-key < secret.txt` (stdin only, never a command-line secret).
+On B use `unity remote access token 192.168.1.20 2348 office-key`; on A use
+`unity remote add office-pc 192.168.1.20 2348 office-key`. Restart both services after changes.
+An existing ID must be edited in configuration or removed with `unity remote remove office-pc`
+before adding it again.
+
+Configuration lives in `~/.unityevaltool/config.json`, service credentials in `peer-auth.json`,
+and stable Broker identity in `broker-id`. `unity remote list` validates and lists configuration;
+`unity list` reports live peer states and error codes. Configuration is loaded at startup,
+so removal and disabling also take effect after restart. `unity remote access off` disables export.
+
+The network listener exposes only `/mcp` and only directly registered local Unity instances,
+including connect and execution. The local endpoint stays at `127.0.0.1:2347/mcp` and exposes
+all configured sources through the existing three tools. Remote IDs have the form
+`remote:office-pc:<original-instance-id>`; select the exact source instead of matching a remote
+path to the local working directory. Remote interactive CLI execution reports `RemoteCliUnsupported`.
+
+Network service credentials are validated on every request and never enter the Unity project
+token store. Project authorization remains the remote Broker's responsibility. Use an HTTPS
+reverse proxy or encrypted tunnel across untrusted networks; proxy to the network export listener,
+not the local aggregate endpoint, and configure explicit Host / Origin allowances. Configure
+HTTPS outbound connections with `unity remote add office-pc <host> <port> office-key https`.
+See the [Broker protocol](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL.md)
+for configuration, source metadata, disconnects and leases.
+
 ## Optional Agent and runtime debug UI
 
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
@@ -202,8 +248,9 @@ The default keys are `F8` for Yuze Agent Tool and `F10` for the Performance and 
 
 ## Security boundary
 
-The Broker binds only to `127.0.0.1:2347` and rejects non-loopback Host/Origin values. It does
-not authenticate callers globally: it only persists and forwards candidate tokens. Each
+The local listener binds to `127.0.0.1:2347` and rejects non-loopback Host/Origin values.
+Network export is disabled by default and uses a separate service authentication policy when enabled.
+The local listener persists and forwards candidate project tokens. Each
 Unity project or Player independently decides whether verification is required and accepts
 commands only after one candidate produces its stored salted verifier. Supported non-WebGL
 release Players that include Yuze Eval Tool intentionally register with the Broker and retain

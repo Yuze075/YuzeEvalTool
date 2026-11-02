@@ -12,8 +12,8 @@
 - `ws://127.0.0.1:2347/cli`：交互式 CLI 连接。
 - `http://127.0.0.1:2347/health`：Broker 健康状态快照。
 
-Broker 只绑定 loopback。如果 `2347` 不可用，必须明确失败，不得静默改用其它端口。
-Broker 不设置全局鉴权门禁，只保存候选 token 并转发给 Unity；验证结果由每条 Unity 连接
+本机入口绑定 loopback。如果 `2347` 不可用，必须明确失败，不得静默改用其它端口。
+本机入口不设置全局鉴权门禁，只保存候选 token 并转发给 Unity；验证结果由每条 Unity 连接
 自己决定。健康状态中的 `requireToken` 固定为 false，同时报告 `storedTokenCount` 与
 `maxStoredTokenCount`。
 
@@ -32,6 +32,82 @@ CLI 通过公开的 `--token` 参数把同一列表放入 `cli/hello`。值只�
   "tokens": ["project-one_token", "project-two_token"]
 }
 ```
+
+## 单跳远程聚合
+
+默认关闭网络监听；启用后在独立 IP / 端口提供 `/mcp`，只导出直接注册的本地实例。
+监听器决定访问范围，客户端 Header 无法改变范围。网络入口不开放 `/unity`、`/cli`、`/health`，
+也不接受导入项目的 ID 或租约；本机 MCP 和 CLI 列表则返回聚合视图。A→B→C 与 A↔B
+都不会递归导入。Unity 注册协议仍为 `2.0`，本地 ID 保持不变，但 `remote:` 前缀保留给导入实例。
+
+`config.json` 可与现有 `maxStoredTokens` 共存，例如：
+
+```json
+{
+  "maxStoredTokens": 5,
+  "remotes": [
+    { "id": "office-pc", "host": "192.168.1.20", "port": 2348,
+      "scheme": "http", "credentialRef": "office-key", "enabled": true }
+  ],
+  "remoteAccess": {
+    "enabled": false, "listenAddress": "192.168.1.10", "port": 2348,
+    "authMode": "token", "credentialRef": "incoming-key",
+    "allowedHosts": [], "allowedOrigins": []
+  }
+}
+```
+
+`credentialRef` 可省略，表示出站不携带密钥。服务端 `authMode` 为 `token` 或 `none`；
+开启 token 模式时必须有凭据。`peer-auth.json` 为独立的名称到密钥映射：
+
+```json
+{ "office-key": "replace-with-peer-secret", "incoming-key": "replace-with-export-secret" }
+```
+
+这些密钥不进入 `auth.json`，不转发给 Unity 或其他远端。本地调用者的 Header 不透传给远端。
+HTTP 网络入口不内建 TLS；HTTPS 由反向代理终止，出站支持 http/https。禁止自动 HTTP 重定向，
+避免向其他地址发送凭据。缺失 Origin 可接受；出现 Origin 时必须精确命中 `allowedOrigins`。
+Host 必须匹配监听 IP 或 `allowedHosts`；绑定通配地址时必须显式配置 `allowedHosts`。
+网络端口不能与本地端口相同。配置在启动时验证并加载，变更需重启服务。
+
+可选顶层时序参数（单位为秒，除并发数）：
+
+| 参数 | 默认值 | 范围 |
+|---|---:|---:|
+| discoveryIntervalSeconds | 10 | 1–3600 |
+| connectionTimeoutSeconds | 10 | 1–300 |
+| reconnectMaxDelaySeconds | 60 | 1–3600 |
+| remoteRetentionSeconds | 300 | 0–86400 |
+| maxConcurrentDiscoveries | 4 | 1–32 |
+| transportGraceSeconds | 10 | 1–300 |
+
+每个配置目录的 `broker-id` 持久保存 GUID；`brokerInstanceId` 则每次启动变化。
+不要将不同机器的 `broker-id` 一起复制。自连接、同一 Broker 的多个地址和运行期间身份替换
+报告 `RemoteIdentityConflict`。不支持导出协议的端点报告 `RemoteIncompatible`。
+
+状态快照新增 `federation: { version: 1, brokerId, brokerInstanceId, view, leaseIdleTimeoutSeconds }`。
+导出入口的 `view` 必须为 `local`；本机为 `aggregate`。导入方同时验证所有实例的本地来源。
+实例新增 `displayName` 与 `source: { kind, remoteId, brokerId, isStale }`，导入实例 ID 为
+`remote:<remoteId>:<原始instanceId>`，真实项目名与路径不变。`remoteBrokers` 逐项报告
+`id`、`endpoint`、`state`（connecting / online / offline / disabled）、`errorCode`、
+`lastSeenAtUtc`、`projectCount`，不包含凭据。
+
+本地和聚合目录各自维护 revision。聚合连接先验证聚合 revision，再使用发现时对应的远端
+revision；不会把本机版本号传给远端。本机 opaque handle 映射到独立远端 handle，不共享 VM。
+对远程实例的定向 `unity_status` 返回远端的 `capturedAtUtc`；编译前必须带该实例 ID 或 handle
+采样，再将时间标记传回同一来源，不能使用无目标的聚合列表时间比较远端编译。
+
+远端刷新采用有界并发的后台快照请求，失败按指数退避重连，不阻塞本地来源。离线时保留有期限的
+快照，标记 `source.isStale=true`、`isConnected=false`、`canEval=false`；过期删除项目快照。
+网络短断线不会替换远端租约；恢复后验证 Broker 代次与 Unity 进程身份。Broker 重启、Unity
+进程替换或租约到期需要重新发现和连接。活动状态等待不会被本机空闲清理打断，远端始终校验实际租约。
+本机失活租约删除后，远端会话按原有 idle timeout 回收。未知结果的 eval 报告
+`ExecutionOutcomeUnknown` / `mayHaveExecuted=true`，绝不自动重放；完整 MCP 结果（含图片和错误）原样返回。
+
+交互式 CLI 执行仅支持本地项目，远端选择报告 `RemoteCliUnsupported`，且 cwd / 路径匹配只考虑
+本地实例。配置命令和首次使用见[主指南](../../../README_zh.md#远程-unity-项目)。
+隔离部署可用 `unity broker --config <config.json> --local-port <port>`；凭据与身份跟随配置目录，
+不会更新默认安装记录。`unity remote --config <config.json> ...` 管理同一隔离配置。
 
 ## 消息封装
 

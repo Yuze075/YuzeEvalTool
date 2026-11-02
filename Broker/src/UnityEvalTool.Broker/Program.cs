@@ -1,3 +1,4 @@
+#nullable enable
 namespace YuzeToolkit.Eval.Broker;
 
 internal static class Program
@@ -6,7 +7,12 @@ internal static class Program
     {
         try
         {
-            InstallMetadataStore.RegisterCurrentExecutable();
+            var isolatedConfiguration = args.Length > 0 &&
+                (string.Equals(args[0], "broker", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(args[0], "remote", StringComparison.OrdinalIgnoreCase)) &&
+                args.Any(argument => argument == "--config" || argument.StartsWith("--config=", StringComparison.Ordinal));
+            if (!isolatedConfiguration)
+                InstallMetadataStore.RegisterCurrentExecutable();
             if (args.Length >= 1 && string.Equals(args[0], "broker", StringComparison.OrdinalIgnoreCase))
             {
                 await BrokerHost.RunAsync(args.Skip(1).ToArray());
@@ -17,7 +23,7 @@ internal static class Program
         }
         catch (IOException ex) when (ex.Message.Contains("address already in use", StringComparison.OrdinalIgnoreCase))
         {
-            Console.Error.WriteLine($"BrokerUnavailable: port {BrokerConstants.Port} is already in use. {ex.Message}");
+            Console.Error.WriteLine($"BrokerUnavailable: a configured listener address is already in use. {ex.Message}");
             return 3;
         }
         catch (Exception ex)

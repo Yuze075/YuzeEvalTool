@@ -1,7 +1,7 @@
 {
   "name": "@yuzetoolkit/unityevaltool",
   "version": "3.0.0",
-  "description": "Local Broker, MCP server and CLI for Yuze Eval Tool",
+  "description": "Unity Broker, local and remote MCP access, and CLI for Yuze Eval Tool",
   "keywords": [
     "unity",
     "mcp",

@@ -52,8 +52,13 @@ Broker 内部，不依赖 eval。编译失败不会卸载旧脚本域，而是�
 
 ## 安全
 
-Kestrel 只监听 loopback，并拒绝非 loopback Host/Origin。Broker 没有全局鉴权策略；MCP/CLI
+Kestrel 的本机入口监听 loopback，并拒绝非 loopback Host/Origin。本机入口没有全局鉴权策略；MCP/CLI
 输入或用户编辑的 `auth.json` 提供原始候选 token，Broker 只保存和转发。每个 Unity 项目
 默认不验证，或在 Resources Asset 保存加盐 PBKDF2 verifier，并在任一候选值匹配前拒绝所有
 操作。一次连接匹配成功后，在该连接生命周期内保持 Authorized。端口冲突、非法凭据/配置
 文件、非法项目 verifier 和协议不匹配都会明确失败。
+
+可选网络监听只导出直接注册的本地实例，并逐请求验证独立的服务密钥（也可显式配置无密钥）。
+本机注册表聚合远端快照并维护来源限定 ID、独立租约和目录版本；网络入口不再导出这些导入项。
+远端生命周期与路由实现归 Broker，Unity 的执行协议不变。配置、来源、断线和鉴权契约以
+[Broker 协议](BROKER_PROTOCOL_zh.md#单跳远程聚合) 为准。

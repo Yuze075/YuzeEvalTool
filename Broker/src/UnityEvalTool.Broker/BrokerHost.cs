@@ -1,3 +1,5 @@
+#nullable enable
+using System.Net;
 using ModelContextProtocol.Server;
 
 namespace YuzeToolkit.Eval.Broker;
@@ -6,20 +8,33 @@ internal static class BrokerHost
 {
     private static readonly DateTimeOffset StartedAtUtc = DateTimeOffset.UtcNow;
     public static readonly string InstanceId = Guid.NewGuid().ToString("N");
+    internal static readonly object LocalOnlyRequest = new();
 
     public static async Task RunAsync(string[] args)
     {
         var builder = WebApplication.CreateSlimBuilder(args);
-        builder.WebHost.ConfigureKestrel(options => options.ListenLocalhost(BrokerConstants.Port));
-        builder.Services.AddSingleton<AuthTokenStore>();
-        var registry = new BrokerRegistry();
+        var configuration = BrokerConfiguration.Load(builder.Configuration["config"] ?? BrokerConfiguration.DefaultPath);
+        var localPort = builder.Configuration.GetValue<int?>("local-port") ?? BrokerConstants.Port;
+        BrokerConfiguration.RequireRange(localPort, 1, 65535, "local-port");
+        if (configuration.RemoteAccess.Enabled && configuration.RemoteAccess.Port == localPort)
+            throw new InvalidDataException("Local and network MCP listeners must use different ports.");
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenLocalhost(localPort);
+            if (configuration.RemoteAccess.Enabled)
+                options.Listen(IPAddress.Parse(configuration.RemoteAccess.ListenAddress), configuration.RemoteAccess.Port);
+        });
+        builder.Services.AddSingleton(new AuthTokenStore(Path.Combine(Path.GetDirectoryName(configuration.FilePath)!, "auth.json")));
+        var registry = new BrokerRegistry(configuration);
         builder.Services.AddSingleton(registry);
         builder.Services.AddHostedService<BrokerMaintenanceService>();
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, BrokerJsonContext.Default));
+        var contexts = new HttpContextAccessor();
+        builder.Services.AddSingleton<IHttpContextAccessor>(contexts);
         builder.Services.AddMcpServer()
             .WithHttpTransport(options => options.Stateless = true)
-            .WithTools(UnityBrokerTools.CreateTools(new UnityBrokerTools(registry)));
+            .WithTools(UnityBrokerTools.CreateTools(new UnityBrokerTools(registry, contexts)));
 
         var app = builder.Build();
         // Invalid user-edited credential/config files fail before the port starts accepting clients.
@@ -28,6 +43,35 @@ internal static class BrokerHost
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(10) });
         app.Use(async (context, next) =>
         {
+            // The listener, not a caller-supplied header, chooses the export boundary.
+            if (context.Connection.LocalPort != localPort)
+            {
+                if (!context.Request.Path.Equals("/mcp", StringComparison.Ordinal))
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+                if (!IsAllowedNetworkHost(context.Request.Host.Host, configuration.RemoteAccess))
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
+                }
+                var origin = context.Request.Headers.Origin.ToString();
+                if (!string.IsNullOrEmpty(origin) && !configuration.RemoteAccess.AllowedOrigins.Contains(origin, StringComparer.Ordinal))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+                if (!configuration.AcceptsPeerToken(context.Request.Headers.Authorization.ToString()))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.Headers.WWWAuthenticate = "Bearer realm=\"UnityEvalTool\"";
+                    return;
+                }
+                context.Items[LocalOnlyRequest] = true;
+                await next(context);
+                return;
+            }
             if (!IsLoopbackHost(context.Request.Host.Host))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -76,7 +120,7 @@ internal static class BrokerHost
 
         app.MapGet("/health", (BrokerRegistry registry, AuthTokenStore tokens) =>
             new HealthSnapshot("ready", BrokerConstants.ProtocolVersion,
-                $"http://{BrokerConstants.Host}:{BrokerConstants.Port}", StartedAtUtc,
+                $"http://{BrokerConstants.Host}:{localPort}", StartedAtUtc,
                 registry.Revision, registry.GetSnapshot().ConnectedCount, false)
             {
                 StoredTokenCount = tokens.GetTokens().Count,
@@ -86,6 +130,13 @@ internal static class BrokerHost
         app.Map("/cli", CliWebSocketEndpoint.HandleAsync);
         app.MapMcp("/mcp");
         await app.RunAsync();
+    }
+
+    private static bool IsAllowedNetworkHost(string host, RemoteAccessOptions options)
+    {
+        host = host.Trim('[', ']');
+        return string.Equals(host, options.ListenAddress.Trim('[', ']'), StringComparison.OrdinalIgnoreCase) ||
+               options.AllowedHosts.Any(allowed => string.Equals(host, allowed.Trim('[', ']'), StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsLoopbackHost(string host) =>

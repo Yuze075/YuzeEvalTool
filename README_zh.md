@@ -172,6 +172,46 @@ handle 过期、失效或 Unity 进程被替换时才重新连接。修改型 `e
 连接中断，不得自动重试，因为其结果可能不确定。详见[进阶使用](Packages/com.yuzetoolkit.yuzeevaltool/docs/ADVANCED_USAGE_zh.md)
 和 [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
 
+## 远程 Unity 项目
+
+本机 MCP 入口和 `unity list` 可以聚合多台机器的 Unity 实例。展示名称使用
+`[Local] 项目名` 或 `[Remote:远端ID] 项目名`；`projectName`、`projectPath` 保留真实值。
+只发现已注册的 Editor / Player，不扫描未打开的工程，也不导入远端从其他机器加载的项目。
+
+双方需要使用支持远程聚合的 Broker。在可信局域网中，不使用服务密钥的最小配置为：
+
+```bash
+# 被连接的电脑 B：填写 B 的网卡 IP，端口可自选
+unity remote access none 192.168.1.20 2348
+unity service restart
+
+# 本机 A
+unity remote add office-pc 192.168.1.20 2348
+unity service restart
+unity list
+```
+
+使用服务密钥时，先在双方通过 `unity remote credential office-key < secret.txt`
+录入相同密钥（从 stdin 读取，不作为命令行参数）。然后 B 使用
+`unity remote access token 192.168.1.20 2348 office-key`，A 使用
+`unity remote add office-pc 192.168.1.20 2348 office-key`。修改后分别重启服务。
+已有相同 ID 时请编辑配置，或先 `unity remote remove office-pc` 再添加。
+
+配置写入 `~/.unityevaltool/config.json`，服务密钥独立保存在 `peer-auth.json`，稳定机器身份
+保存在 `broker-id`。`unity remote list` 校验并列出配置，`unity list` 显示运行中的远端状态与错误码。
+配置在服务启动时加载；删除或禁用远端也在重启后生效。`unity remote access off` 关闭网络导出。
+
+网络入口只开放 `/mcp`，只允许发现、连接、执行该 Broker 直接注册的本地实例。
+本机入口仍为 `127.0.0.1:2347/mcp`，使用原来的三个工具访问所有已配置来源。
+远程实例 ID 形如 `remote:office-pc:<原实例ID>`；必须明确选择来源，不能用本机工作目录匹配远程路径。
+远程交互式 CLI 执行暂不支持，选择远程实例时会明确报告 `RemoteCliUnsupported`。
+
+服务密钥在网络入口的每个请求中验证，且不会进入 Unity 项目 token 库；远端项目仍需由远端 Broker
+按原有流程完成 Unity 授权。跨不可信网络使用 HTTPS 反向代理或加密隧道；代理应指向网络导出端口，
+并保留明确的 Host / Origin 允许列表，不能转发到本机聚合入口。HTTPS 出站可用
+`unity remote add office-pc <主机名> <端口> office-key https` 配置。
+完整配置、来源字段、断线和租约语义见 [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
+
 ## 可选的 Agent 与 Runtime Debug UI
 
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
@@ -188,8 +228,8 @@ Prefab。面板不会自动创建。模块、持久化模型、默认快捷键�
 
 ## 安全边界
 
-Broker 只绑定 `127.0.0.1:2347`，并拒绝非 loopback Host/Origin。Broker 本身不做全局鉴权，
-只负责保存并转发候选 token；每个 Unity 项目或 Player 自己决定是否要求验证，并且只有某个
+本机入口绑定 `127.0.0.1:2347`，并拒绝非 loopback Host/Origin；网络入口默认关闭，显式开启后
+使用独立的服务鉴权策略。本机入口只负责保存并转发候选项目 token；每个 Unity 项目或 Player 自己决定是否要求验证，并且只有某个
 候选 token 能生成已保存的加盐 verifier 后才接受操作。包含 Yuze Eval Tool 的、受支持的非
 WebGL Release Player 会有意向 Broker 注册，并保留任意 JavaScript eval 能力；它不仅限于
 Development Build，也不依赖 Yuze Agent Tool。该 verifier 能阻止不知道 token 的普通 Broker
