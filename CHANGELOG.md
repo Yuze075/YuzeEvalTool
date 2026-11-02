@@ -12,6 +12,7 @@
 - Replace the Utility Tool LitJson dependency with the standalone Yuze JSON Tool; `EvalJson` keeps the same dynamic CLR object-tree contract while using the new DOM and serializer directly.
 
 - Synchronize Broker, npm, Unity package and runtime versions at 3.1.0; update Yuze Agent Tool to 0.4.1 with the matching Eval dependency. The Broker protocol remains 2.0.
+- Regenerate the committed Unity analyzer from the current generator source with the pinned SDK, restoring the release workflow's deterministic binary check.
 
 ## 3.0.0 - 2026-08-27
 

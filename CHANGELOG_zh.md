@@ -12,6 +12,7 @@
 - 将 Utility Tool LitJson 依赖替换为独立的 Yuze JSON Tool；`EvalJson` 保持原有动态 CLR 对象树契约，并直接使用新的 DOM 与序列化器。
 
 - 将 Broker、npm、Unity Package 与 Runtime 版本同步为 3.1.0；Yuze Agent Tool 更新至 0.4.1，并同步 Eval 依赖版本。Broker 协议仍为 2.0。
+- 使用锁定 SDK 从当前 Generator 源码重新生成已提交的 Unity Analyzer，恢复发布流程的确定性二进制校验。
 
 ## 3.0.0 - 2026-08-27
 
