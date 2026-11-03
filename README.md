@@ -54,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -62,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0"
   }
 }
 ```
@@ -217,7 +217,7 @@ and stable Broker identity in `broker-id`. `unity remote list` validates and lis
 `unity list` reports live peer states and error codes. Configuration is loaded at startup,
 so removal and disabling also take effect after restart. `unity remote access off` disables export.
 
-The network listener exposes only `/mcp` and only directly registered local Unity instances,
+The network `/mcp` exports only directly registered local Unity instances,
 including connect and execution. The local endpoint stays at `127.0.0.1:2347/mcp` and exposes
 all configured sources through the existing three tools. Remote IDs have the form
 `remote:office-pc:<original-instance-id>`; select the exact source instead of matching a remote
@@ -231,12 +231,24 @@ HTTPS outbound connections with `unity remote add office-pc <host> <port> office
 See the [Broker protocol](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL.md)
 for configuration, source metadata, disconnects and leases.
 
+## Remote development workspaces
+
+The opt-in `/remote/mcp` view adds project files and images, terminal tasks, project-scoped
+AGENTS/Skills, session events and a separate desktop worker. The local view routes only to
+configured peers; the authenticated network view exports only explicitly shared local roots.
+The existing `/mcp` tool catalog remains Unity-only. Existing Unity credentials grant none of
+these capabilities automatically.
+
+See [Remote workspace setup and contracts](Broker/REMOTE_WORKSPACES.md) for grants, client
+configuration, recovery, desktop prerequisites and the current validation limits. The local
+`/remote/status` page shows connection transitions while open; it does not wake an idle AI.
+
 ## Optional Agent and runtime debug UI
 
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.2.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a

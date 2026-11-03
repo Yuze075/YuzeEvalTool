@@ -33,7 +33,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's

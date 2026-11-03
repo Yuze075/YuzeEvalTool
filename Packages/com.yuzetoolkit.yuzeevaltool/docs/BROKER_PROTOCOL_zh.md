@@ -40,6 +40,9 @@ CLI 通过公开的 `--token` 参数把同一列表放入 `cli/hello`。值只�
 也不接受导入项目的 ID 或租约；本机 MCP 和 CLI 列表则返回聚合视图。A→B→C 与 A↔B
 都不会递归导入。Unity 注册协议仍为 `2.0`，本地 ID 保持不变，但 `remote:` 前缀保留给导入实例。
 
+独立授权的 `/remote/mcp` 工作区协议见 [Broker 远程工作区指南](../../../Broker/REMOTE_WORKSPACES_zh.md)。
+它的项目根、密钥、会话句柄和工具目录独立于 Unity 租约，同样只导出自身本地能力。
+
 `config.json` 可与现有 `maxStoredTokens` 共存，例如：
 
 ```json

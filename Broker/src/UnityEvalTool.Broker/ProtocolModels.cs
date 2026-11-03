@@ -142,4 +142,7 @@ internal sealed record ProtocolError(string Code, string Message, bool MayHaveEx
 [JsonSerializable(typeof(BrokerConfiguration))]
 [JsonSerializable(typeof(RemoteBrokerOptions))]
 [JsonSerializable(typeof(RemoteAccessOptions))]
+[JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(System.Text.Json.Nodes.JsonNode))]
+[JsonSerializable(typeof(ModelContextProtocol.Protocol.CallToolResult))]
 internal sealed partial class BrokerJsonContext : JsonSerializerContext;

@@ -11,6 +11,7 @@ internal sealed class BrokerConfiguration
 {
     public List<RemoteBrokerOptions> Remotes { get; set; } = [];
     public RemoteAccessOptions RemoteAccess { get; set; } = new();
+    public WorkspaceOptions Workspace { get; set; } = new();
     public int DiscoveryIntervalSeconds { get; set; } = 10;
     public int ConnectionTimeoutSeconds { get; set; } = 10;
     public int ReconnectMaxDelaySeconds { get; set; } = 60;
@@ -84,7 +85,7 @@ internal sealed class BrokerConfiguration
 
     private void Validate()
     {
-        if (Remotes == null || RemoteAccess == null)
+        if (Remotes == null || RemoteAccess == null || Workspace == null)
             throw new InvalidDataException("remotes and remoteAccess cannot be null.");
         RequireRange(DiscoveryIntervalSeconds, 1, 3600, "discoveryIntervalSeconds");
         RequireRange(ConnectionTimeoutSeconds, 1, 300, "connectionTimeoutSeconds");
@@ -106,6 +107,7 @@ internal sealed class BrokerConfiguration
             if (!endpoints.Add(remote.Endpoint.AbsoluteUri))
                 throw new InvalidDataException("The same remote endpoint cannot be configured twice.");
             ValidateCredential(remote.CredentialRef);
+            ValidateCredential(remote.WorkspaceCredentialRef);
         }
         if (RemoteAccess.AuthMode is not ("none" or "token"))
             throw new InvalidDataException("remoteAccess.authMode must be none or token.");
@@ -118,6 +120,7 @@ internal sealed class BrokerConfiguration
             RemoteAccess.AllowedOrigins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
                 uri.Scheme is not ("http" or "https") || uri.GetLeftPart(UriPartial.Authority) != origin))
             throw new InvalidDataException("Network hosts and origins must be explicit valid hosts / HTTP origins without wildcards.");
+        Workspace.Validate(this);
         if (RemoteAccess.Enabled)
         {
             if (RemoteAccess.AuthMode == "token" && RemoteAccess.CredentialRef == null)
@@ -132,7 +135,7 @@ internal sealed class BrokerConfiguration
         }
     }
 
-    private void ValidateCredential(string? reference)
+    internal void ValidateCredential(string? reference)
     {
         if (reference == null) return;
         ValidateId(reference);
@@ -172,6 +175,7 @@ internal sealed class RemoteBrokerOptions
     public int Port { get; set; } = 2348;
     public string Scheme { get; set; } = "http";
     public string? CredentialRef { get; set; }
+    public string? WorkspaceCredentialRef { get; set; }
     public bool Enabled { get; set; } = true;
     [JsonIgnore] public Uri Endpoint => new UriBuilder(Scheme, Host, Port, "/mcp").Uri;
 }

@@ -145,6 +145,10 @@ The installed native executable owns the Broker, MCP, CLI routing, Unity registr
 current-user service behavior. JavaScript in the entry npm package only selects and starts
 the matching native package and exposes explicit service helpers.
 
+The optional workspace endpoint and separate graphical-session desktop worker are also
+owned by the native executable. See [Remote workspaces](REMOTE_WORKSPACES.md) for their
+configuration, session protocol, platform prerequisites and validation boundary.
+
 ## License
 
 [MIT](../LICENSE)

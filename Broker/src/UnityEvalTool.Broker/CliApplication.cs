@@ -26,6 +26,8 @@ internal static partial class CliApplication
         }
         if (command == "doctor") return await DoctorAsync(cancellationToken);
         if (command == "remote") return ConfigureRemotes(args.Skip(1).ToArray());
+        if (command == "workspace") return ConfigureWorkspaces(args.Skip(1).ToArray());
+        if (command == "desktop") return await WorkspaceDesktopWorker.RunAsync(args.Skip(1).ToArray(), cancellationToken);
 
         await using var connection = await OpenConnectionAsync(suppliedTokenList, cancellationToken);
         if (command is "list" or "status")
@@ -340,6 +342,8 @@ Yuze Eval Tool Broker CLI
   unity service <action>        install|uninstall|start|stop|restart|status.
   unity remote                 Show remote configuration commands.
   unity remote list            Validate and list configured peers without printing credentials.
+  unity workspace              Configure opt-in remote projects and per-capability grants.
+  unity desktop worker         Run the desktop driver bridge in the graphical user session.
   unity broker                  Run the foreground Broker host on 127.0.0.1:2347.
     --config <file> --local-port <port>
                                 Use an isolated Broker configuration / local listener (advanced).

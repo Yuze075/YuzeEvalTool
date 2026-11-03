@@ -52,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -60,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0"
   }
 }
 ```
@@ -201,7 +201,7 @@ unity list
 保存在 `broker-id`。`unity remote list` 校验并列出配置，`unity list` 显示运行中的远端状态与错误码。
 配置在服务启动时加载；删除或禁用远端也在重启后生效。`unity remote access off` 关闭网络导出。
 
-网络入口只开放 `/mcp`，只允许发现、连接、执行该 Broker 直接注册的本地实例。
+网络 `/mcp` 只允许发现、连接、执行该 Broker 直接注册的本地实例。
 本机入口仍为 `127.0.0.1:2347/mcp`，使用原来的三个工具访问所有已配置来源。
 远程实例 ID 形如 `remote:office-pc:<原实例ID>`；必须明确选择来源，不能用本机工作目录匹配远程路径。
 远程交互式 CLI 执行暂不支持，选择远程实例时会明确报告 `RemoteCliUnsupported`。
@@ -212,12 +212,21 @@ unity list
 `unity remote add office-pc <主机名> <端口> office-key https` 配置。
 完整配置、来源字段、断线和租约语义见 [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
 
+## 远程开发工作区
+
+可选的 `/remote/mcp` 视图提供项目文件与图片、终端任务、项目范围的 AGENTS / Skills、
+会话事件和独立桌面执行器。本机视图只路由到配置的远端；经过鉴权的网络视图只导出明确共享的
+本地项目根目录。原 `/mcp` 仍保持三个 Unity 工具，现有 Unity 密钥不会自动获得新能力。
+
+配置、授权、客户端接入、故障恢复和桌面验证边界见[远程工作区指南](Broker/REMOTE_WORKSPACES_zh.md)。
+本机 `/remote/status` 页面打开时会展示连接变化；它不能唤醒闲置的 AI 会话。
+
 ## 可选的 Agent 与 Runtime Debug UI
 
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.2.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻

@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+## 3.2.0 - 2026-11-03
+
+- Add the opt-in `/remote/mcp` workspace endpoint: project-scoped files/images, asynchronous terminals, AGENTS and Skills, session leases, recovery events and a local connection monitor. Network peers export only their own explicitly authorized roots.
+- Add an independent graphical-session worker for Cua Driver 0.38.0, bounded window observations/actions and per-call foreground permission mode. Cua remains optional: 15 base tools, with two desktop tools advertised only for an installed/configured, authorized remote capability; catalog changes notify clients.
+- Preserve the three original Unity MCP tools and Broker protocol 2.0. Existing installations gain no workspace grants automatically. Synchronize Broker, npm and Eval Unity package metadata at 3.2.0.
+
 ## 3.1.0 - 2026-11-02
 
 - Added configurable remote MCP peers, IP/port and optional service credentials to the native Broker, with source-prefixed project aggregation and local-only network export preventing recursive imports.

@@ -27,6 +27,10 @@ internal static class BrokerHost
         builder.Services.AddSingleton(new AuthTokenStore(Path.Combine(Path.GetDirectoryName(configuration.FilePath)!, "auth.json")));
         var registry = new BrokerRegistry(configuration);
         builder.Services.AddSingleton(registry);
+        var workspace = new WorkspaceService(configuration, registry);
+        var workspaceEndpoint = new WorkspaceMcpEndpoint(workspace);
+        builder.Services.AddSingleton(workspaceEndpoint);
+        builder.Services.AddHostedService<WorkspaceMaintenanceService>();
         builder.Services.AddHostedService<BrokerMaintenanceService>();
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, BrokerJsonContext.Default));
@@ -46,7 +50,8 @@ internal static class BrokerHost
             // The listener, not a caller-supplied header, chooses the export boundary.
             if (context.Connection.LocalPort != localPort)
             {
-                if (!context.Request.Path.Equals("/mcp", StringComparison.Ordinal))
+                var workspaceRequest = context.Request.Path.Equals("/remote/mcp", StringComparison.Ordinal);
+                if (!workspaceRequest && !context.Request.Path.Equals("/mcp", StringComparison.Ordinal))
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
@@ -62,7 +67,8 @@ internal static class BrokerHost
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
                 }
-                if (!configuration.AcceptsPeerToken(context.Request.Headers.Authorization.ToString()))
+                if (!(workspaceRequest ? workspace.Accepts(context.Request.Headers.Authorization.ToString()) :
+                    configuration.AcceptsPeerToken(context.Request.Headers.Authorization.ToString())))
                 {
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.Headers.WWWAuthenticate = "Bearer realm=\"UnityEvalTool\"";
@@ -129,6 +135,8 @@ internal static class BrokerHost
         app.Map("/unity", UnityWebSocketEndpoint.HandleAsync);
         app.Map("/cli", CliWebSocketEndpoint.HandleAsync);
         app.MapMcp("/mcp");
+        app.MapMethods("/remote/mcp", ["GET", "POST", "DELETE"], workspaceEndpoint.HandleAsync);
+        app.MapGet("/remote/status", () => Results.Content(WorkspaceStatusPage.Html, "text/html; charset=utf-8"));
         await app.RunAsync();
     }
 

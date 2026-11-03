@@ -9,7 +9,9 @@ internal static class Program
         {
             var isolatedConfiguration = args.Length > 0 &&
                 (string.Equals(args[0], "broker", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(args[0], "remote", StringComparison.OrdinalIgnoreCase)) &&
+                 string.Equals(args[0], "remote", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(args[0], "workspace", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(args[0], "desktop", StringComparison.OrdinalIgnoreCase)) &&
                 args.Any(argument => argument == "--config" || argument.StartsWith("--config=", StringComparison.Ordinal));
             if (!isolatedConfiguration)
                 InstallMetadataStore.RegisterCurrentExecutable();

@@ -37,12 +37,16 @@ older readers):
 
 ## Single-hop remote aggregation
 
-Network export is disabled by default. When enabled, a separate address / port exposes only
-`/mcp` and only directly registered local Unity instances. The listener chooses the scope;
+Network export is disabled by default. When enabled, `/mcp` on a separate address / port exports
+only directly registered local Unity instances. The listener chooses the scope;
 caller headers cannot override it. Network requests cannot access `/unity`, `/cli`, `/health`,
 imported IDs or imported leases. Local MCP and CLI listings provide the aggregate view.
 A→B→C and A↔B never recursively import projects. The Unity wire protocol remains `2.0`;
 local IDs are unchanged, with `remote:` reserved for imports.
+
+The separately authorized `/remote/mcp` workspace protocol is specified in the
+[Broker workspace guide](../../../Broker/REMOTE_WORKSPACES.md). Its project roots, credentials,
+session handles and tool catalog are independent of Unity leases; it also exports only local capabilities.
 
 `config.json` coexists with the existing token-capacity setting:
 
