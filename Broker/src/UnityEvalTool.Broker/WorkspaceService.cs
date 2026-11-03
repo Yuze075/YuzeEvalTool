@@ -13,9 +13,9 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
     private readonly WorkspaceDesktop _desktop = new(config.Workspace, registry);
     private bool DesktopInstalled => config.Workspace.DesktopDriverPath is { } path && File.Exists(path);
 
-    public bool CanExportDesktop(string authorization) => config.Workspace.Projects.Any(project => project.Allows("desktop", authorization, config));
+    public string[] ExportCredentials(string authorization) => config.Credentials.Where(pair => WorkspaceDefinition.Matches(pair.Value, authorization)).Select(pair => pair.Key).ToArray();
     private bool DesktopAvailable(WorkspaceSession session) => session.Exporting
-        ? session.ExportDesktopAuthorized && DesktopInstalled
+        ? DesktopInstalled && config.Projects.Any(project => project.DesktopCredentialRef != null && session.ExportCredentialReferences.Contains(project.DesktopCredentialRef))
         : session.Peers.Values.Any(peer => peer.State == "online" && peer.DesktopToolsAvailable);
 
     public async Task<JsonArray> ListToolsAsync(WorkspaceSession session, CancellationToken token)
@@ -30,7 +30,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         finally { session.Gate.Release(); }
     }
 
-    public bool Accepts(string authorization) => config.Workspace.Projects.Any(project =>
+    public bool Accepts(string authorization) => config.Projects.Any(project =>
         project.CredentialReferences.Any(reference => reference != null && WorkspaceDefinition.Matches(config.GetCredential(reference)!, authorization)));
 
     public async Task<JsonObject> CallAsync(WorkspaceSession session, string name, JsonObject args, string authorization, CancellationToken cancellationToken)
@@ -78,7 +78,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
                 if (name == "workspace_status" && result["isError"]?.GetValue<bool>() != true)
                 {
                     var snapshot = Payload(result); snapshot["contextHandle"] = context.Handle;
-                    snapshot["hostId"] = context.Peer.Id; snapshot["source"] = "remote";
+                    DescribeRemoteProject(snapshot, context.Peer.Id);
                     context.Snapshot = (JsonObject)snapshot.DeepClone();
                     result = WorkspaceTools.Result(snapshot);
                 }
@@ -144,9 +144,8 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         var projects = new JsonArray(); var errors = new JsonArray();
         if (session.Exporting)
         {
-            foreach (var project in config.Workspace.Projects.Where(p => p.CredentialReferences.Any(r => r != null && WorkspaceDefinition.Matches(config.GetCredential(r)!, authorization))))
-                projects.Add((JsonNode)new JsonObject { ["workspaceId"] = project.Id, ["rootPath"] = project.RootPath, ["source"] = "local",
-                    ["desktopAvailable"] = DesktopInstalled && project.Allows("desktop", authorization, config) });
+            foreach (var project in config.Projects.Where(p => p.CredentialReferences.Any(r => r != null && WorkspaceDefinition.Matches(config.GetCredential(r)!, authorization))))
+                projects.Add((JsonNode)DescribeProject(project, authorization));
         }
         else
         {
@@ -167,7 +166,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
                     {
                         if (entry is not JsonObject project || Text(project, "source") != "local")
                             throw WorkspaceFiles.Error("RecursiveRouteRejected", "The peer returned a workspace that is not its own local export.");
-                        var item = (JsonObject)project.DeepClone(); item["hostId"] = remote.Id; item["source"] = "remote"; projects.Add((JsonNode)item);
+                        var item = (JsonObject)project.DeepClone(); DescribeRemoteProject(item, remote.Id); projects.Add((JsonNode)item);
                     }
                 }
                 catch (Exception ex) when (RemoteFailure(ex))
@@ -188,7 +187,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         if (session.Exporting)
         {
             if (args.ContainsKey("hostId")) throw WorkspaceFiles.Error("RecursiveRouteRejected", "Network workspaces export local projects only; hostId is not accepted.");
-            var project = config.Workspace.Projects.SingleOrDefault(p => p.Id == id)
+            var project = config.Projects.SingleOrDefault(p => p.Id == id)
                 ?? throw WorkspaceFiles.Error("WorkspaceNotFound", "This workspace is not explicitly shared.");
             if (!project.CredentialReferences.Any(r => r != null && WorkspaceDefinition.Matches(config.GetCredential(r)!, authorization)))
                 throw WorkspaceFiles.Error("CapabilityDenied", "This credential does not grant this workspace.");
@@ -207,7 +206,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
             if (Text(snapshot, "source") != "local") throw WorkspaceFiles.Error("RecursiveRouteRejected", "The peer did not connect its own local workspace.");
             context = new WorkspaceContext(id, Required(snapshot, "cwd"))
             { Peer = peer, RemoteHandle = Required(snapshot, "contextHandle"), RemoteInstanceId = peer.InstanceId };
-            snapshot["contextHandle"] = context.Handle; snapshot["hostId"] = peer.Id; snapshot["source"] = "remote";
+            snapshot["contextHandle"] = context.Handle; DescribeRemoteProject(snapshot, peer.Id);
         }
         session.Contexts[context.Handle] = context;
         context.Snapshot = (JsonObject)snapshot.DeepClone();
@@ -215,24 +214,66 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         return WorkspaceTools.Result(snapshot);
     }
 
-    private JsonObject Describe(WorkspaceContext context, string authorization) => new()
+    private JsonObject Describe(WorkspaceContext context, string authorization)
     {
-        ["contextHandle"] = context.Handle, ["workspaceId"] = context.WorkspaceId,
-        ["brokerId"] = config.BrokerId, ["brokerInstanceId"] = BrokerHost.InstanceId, ["view"] = "local", ["source"] = "local",
-        ["rootPath"] = context.Files!.Root, ["cwd"] = context.Cwd, ["os"] = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
-        ["isStale"] = false, ["state"] = "online", ["capturedAtUtc"] = DateTimeOffset.UtcNow.ToString("O"),
-        ["tasks"] = new JsonArray(context.Tasks.Values.Select(task => (JsonNode)task.Snapshot(0, 0)).ToArray()),
-        ["capabilities"] = new JsonObject
+        var snapshot = DescribeProject(context.Definition!, authorization);
+        snapshot["contextHandle"] = context.Handle;
+        snapshot["brokerId"] = config.BrokerId; snapshot["brokerInstanceId"] = BrokerHost.InstanceId;
+        snapshot["view"] = "local"; snapshot["cwd"] = context.Cwd;
+        snapshot["os"] = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+        snapshot["isStale"] = false; snapshot["state"] = "online";
+        snapshot["capturedAtUtc"] = DateTimeOffset.UtcNow.ToString("O");
+        snapshot["tasks"] = new JsonArray(context.Tasks.Values.Select(task => (JsonNode)task.Snapshot(0, 0)).ToArray());
+        return snapshot;
+    }
+
+    private JsonObject DescribeProject(WorkspaceDefinition project, string authorization)
+    {
+        var instances = registry.GetSnapshot().UnityInstances.Where(unity => unity.Source.Kind == "local" && unity.IsConnected &&
+            WorkspaceFiles.SamePath(unity.ProjectPath, project.RootPath)).ToArray();
+        var canEval = instances.Any(unity => BrokerStatePolicy.CanExecute(unity.Status) && BrokerStatePolicy.IsAuthorized(unity));
+        return new JsonObject
         {
-            ["filesRead"] = context.Definition!.Allows("filesRead", authorization, config), ["filesWrite"] = context.Definition.Allows("filesWrite", authorization, config),
-            ["terminal"] = context.Definition.Allows("terminal", authorization, config), ["pty"] = true,
-            ["desktopAuthorized"] = context.Definition.Allows("desktop", authorization, config), ["desktopDriverConfigured"] = config.Workspace.DesktopDriverPath != null,
-            ["desktopDriverInstalled"] = DesktopInstalled, ["desktopAvailable"] = DesktopInstalled && context.Definition.Allows("desktop", authorization, config),
-            ["desktopExecutionMode"] = "background-default-foreground-explicit", ["shells"] = new JsonArray(OperatingSystem.IsWindows() ? "powershell.exe" : Environment.GetEnvironmentVariable("SHELL") ?? "/bin/sh")
-        },
-        ["unityInstances"] = new JsonArray(registry.GetSnapshot().UnityInstances.Where(u => u.Source.Kind == "local" && WorkspaceFiles.SamePath(u.ProjectPath, context.Files.Root))
-            .Select(u => (JsonNode)new JsonObject { ["instanceId"] = u.InstanceId, ["processId"] = u.ProcessId, ["projectPath"] = u.ProjectPath }).ToArray())
-    };
+            ["workspaceId"] = project.Id, ["name"] = project.Name, ["displayName"] = "[Local] " + project.Name,
+            ["rootPath"] = project.RootPath, ["registeredBy"] = project.RegisteredBy, ["source"] = "local",
+            ["directoryExists"] = Directory.Exists(project.RootPath),
+            ["kind"] = instances.Length == 0 ? "workspace" : "unity",
+            ["unityState"] = instances.Length == 0 ? "disconnected" : canEval ? "ready" : instances.Any(BrokerStatePolicy.IsAuthorized) ? "busy" : "authorizationRequired",
+            ["desktopAvailable"] = DesktopInstalled && project.Allows("desktop", authorization, config),
+            ["capabilities"] = new JsonObject
+            {
+                ["filesRead"] = project.Allows("filesRead", authorization, config), ["filesWrite"] = project.Allows("filesWrite", authorization, config),
+                ["terminal"] = project.Allows("terminal", authorization, config), ["pty"] = true,
+                ["unityConnected"] = instances.Length != 0, ["unityCanEval"] = canEval,
+                ["desktopAuthorized"] = project.Allows("desktop", authorization, config), ["desktopDriverConfigured"] = config.Workspace.DesktopDriverPath != null,
+                ["desktopDriverInstalled"] = DesktopInstalled, ["desktopAvailable"] = DesktopInstalled && project.Allows("desktop", authorization, config),
+                ["desktopExecutionMode"] = "background-default-foreground-explicit",
+                ["shells"] = new JsonArray(OperatingSystem.IsWindows() ? "powershell.exe" : Environment.GetEnvironmentVariable("SHELL") ?? "/bin/sh")
+            },
+            ["unityInstances"] = new JsonArray(instances.Select(unity => (JsonNode)new JsonObject
+            {
+                ["instanceId"] = unity.InstanceId, ["processId"] = unity.ProcessId, ["projectPath"] = unity.ProjectPath,
+                ["phase"] = unity.Status.Phase, ["canEval"] = BrokerStatePolicy.CanExecute(unity.Status) && BrokerStatePolicy.IsAuthorized(unity),
+                ["authorizationRequired"] = unity.AuthorizationRequired, ["authorizationState"] = unity.AuthorizationState
+            }).ToArray())
+        };
+    }
+
+    private static void DescribeRemoteProject(JsonObject snapshot, string hostId)
+    {
+        snapshot["hostId"] = hostId; snapshot["source"] = "remote";
+        if (snapshot["name"] is { } name) snapshot["displayName"] = "[Remote:" + hostId + "] " + name.GetValue<string>();
+        if (snapshot["unityInstances"] is JsonArray instances)
+            foreach (var entry in instances)
+            {
+                var unity = entry as JsonObject ?? throw WorkspaceFiles.Error("RemoteIncompatible", "The peer returned an invalid Unity instance.");
+                var localId = Required(unity, "instanceId");
+                if (localId.StartsWith("remote:", StringComparison.Ordinal))
+                    throw WorkspaceFiles.Error("RecursiveRouteRejected", "The peer returned an imported Unity instance.");
+                unity["remoteInstanceId"] = localId;
+                unity["instanceId"] = "remote:" + hostId + ":" + localId;
+            }
+    }
 
     private async Task<WorkspacePeer> PeerAsync(WorkspaceSession session, string hostId, CancellationToken token, bool reconnect = false)
     {

@@ -24,6 +24,62 @@ The workspace endpoint uses session-affine Streamable HTTP MCP `2025-11-25`. Ini
 and retain `Mcp-Session-Id`; `2026-07-28` stateless discovery is explicitly declined so clients
 can negotiate the session protocol. The original Unity endpoint's transport is unchanged.
 
+## Folder registration and live Unity capabilities (3.3.0)
+
+A project is a canonical local folder; Unity layout and a running Editor are not required.
+Register any existing absolute directory, optionally supplying a display name:
+
+```text
+unity workspace add website /absolute/path/to/website "Website"
+```
+
+Canonical aliases (including intermediate symlinks and Windows path casing) reuse the existing
+ID, name and grants. An ID cannot point to another directory. Parent and child folders remain
+separate projects. Existing configuration with duplicate canonical roots is rejected explicitly;
+choose one definition instead of silently merging IDs or permissions. Existing 3.2 configuration
+needs no migration; a missing display name uses the directory name.
+
+Each local Unity `/unity` registration persists its reported root in the same `workspace.projects`
+list, or attaches to the already registered folder. The generated ID survives disconnects, process
+exit, Broker restart and reconnect. Imported remote Unity instances never register local folders.
+Persistence failures return `ProjectRegistrationFailed`. A reported absolute root that is temporarily
+absent still retains the Unity connection and project record with `directoryExists=false`; connecting
+a file workspace reports the unavailable directory. `workspace remove` removes configuration, not
+files; a subsequent local Unity connection can automatically register that directory again.
+
+Manual and automatic registrations have no grants by default. Configure an explicit policy for
+future first-time automatic registrations:
+
+```text
+unity workspace defaults files-read workspace-key
+unity workspace defaults files-write workspace-key
+unity workspace defaults terminal workspace-key
+unity workspace defaults desktop off
+unity service restart
+```
+
+The policy is `workspace.autoRegistrationGrants`, using the same four `*CredentialRef` fields as
+projects. It is copied only when creating a project and never rewrites existing grants. CLI changes
+still require a Broker restart. Runtime Unity registration becomes visible immediately; it uses the
+same config-file lock as the CLI and preserves other fields. Lock contention or persistence failures
+reject registration explicitly.
+
+List, connect and status use the same project metadata: stable `workspaceId`, `name`, source-prefixed
+`displayName`, first registration source `registeredBy` (`manual` / `unity`), and `directoryExists`.
+`kind` is `unity` while a matching local instance is connected and `workspace` otherwise.
+`unityState` is `disconnected`, `ready`, `busy` or `authorizationRequired`;
+`capabilities.unityConnected` and `unityCanEval` follow the existing Unity execution policy, including
+compilation repair mode. `unityInstances` contains only connected instances with exact ID, PID,
+phase and authorization state. Multiple instances require explicit selection.
+
+Unity disconnects do not close workspace handles or terminal tasks. Read status again to observe
+capability changes. Aggregated Unity IDs use `remote:host:instance`, with the original in
+`remoteInstanceId`. The original Unity snapshot adds `workspaceId`; Unity execution still uses the
+separate `/mcp` `unity_status` → `unity_connect` → `eval` flow and its fresh registry revision.
+A workspace context is not a Unity lease. Ordinary projects are available only through other hosts'
+remote workspace access; the local gateway cannot target its own ordinary folders. Local Unity MCP
+remains available.
+
 ## Configure one remote
 
 Keep the existing host/IP/port and Unity credential configuration. Use another credential

@@ -42,6 +42,11 @@ internal sealed partial class BrokerRegistry
             throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest,
                 "Unity registration requires instanceId and projectPath; the remote: id prefix is reserved.");
 
+        WorkspaceDefinition project;
+        try { project = _configuration.RegisterProject(registration.ProjectPath, displayName: registration.ProjectName); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or JsonException or BrokerOperationException)
+        { throw new BrokerOperationException("ProjectRegistrationFailed", "Could not persist the Unity project directory: " + ex.Message); }
+        registration = registration with { ProjectPath = project.RootPath };
         var connection = new UnityConnection(socket, registration, OnStatus, OnHeartbeat);
         UnityConnection? previous = null;
         lock (_syncRoot)

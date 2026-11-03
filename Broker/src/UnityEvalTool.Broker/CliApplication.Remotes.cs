@@ -62,18 +62,18 @@ Use --config <file> with any remote command to manage an isolated configuration.
             var secret = Console.ReadLine() ?? throw new InvalidDataException("No credential was supplied on stdin.");
             BrokerConfiguration.ValidateSecret(args[1], secret);
             var credentialPath = Path.Combine(Path.GetDirectoryName(path)!, "peer-auth.json");
-            var credentials = ReadConfigurationObject(credentialPath);
+            var credentials = BrokerConfiguration.ReadDocument(credentialPath);
             credentials[args[1]] = secret;
             foreach (var pair in credentials)
             {
                 BrokerConfiguration.ValidateId(pair.Key);
                 BrokerConfiguration.ValidateSecret(pair.Key, pair.Value?.GetValue<string>() ?? string.Empty);
             }
-            WriteRemoteConfiguration(credentialPath, credentials, validateConfig: false);
+            BrokerConfiguration.WriteDocument(credentialPath, credentials, validateConfig: false);
         }
         else
         {
-            var root = ReadConfigurationObject(path);
+            var root = BrokerConfiguration.ReadDocument(path);
             switch (args[0])
             {
                 case "add":
@@ -116,34 +116,10 @@ Use --config <file> with any remote command to manage an isolated configuration.
                     break;
                 default: throw new InvalidOperationException("Unknown remote command. Run `unity remote help`.");
             }
-            WriteRemoteConfiguration(path, root, validateConfig: true);
+            BrokerConfiguration.WriteDocument(path, root, validateConfig: true);
         }
         Console.WriteLine("Saved. Run `unity service restart` to apply the configuration.");
         return 0;
     }
 
-    private static JsonObject ReadConfigurationObject(string path) => File.Exists(path)
-        ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject
-          ?? throw new InvalidDataException("Configuration must be a JSON object.")
-        : new JsonObject();
-
-    private static void WriteRemoteConfiguration(string path, JsonObject document, bool validateConfig)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            var options = new FileStreamOptions
-            {
-                Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None
-            };
-            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            using (var stream = new FileStream(temporaryPath, options))
-            using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
-                document.WriteTo(writer);
-            if (validateConfig) BrokerConfiguration.Load(temporaryPath, createIdentity: false);
-            File.Move(temporaryPath, path, overwrite: true);
-        }
-        finally { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); }
-    }
 }

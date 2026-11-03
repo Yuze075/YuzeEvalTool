@@ -239,3 +239,8 @@ older cycle or stale `Ready` sample from completing the wait.
 - `RequestTimedOut`
 - `ExecutionOutcomeUnknown`
 - `BrokerUnavailable`
+
+Broker 3.3.0 persists canonical project folders on local Unity registration, reusing existing
+workspace IDs. Disconnects retain projects; imported remote instances do not register locally.
+Unity snapshots add optional `workspaceId`. Registration request fields and protocol 2.0 are
+unchanged; workspace file/terminal grants remain independent.

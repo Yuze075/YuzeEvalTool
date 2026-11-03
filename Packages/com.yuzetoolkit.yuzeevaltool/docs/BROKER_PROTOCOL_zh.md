@@ -228,3 +228,7 @@ Unity 在 `CompilationPipeline.compilationStarted` 时发布 `Compiling`，在�
 - `RequestTimedOut`
 - `ExecutionOutcomeUnknown`
 - `BrokerUnavailable`
+
+Broker 3.3.0 在本机 Unity 注册时持久登记其规范化项目目录；重复路径复用工作区 ID。
+断开不删除项目，导入的远端实例不触发登记；Unity 快照增加可选 `workspaceId` 供关联。
+注册请求字段与协议版本不变，文件 / 终端授权仍独立。详见 [工作区注册](../../../Broker/REMOTE_WORKSPACES_zh.md)。

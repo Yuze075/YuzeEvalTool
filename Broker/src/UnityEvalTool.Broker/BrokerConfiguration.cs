@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace YuzeToolkit.Eval.Broker;
 
-internal sealed class BrokerConfiguration
+internal sealed partial class BrokerConfiguration
 {
     public List<RemoteBrokerOptions> Remotes { get; set; } = [];
     public RemoteAccessOptions RemoteAccess { get; set; } = new();
@@ -48,6 +48,7 @@ internal sealed class BrokerConfiguration
             }
         }
         config.Validate();
+        config._projects = config.Workspace.Projects.ToArray();
         if (createIdentity)
         {
             Directory.CreateDirectory(directory);

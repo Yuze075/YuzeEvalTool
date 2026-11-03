@@ -54,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -62,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0"
   }
 }
 ```
@@ -233,6 +233,10 @@ for configuration, source metadata, disconnects and leases.
 
 ## Remote development workspaces
 
+Starting in 3.3.0, any folder can be registered persistently. Local Unity connections automatically
+register their roots; disconnects retain projects and general remote capabilities. Unity is a live
+capability attached to a stable folder identity.
+
 The opt-in `/remote/mcp` view adds project files and images, terminal tasks, project-scoped
 AGENTS/Skills, session events and a separate desktop worker. The local view routes only to
 configured peers; the authenticated network view exports only explicitly shared local roots.
@@ -248,7 +252,7 @@ configuration, recovery, desktop prerequisites and the current validation limits
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.3.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a

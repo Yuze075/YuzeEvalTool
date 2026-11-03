@@ -52,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -60,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0"
   }
 }
 ```
@@ -214,6 +214,9 @@ unity list
 
 ## 远程开发工作区
 
+3.3.0 起支持任意文件夹的持久注册；本机 Unity 连接会自动登记项目，断开后保留文件夹与远程能力。
+项目身份稳定，Unity 能力按实际连接动态变化。
+
 可选的 `/remote/mcp` 视图提供项目文件与图片、终端任务、项目范围的 AGENTS / Skills、
 会话事件和独立桌面执行器。本机视图只路由到配置的远端；经过鉴权的网络视图只导出明确共享的
 本地项目根目录。原 `/mcp` 仍保持三个 Unity 工具，现有 Unity 密钥不会自动获得新能力。
@@ -226,7 +229,7 @@ unity list
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.3.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻

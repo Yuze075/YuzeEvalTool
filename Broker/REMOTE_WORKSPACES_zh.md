@@ -21,6 +21,56 @@
 工作区协议采用有会话的 Streamable HTTP MCP `2025-11-25`。初始化后保留 `Mcp-Session-Id`。
 它明确拒绝 `2026-07-28` 无状态发现，允许客户端协商到有会话协议；原 Unity MCP 传输契约不变。
 
+## 文件夹注册与 Unity 能力（3.3.0）
+
+项目以本机的规范化文件夹为身份，不要求 Unity 工程结构。手动注册任意现有目录：
+
+```text
+unity workspace add website /absolute/path/to/website "Website"
+```
+
+同一目录经相对路径片段、符号链接或 Windows 大小写得到相同规范路径时，复用原 ID、名称与授权。
+同一 ID 不能指向另一个目录，父目录与子目录分别注册。配置中已有重复规范路径会明确报错，需先保留一个
+项目定义；不会擅自合并不同 ID 的授权。原有 3.2 配置无需迁移，未填写名称时使用目录名称。
+
+本机 Unity 通过 `/unity` 注册时，Broker 自动持久注册其上报根目录；已经手动注册则直接关联原项目。
+自动 ID 写入同一个 `workspace.projects` 配置，断开、退出、重启和重新连接不会重新生成。
+导入的远端 Unity 不触发本机注册。注册失败明确返回 `ProjectRegistrationFailed`，不报告保存成功。
+Unity 上报的绝对目录暂不存在时仍保留 Unity 连接与项目记录，并标记 `directoryExists=false`；文件工作区
+连接明确报目录不可用。`workspace remove` 只移除配置，不删除文件；后续新的本机 Unity 连接可以再次自动注册。
+
+手动注册默认不授权。自动注册默认同样不授权；可为以后首次自动注册的项目设置明确策略：
+
+```text
+unity workspace defaults files-read workspace-key
+unity workspace defaults files-write workspace-key
+unity workspace defaults terminal workspace-key
+unity workspace defaults desktop off
+unity service restart
+```
+
+该策略位于 `workspace.autoRegistrationGrants`，字段与项目的四项 `*CredentialRef` 相同。
+策略仅在创建新项目时复制，不改变已有项目授权；CLI 修改仍需重启 Broker。
+运行中的 Unity 自动注册立即可见，写入时与配置 CLI 共用文件锁，保留其他配置字段；锁冲突或写入失败明确拒绝。
+
+`workspace_list`、`workspace_connect`、`workspace_status` 返回同一份项目语义：
+
+| 字段 | 含义 |
+|---|---|
+| `workspaceId` / `name` / `displayName` | 稳定 ID、项目名称、带 `[Local]` 或 `[Remote:主机]` 的显示名 |
+| `registeredBy` | 首次登记来源 `manual` 或 `unity`，不随当前连接变化 |
+| `kind` | 当前有连接的本机 Unity 实例时为 `unity`，否则为 `workspace` |
+| `unityState` | `disconnected`、`ready`、`busy` 或 `authorizationRequired` |
+| `capabilities.unityConnected` / `unityCanEval` | 实时连接与执行条件，沿用 Unity MCP 的授权、编译修复模式判断 |
+| `unityInstances` | 仅包含当前连接实例，附准确 ID、PID、阶段与授权状态；多个实例必须明确选择 |
+| `directoryExists` | 目录当前是否存在；目录消失不会自动删除登记 |
+
+Unity 断开只移除实时能力，不关闭工作区句柄或终端任务；重新查询状态可见变化。
+聚合视图里的 Unity `instanceId` 已转换为同一主机的 `remote:主机:实例`，原值在 `remoteInstanceId`。
+原 Unity MCP 快照增加 `workspaceId` 以关联项目；执行仍通过原 `/mcp` 的 `unity_status` → `unity_connect` → `eval`，
+使用该入口新查询的 `registryRevision`，不把工作区句柄当成 Unity 租约。
+普通项目只由其他主机通过远程工作区使用；本机聚合入口不接受本机普通项目，原本机 Unity MCP 保持可用。
+
 ## 配置
 
 复用现有 `remotes` 主机、IP、端口和 Unity 密钥配置，为工作区配置独立密钥引用。

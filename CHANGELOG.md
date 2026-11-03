@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+## 3.3.0 - 2026-11-03
+
+- Unify folder registration for ordinary and Unity projects. Local Unity connections persist their roots automatically, reuse manually registered projects and retain IDs after disconnect/restart; remote imports never register locally.
+- Report live Unity capabilities, source-prefixed project names and matching Unity instance IDs in workspace discovery/status. Ordinary projects remain remote-only; Unity loss leaves files, terminals and contexts usable.
+- Add explicit default grants for future automatic registrations, canonical-path deduplication and stable project IDs in Unity snapshots. Resolve intermediate aliases consistently; preserve existing configuration and Unity protocol 2.0.
+
 ## 3.2.0 - 2026-11-03
 
 - Add the opt-in `/remote/mcp` workspace endpoint: project-scoped files/images, asynchronous terminals, AGENTS and Skills, session leases, recovery events and a local connection monitor. Network peers export only their own explicitly authorized roots.

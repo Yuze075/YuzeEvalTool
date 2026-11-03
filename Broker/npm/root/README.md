@@ -24,7 +24,7 @@ because npm dependency lifecycle scripts may be disabled; check the command's ex
 Add the Unity-side package through Unity Package Manager:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
 ```
 
 Open the Unity project, wait for compilation, then run `unity list`. Seeing that Editor is
@@ -124,3 +124,11 @@ If the first command fails, resolve the reported service error before continuing
 ## License
 
 [MIT](https://github.com/Yuze075/YuzeEvalTool/blob/main/LICENSE)
+
+## Ordinary projects and automatic registration
+
+In 3.3.0, `unity workspace add <id> <absolute-directory> [name]` registers an ordinary folder for
+remote access from other hosts. Local Unity connections register their roots automatically;
+disconnects preserve project IDs and file/terminal capabilities. Configure future automatic grants
+with `unity workspace defaults <capability> <credential-ref|off>`; no grants are enabled by default.
+See the [remote workspace guide](https://github.com/Yuze075/YuzeEvalTool/blob/main/Broker/REMOTE_WORKSPACES.md).

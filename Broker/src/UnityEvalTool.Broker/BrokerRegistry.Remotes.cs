@@ -49,6 +49,7 @@ internal sealed partial class BrokerRegistry
 
     private UnityInstanceSnapshot DescribeLocal(UnityInstanceSnapshot unity) => unity with
     {
+        WorkspaceId = _configuration.Projects.SingleOrDefault(project => WorkspaceFiles.SamePath(unity.ProjectPath, project.RootPath))?.Id,
         Source = new UnityProjectSource("local", null, _configuration.BrokerId, false)
     };
 

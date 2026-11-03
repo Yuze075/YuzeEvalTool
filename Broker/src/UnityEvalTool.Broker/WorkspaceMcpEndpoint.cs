@@ -67,7 +67,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
             {
                 if (_sessions.Count < Options.MaxSessions)
                 {
-                    session = new WorkspaceSession(exporting, authHash, Options) { ExportDesktopAuthorized = service.CanExportDesktop(authorization) };
+                    session = new WorkspaceSession(exporting, authHash, Options) { ExportCredentialReferences = service.ExportCredentials(authorization) };
                     _sessions[session.Id] = session;
                 }
             }

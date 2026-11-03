@@ -30,7 +30,7 @@ Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.B
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package

@@ -54,6 +54,7 @@ internal sealed record UnityInstanceSnapshot(
 {
     public bool AuthorizationRequired { get; init; }
     public string AuthorizationState { get; init; } = "NotRequired";
+    public string? WorkspaceId { get; init; }
     public UnityProjectSource Source { get; init; } = new("local", null, string.Empty, false);
     public string DisplayName => Source.Kind == "remote"
         ? $"[Remote:{Source.RemoteId}] {ProjectName}"
@@ -140,6 +141,7 @@ internal sealed record ProtocolError(string Code, string Message, bool MayHaveEx
 [JsonSerializable(typeof(ProtocolError))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(BrokerConfiguration))]
+[JsonSerializable(typeof(WorkspaceDefinition))]
 [JsonSerializable(typeof(RemoteBrokerOptions))]
 [JsonSerializable(typeof(RemoteAccessOptions))]
 [JsonSerializable(typeof(string))]

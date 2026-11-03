@@ -24,7 +24,7 @@ macOS 使用 LaunchAgent，Linux 使用 systemd user unit，Windows 使用计划
 通过 Unity Package Manager 添加 Unity 侧 Package：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
 ```
 
 打开 Unity 项目并等待编译完成，然后执行 `unity list`。只有看到该 Editor 才完成
@@ -115,3 +115,10 @@ npm uninstall --global @yuzetoolkit/unityevaltool
 ## 许可证
 
 [MIT](https://github.com/Yuze075/YuzeEvalTool/blob/main/LICENSE)
+
+## 普通项目与自动注册
+
+3.3.0 可用 `unity workspace add <id> <绝对目录> [名称]` 注册非 Unity 文件夹，供其他主机远程访问。
+Unity 连接会自动注册本机项目根目录；连接 / 断开只改变 Unity 能力，保留项目 ID、文件与终端能力。
+自动注册的共享策略用 `unity workspace defaults <能力> <密钥引用|off>` 设置，默认不授权。
+完整配置与能力说明见[远程工作区指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/Broker/REMOTE_WORKSPACES_zh.md)。

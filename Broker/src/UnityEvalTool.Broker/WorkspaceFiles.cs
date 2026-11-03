@@ -23,7 +23,10 @@ internal sealed class WorkspaceFiles(WorkspaceDefinition definition, WorkspaceOp
         return candidate;
     }
 
-    public static string Canonical(string path)
+    public static string Canonical(string path) => Canonical(path,
+        new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal));
+
+    private static string Canonical(string path, HashSet<string> resolvingLinks)
     {
         var full = Path.GetFullPath(path);
         var current = Path.GetPathRoot(full)!;
@@ -32,8 +35,16 @@ internal sealed class WorkspaceFiles(WorkspaceDefinition definition, WorkspaceOp
             current = Path.Combine(current, part);
             FileSystemInfo entry = Directory.Exists(current) ? new DirectoryInfo(current) : new FileInfo(current);
             if (entry.LinkTarget != null)
-                current = entry.ResolveLinkTarget(true)?.FullName
-                    ?? throw Error("InvalidPath", "The path contains an unresolved symbolic link.");
+            {
+                var link = current;
+                if (!resolvingLinks.Add(link)) throw Error("InvalidPath", "The path contains a symbolic link cycle.");
+                try
+                {
+                    current = Canonical(entry.ResolveLinkTarget(true)?.FullName
+                        ?? throw Error("InvalidPath", "The path contains an unresolved symbolic link."), resolvingLinks);
+                }
+                finally { resolvingLinks.Remove(link); }
+            }
         }
         return Path.TrimEndingDirectorySeparator(current);
     }
