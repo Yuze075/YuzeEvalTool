@@ -5,8 +5,8 @@ namespace YuzeToolkit.Eval
 {
     public static class UnityEvalToolVersion
     {
-        public const string Current = "4.2.0";
-        public const string RequiredBrokerVersion = "4.2.0";
+        public const string Current = "5.0.0";
+        public const string RequiredBrokerVersion = "5.0.0";
         public const string InstallBrokerMenuPath = "YuzeToolkit/Eval Tool/Install Latest npm Package";
 
         public static string GetBrokerVersionWarning(string? reportedVersion)

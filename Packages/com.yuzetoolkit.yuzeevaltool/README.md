@@ -33,7 +33,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's
@@ -65,7 +65,7 @@ the same arbitrary-JavaScript eval surface as the Editor. This is not gated by D
 Build and is independent of the optional Yuze Agent Tool package.
 
 From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
-the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+the network `/mcp` endpoint checks the `remoteAccess` Bearer
 credential on every request. An authorized connection can use every registered project, file
 read/write, terminals and available desktop controls. There are no Unity project tokens or
 per-project capability grants. Cua remains optional and the operating system must allow its
@@ -150,4 +150,4 @@ npm packaging sources live at the repository root. See the
 
 Use **YuzeToolkit > Eval Tool > Install Latest npm Package** for background installation of `@latest`. Node.js/npm must already exist; missing Node is an error. The installer stops the old service, installs/starts the new service, runs doctor and restores the Unity connection. The Console reports the result and `~/.unityevaltool/npm-install.log` retains the output.
 
-`UnityEvalToolVersion.RequiredBrokerVersion` is fixed at **4.2.0**. The running version comes from registration; older or unreported versions produce a Yuze Log Tool Warning and a workbench update notice without blocking the connection.
+`UnityEvalToolVersion.RequiredBrokerVersion` is fixed at **5.0.0**. The running version comes from registration; older or unreported versions produce a Yuze Log Tool Warning and a workbench update notice without blocking the connection.

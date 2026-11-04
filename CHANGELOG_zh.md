@@ -4,6 +4,15 @@
 
 ## 未发布
 
+## 5.0.0 — 2026-11-04
+
+- 工作区工具与 Unity 工具一起由无状态 `/mcp` 入口提供；删除 `/remote/mcp` 及其 MCP 会话、SSE 事件和 `tools/list_changed`。客户端只需一项配置即可同时使用 Unity 与远程开发，`/remote/status` 改为 `/status`。
+- 工作区状态保存在闲置即过期的上下文租约中。网关复用 Unity 联邦连接，每台远端只有一条 MCP 连接和一处身份校验；上下文只能在创建它的入口视图中使用。
+- 新增 `file_glob`（替代 `file_search`）、`file_grep`、`file_write`、`file_edit`（替代 `file_apply_patch`，支持 `replaceAll` 与 CRLF 匹配）以及全有或全无的跨文件 `file_apply_diff`。`file_read` 可按行读取最多 20 个文件。glob 与 grep 在 git 工作树内遵循 git 忽略规则。
+- `terminal_exec` 最多等待 `waitSeconds` 直到完成，`terminal_poll` 可等待新输出。删除 `workspace_read_skill`（改用 `file_read` 读取目录中的路径）和 `workspace_events`。
+- 用 `maxContexts` 取代 `workspace.maxSessions` / `maxContextsPerSession`，删除 `eventRetention` 与 `heartbeatFailureThreshold`。文档说明推荐的远程流程：小改动用工具，大规模重构用本地克隆加 git 同步。
+- 工作区调用需要两端都是 5.0；Unity 联邦和 Unity 注册协议 2.0 保持兼容。
+
 ## 4.2.0 — 2026-11-04
 
 - 重写全部 Broker MCP 工具描述与远端工作区 instructions，使说明简洁准确。

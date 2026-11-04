@@ -15,7 +15,7 @@ namespace YuzeToolkit.Eval.Broker;
 // current-user worker owns the driver, observation cache and serial desktop action stream.
 internal sealed class WorkspaceDesktop(WorkspaceOptions options, BrokerRegistry registry)
 {
-    public Task<JsonObject> ObserveAsync(string session, WorkspaceContext? context, JsonObject args, CancellationToken token)
+    public Task<JsonObject> ObserveAsync(WorkspaceContext? context, JsonObject args, CancellationToken token)
     {
         var request = (JsonObject)args.DeepClone();
         if (request["processId"] == null)
@@ -25,13 +25,13 @@ internal sealed class WorkspaceDesktop(WorkspaceOptions options, BrokerRegistry 
             if (candidates.Length != 1) throw WorkspaceFiles.Error("DesktopTargetRequired", "Supply an exact processId; this workspace does not have one unambiguous registered Unity process.");
             request["processId"] = candidates[0].ProcessId;
         }
-        request["owner"] = session + ":" + (context?.Handle ?? "host"); request["operation"] = "observe";
+        request["owner"] = context?.Handle ?? "host"; request["operation"] = "observe";
         return SendAsync(request, false, token);
     }
 
-    public Task<JsonObject> ActAsync(string session, WorkspaceContext? context, JsonObject args, CancellationToken token)
+    public Task<JsonObject> ActAsync(WorkspaceContext? context, JsonObject args, CancellationToken token)
     {
-        var request = (JsonObject)args.DeepClone(); request["owner"] = session + ":" + (context?.Handle ?? "host"); request["operation"] = "act";
+        var request = (JsonObject)args.DeepClone(); request["owner"] = context?.Handle ?? "host"; request["operation"] = "act";
         return SendAsync(request, true, token);
     }
 

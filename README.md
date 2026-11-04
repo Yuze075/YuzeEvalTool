@@ -54,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -62,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0"
   }
 }
 ```
@@ -81,7 +81,7 @@ Results appear in the Unity Console through Yuze Log Tool; the full log is
 `~/.unityevaltool/npm-install.log`. A failed step stops the remaining commands.
 Open **YuzeToolkit > Eval Tool > Workbench** to inspect the connection.
 
-This Unity package requires Broker **4.2.0** or newer. Registration reports the running Broker
+This Unity package requires Broker **5.0.0** or newer. Registration reports the running Broker
 version; older, unrecognized or unreported versions produce a Console Warning and a workbench
 update notice. This advisory does not disable the connection.
 
@@ -144,13 +144,13 @@ http://127.0.0.1:2347/mcp
 ```
 
 From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
-the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+the network `/mcp` endpoint checks the `remoteAccess` Bearer
 credential on every request. An authorized connection can use every registered project, file
 read/write, terminals and available desktop controls. There are no Unity project tokens or
 per-project capability grants. Cua remains optional and the operating system must allow its
 Accessibility / Screen Recording permissions; MCP authorization cannot grant those system permissions.
 
-The server exposes three MCP tools, used in this order:
+Unity work uses three tools, in this order:
 
 1. `unity_status` discovers Unity instances and reports their current state.
 2. `unity_connect` selects an exact `instanceId` from a known `registryRevision` and
@@ -228,21 +228,21 @@ Starting in 3.3.0, any folder can be registered persistently. Local Unity connec
 register their roots; disconnects retain projects and general remote capabilities. Unity is a live
 capability attached to a stable folder identity.
 
-The opt-in `/remote/mcp` view adds project files and images, terminal tasks, project-scoped
-AGENTS/Skills, session events and a separate desktop worker. The local view routes only to
-configured peers; the authenticated network view exports only explicitly shared local roots.
-The existing `/mcp` catalog remains Unity-only. Both endpoints use the same connection credential and all registered projects are available after authentication.
+From 5.0.0 the same `/mcp` endpoint also serves workspace tools: file read/search/write/edit/diff,
+images, terminal tasks, project AGENTS guidance and Skill catalogs, and an optional desktop worker.
+On this machine's endpoint they reach configured remote hosts only; a network export serves its own
+registered folders and never forwards. One client entry for `/mcp` gives both Unity and remote work.
 
-See [Remote workspace setup and contracts](Broker/REMOTE_WORKSPACES.md) for connection authorization, client
-configuration, recovery, desktop prerequisites and the current validation limits. The local
-`/remote/status` page shows connection transitions while open; it does not wake an idle AI.
+See [Remote workspace setup and contracts](Broker/REMOTE_WORKSPACES.md) for configuration, the tool
+catalog, the recommended editing workflow, recovery and desktop prerequisites. The local `/status`
+page shows connection transitions while open; it does not wake an idle AI.
 
 ## Optional Agent and runtime debug UI
 
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v5.0.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a
@@ -255,7 +255,7 @@ The default keys are `F8` for Yuze Agent Tool and `F10` for the Performance and 
 ## Security boundary
 
 From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
-the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+the network `/mcp` endpoint checks the `remoteAccess` Bearer
 credential on every request. An authorized connection can use every registered project, file
 read/write, terminals and available desktop controls. There are no Unity project tokens or
 per-project capability grants. Cua remains optional and the operating system must allow its

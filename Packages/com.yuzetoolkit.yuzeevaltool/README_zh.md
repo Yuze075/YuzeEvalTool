@@ -30,7 +30,7 @@ Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.B
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
@@ -56,8 +56,8 @@ Editor 会在 eval 之外独立报告导入、编译、编译失败、程序集�
 文件目录作为项目路径注册。Release Player 会有意保留与 Editor 相同的任意 JavaScript
 eval 能力。它不受 Development Build 开关限制，也不依赖可选的 Yuze Agent Tool Package。
 
-从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
-`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 每次请求
+验证 `remoteAccess` 的 Bearer 密钥。连接通过认证后即可访问
 全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
 Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
 WebGL 不是受支持的 Broker 目标。
@@ -133,4 +133,4 @@ Broker，覆盖所有本机项目与可用能力。Unity 注册、编译与 VM �
 
 点击 **YuzeToolkit > Eval Tool > Install Latest npm Package** 后台安装 `@latest`。假定已有 Node.js/npm，缺少 Node 时直接报错。安装流程停止旧服务，安装并启动新服务、运行 doctor，最后恢复 Unity 连接。Console 报告结果，完整输出保存在 `~/.unityevaltool/npm-install.log`。
 
-`UnityEvalToolVersion.RequiredBrokerVersion` 固定为 **4.2.0**。通过注册握手读取实际运行版本；版本过低或未报告版本时，由 Yuze Log Tool 输出 Warning，并在工作台提示更新，不阻断连接。
+`UnityEvalToolVersion.RequiredBrokerVersion` 固定为 **5.0.0**。通过注册握手读取实际运行版本；版本过低或未报告版本时，由 Yuze Log Tool 输出 Warning，并在工作台提示更新，不阻断连接。

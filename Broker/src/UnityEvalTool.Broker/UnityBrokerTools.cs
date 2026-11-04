@@ -13,8 +13,7 @@ namespace YuzeToolkit.Eval.Broker;
 internal sealed class UnityBrokerTools(BrokerRegistry registry, IHttpContextAccessor contexts)
 {
     // A network export serves only this computer's Unity instances; the local endpoint aggregates remotes.
-    private bool NetworkExport => (contexts.HttpContext ?? throw new InvalidOperationException("MCP HTTP context is unavailable."))
-        .Items.ContainsKey(BrokerHost.NetworkExportRequest);
+    private bool NetworkExport => BrokerHost.IsNetworkExport(contexts);
     // MCP protocol versions through 2025-11-25 require every outputSchema.properties value to be a
     // JSON object, but the MCP SDK derives the boolean JSON Schema "true" for JsonElement returns,
     // which strict clients then reject. "{}" is the object-form equivalent of "true": the SDK wraps

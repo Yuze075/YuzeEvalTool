@@ -27,10 +27,9 @@ Remote workspaces (MCP connection authorization; restart Broker/desktop worker a
 Create secrets with `unity remote credential <ref>` through stdin, never argv.
 Local Unity connections automatically register their project folders and retain them after disconnect.
 Every authenticated MCP connection can use all registered projects and available capabilities.
-Both network MCP endpoints use remoteAccess and each remote's credentialRef; there are no project grants.
-The local /remote/mcp view operates only on configured peers. /mcp retains its Unity-only catalog.
-The network /remote/mcp view exports explicitly configured local workspaces only.
-Use /remote/status on the local Broker to watch connections in a browser.
+The network /mcp endpoint uses remoteAccess and each remote's credentialRef; there are no project grants.
+On the local /mcp endpoint, workspace tools reach configured remote hosts only; a network export serves
+this host's registered folders and never forwards. Open /status on the local Broker to watch connections.
 Run the desktop worker in a logged-in graphical user session; it never grants OS permissions.
 Terminal cwd is a convenience, not a shell sandbox. Files remain scoped to the configured root.
 Use --config <file> for isolated configuration. Edit config.json for timing, budgets and Skill directories.

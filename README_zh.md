@@ -52,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -60,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v5.0.0"
   }
 }
 ```
@@ -76,7 +76,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 结果通过 Yuze Log Tool 显示在 Unity Console，完整日志位于 `~/.unityevaltool/npm-install.log`；失败后停止后续命令。
 工作台入口为 **YuzeToolkit > Eval Tool > Workbench**。
 
-本 UnityPackage 固定要求 Broker **4.2.0** 或更新版本。握手报告正在运行的 Broker 版本；低于要求、无法识别或
+本 UnityPackage 固定要求 Broker **5.0.0** 或更新版本。握手报告正在运行的 Broker 版本；低于要求、无法识别或
 未报告版本时，Console 发出 Warning，工作台提示从安装菜单更新；提示不会禁用连接。
 
 全局安装原生 npm Package，然后显式安装当前用户服务：
@@ -133,12 +133,12 @@ Broker 提供以下 Streamable HTTP MCP 端点：
 http://127.0.0.1:2347/mcp
 ```
 
-从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
-`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 每次请求
+验证 `remoteAccess` 的 Bearer 密钥。连接通过认证后即可访问
 全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
 Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
 
-MCP Server 只提供三个工具，必须按此顺序使用：
+Unity 操作使用三个工具，必须按此顺序调用：
 
 1. `unity_status` 发现 Unity 实例并报告当前状态。
 2. `unity_connect` 使用已知 `registryRevision` 中的准确 `instanceId` 进行选择，
@@ -193,7 +193,7 @@ unity list
 配置在服务启动时加载；删除或禁用远端也在重启后生效。`unity remote access off` 关闭网络导出。
 
 网络 `/mcp` 只允许发现、连接、执行该 Broker 直接注册的本地实例。
-本机入口仍为 `127.0.0.1:2347/mcp`，使用原来的三个工具访问所有已配置来源。
+本机入口仍为 `127.0.0.1:2347/mcp`，使用同样的三个 Unity 工具访问所有已配置来源。
 远程实例 ID 形如 `remote:office-pc:<原实例ID>`；必须明确选择来源，不能用本机工作目录匹配远程路径。
 远程交互式 CLI 执行暂不支持，选择远程实例时会明确报告 `RemoteCliUnsupported`。
 
@@ -207,19 +207,20 @@ unity list
 3.3.0 起支持任意文件夹的持久注册；本机 Unity 连接会自动登记项目，断开后保留文件夹与远程能力。
 项目身份稳定，Unity 能力按实际连接动态变化。
 
-可选的 `/remote/mcp` 视图提供项目文件与图片、终端任务、项目范围的 AGENTS / Skills、
-会话事件和独立桌面执行器。本机视图只路由到配置的远端；经过鉴权的网络视图只导出明确共享的
-本地项目根目录。原 `/mcp` 保持三个 Unity 工具，两个入口共用同一连接密钥，不再额外授予项目能力。
+5.0.0 起，同一个 `/mcp` 入口还提供工作区工具：文件读取 / 搜索 / 写入 / 编辑 / diff、图片、
+终端任务、项目 AGENTS 规则与 Skill 目录，以及可选的桌面执行器。本机入口的工作区工具只能访问已配置的
+远端主机；网络导出端只提供自己注册的文件夹，不会转发。客户端只需注册一个 `/mcp`，即可同时使用 Unity
+与远程开发能力。
 
-配置、授权、客户端接入、故障恢复和桌面验证边界见[远程工作区指南](Broker/REMOTE_WORKSPACES_zh.md)。
-本机 `/remote/status` 页面打开时会展示连接变化；它不能唤醒闲置的 AI 会话。
+配置、工具目录、推荐的编辑流程、故障恢复和桌面前提见[远程工作区指南](Broker/REMOTE_WORKSPACES_zh.md)。
+本机 `/status` 页面打开时会展示连接变化；它不能唤醒闲置的 AI 会话。
 
 ## 可选的 Agent 与 Runtime Debug UI
 
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.2.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v5.0.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻
@@ -230,8 +231,8 @@ Prefab。面板不会自动创建。模块、持久化模型、默认快捷键�
 
 ## 安全边界
 
-从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
-`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 每次请求
+验证 `remoteAccess` 的 Bearer 密钥。连接通过认证后即可访问
 全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
 Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
 

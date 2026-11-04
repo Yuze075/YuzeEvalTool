@@ -8,8 +8,8 @@ using ModelContextProtocol.Protocol;
 
 namespace YuzeToolkit.Eval.Broker;
 
-// One MCP client session to a peer Broker's network export. Unity federation (/mcp) and remote
-// workspaces (/remote/mcp) share its transport, export validation, failure classification and backoff.
+// The single MCP client session to a peer Broker's network export, shared by Unity federation and
+// remote workspaces: transport, export validation, failure classification and backoff.
 internal sealed class RemoteBrokerConnection : IAsyncDisposable
 {
     private readonly HttpClient _http;
@@ -25,7 +25,7 @@ internal sealed class RemoteBrokerConnection : IAsyncDisposable
     public McpClient Client { get; }
 
     public static async Task<RemoteBrokerConnection> ConnectAsync(BrokerConfiguration config, RemoteBrokerOptions remote,
-        string path, TimeSpan httpTimeout, CancellationToken cancellationToken)
+        TimeSpan httpTimeout, CancellationToken cancellationToken)
     {
         var connectTimeout = TimeSpan.FromSeconds(config.ConnectionTimeoutSeconds);
         var http = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false, ConnectTimeout = connectTimeout })
@@ -33,7 +33,7 @@ internal sealed class RemoteBrokerConnection : IAsyncDisposable
         var credential = config.GetCredential(remote.CredentialRef);
         var transport = new HttpClientTransport(new HttpClientTransportOptions
         {
-            Endpoint = new UriBuilder(remote.Scheme, remote.Host, remote.Port, path).Uri,
+            Endpoint = remote.Endpoint,
             Name = remote.Id,
             TransportMode = HttpTransportMode.StreamableHttp,
             EnableStandaloneGetStream = false,

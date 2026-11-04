@@ -274,7 +274,7 @@ internal sealed partial class BrokerRegistry
                 await discoverySlots.WaitAsync(stoppingToken);
                 try
                 {
-                    connection = await RemoteBrokerConnection.ConnectAsync(_configuration, peer.Options, "/mcp",
+                    connection = await RemoteBrokerConnection.ConnectAsync(_configuration, peer.Options,
                         TimeSpan.FromSeconds(3600 + _configuration.ConnectionTimeoutSeconds + _configuration.TransportGraceSeconds), stoppingToken);
                 }
                 finally { discoverySlots.Release(); }
@@ -307,6 +307,32 @@ internal sealed partial class BrokerRegistry
         }
     }
 
+    public (string State, string? ErrorCode, string? BrokerInstanceId) GetPeer(string remoteId)
+    {
+        lock (_syncRoot)
+        {
+            var peer = FindPeer(remoteId);
+            return (peer.State, peer.ErrorCode, peer.Identity?.BrokerInstanceId);
+        }
+    }
+
+    // Remote workspaces reuse the discovery connection, so each remote has exactly one MCP session.
+    public async Task<CallToolResult> CallPeerToolAsync(string remoteId, string tool, JsonObject arguments, TimeSpan timeout,
+        bool mayExecute, CancellationToken cancellationToken)
+    {
+        RemotePeer peer;
+        RemoteBrokerConnection connection;
+        lock (_syncRoot)
+        {
+            peer = FindPeer(remoteId);
+            connection = RequireRemoteConnection(peer);
+        }
+        return await CallRemoteAsync(peer, connection, tool, arguments, timeout, mayExecute, cancellationToken);
+    }
+
+    private RemotePeer FindPeer(string remoteId) => _remotePeers.TryGetValue(remoteId, out var peer) && peer.Options.Enabled
+        ? peer : throw new BrokerOperationException("RemoteNotConfigured", $"'{remoteId}' is not an enabled remote host.");
+
     private async Task<CallToolResult> CallRemoteAsync(RemotePeer peer, RemoteBrokerConnection connection, string tool,
         JsonObject arguments, TimeSpan timeout, bool mayExecute, CancellationToken cancellationToken)
     {
@@ -315,7 +341,7 @@ internal sealed partial class BrokerRegistry
         {
             if (mayExecute)
                 throw new BrokerOperationException(BrokerErrorCodes.ExecutionOutcomeUnknown,
-                    $"Remote '{peer.Options.Id}' eval was interrupted. Do not automatically retry.", true);
+                    $"Remote '{peer.Options.Id}' {tool} was interrupted. Do not automatically retry.", true);
             throw;
         }
         // The peer replied with a JSON-RPC error; surface it unchanged and keep the peer online.
@@ -327,7 +353,7 @@ internal sealed partial class BrokerRegistry
                 if (ReferenceEquals(peer.Connection, connection)) MarkRemoteUnavailable(peer, code);
             var unknown = mayExecute && !RemoteBrokerConnection.ProvesNotExecuted(ex);
             throw new BrokerOperationException(unknown ? BrokerErrorCodes.ExecutionOutcomeUnknown : code,
-                $"Remote '{peer.Options.Id}' request failed. Inspect unity_status.remoteBrokers; do not replay interrupted eval.", unknown);
+                $"Remote '{peer.Options.Id}' {tool} failed. Check remote host state; do not replay an interrupted write.", unknown);
         }
     }
 
@@ -377,9 +403,8 @@ internal sealed partial class BrokerRegistry
         }
     }
 
-    // Unity federation and remote workspaces share this check: no self-route, no two remotes
-    // resolving to one Broker, and no identity change for a remote already discovered.
-    public void ValidateRemoteIdentity(string remoteId, string brokerId)
+    // No self-route, no two remotes resolving to one Broker, and no identity change for a discovered remote.
+    private void ValidateRemoteIdentity(string remoteId, string brokerId)
     {
         lock (_syncRoot)
         {

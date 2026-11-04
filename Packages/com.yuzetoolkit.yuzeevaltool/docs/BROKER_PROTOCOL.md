@@ -12,7 +12,7 @@ This document defines the stable boundary between the computer-level Yuze Eval T
 - `http://127.0.0.1:2347/health`: Broker health snapshot.
 
 From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
-the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+the network `/mcp` endpoint checks the `remoteAccess` Bearer
 credential on every request. An authorized connection can use every registered project, file
 read/write, terminals and available desktop controls. There are no Unity project tokens or
 per-project capability grants. Cua remains optional and the operating system must allow its
@@ -28,9 +28,9 @@ imported IDs or imported leases. Local MCP and CLI listings provide the aggregat
 A→B→C and A↔B never recursively import projects. The Unity wire protocol remains `2.0`;
 local IDs are unchanged, with `remote:` reserved for imports.
 
-The `/remote/mcp` workspace protocol, using the same connection authorization, is specified in the
-[Broker workspace guide](../../../Broker/REMOTE_WORKSPACES.md). Its project roots,
-session handles and tool catalog are independent of Unity leases; it also exports only local capabilities.
+Workspace tools on the same `/mcp` endpoint are specified in the
+[Broker workspace guide](../../../Broker/REMOTE_WORKSPACES.md). Their context handles are independent
+of Unity leases, and a network export serves only local capabilities.
 
 `config.json` configures the connection boundary:
 

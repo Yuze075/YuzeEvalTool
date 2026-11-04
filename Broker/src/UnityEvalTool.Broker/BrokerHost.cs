@@ -8,7 +8,16 @@ internal static class BrokerHost
 {
     private static readonly DateTimeOffset StartedAtUtc = DateTimeOffset.UtcNow;
     public static readonly string InstanceId = Guid.NewGuid().ToString("N");
-    internal static readonly object NetworkExportRequest = new();
+    private static readonly object NetworkExportRequest = new();
+
+    // The listener, not a caller-supplied value, decides between the local and network export views.
+    public static bool IsNetworkExport(IHttpContextAccessor contexts) =>
+        (contexts.HttpContext ?? throw new InvalidOperationException("MCP HTTP context is unavailable.")).Items.ContainsKey(NetworkExportRequest);
+
+    private const string Instructions = "Unity: unity_status, then unity_connect, then eval; remote instances are remote:<host>:<id>. " +
+        "Remote hosts: workspace_list, then workspace_connect, then read the returned AGENTS guidance and relevant Skills with file_read, then work through contextHandle. " +
+        "Workspace tools reach remote hosts only, never this machine. For large edits, prefer a local checkout synced through git and use the remote host to build, test and verify Unity; for small edits use file_edit or file_apply_diff. " +
+        "Never automatically retry a call that returned ExecutionOutcomeUnknown; inspect the actual state first. Foreground desktop input needs the user's explicit permission.";
 
     public static async Task RunAsync(string[] args)
     {
@@ -27,17 +36,15 @@ internal static class BrokerHost
         var registry = new BrokerRegistry(configuration);
         builder.Services.AddSingleton(registry);
         var workspace = new WorkspaceService(configuration, registry);
-        var workspaceEndpoint = new WorkspaceMcpEndpoint(workspace);
-        builder.Services.AddSingleton(workspaceEndpoint);
-        builder.Services.AddHostedService<WorkspaceMaintenanceService>();
+        builder.Services.AddSingleton(workspace);
         builder.Services.AddHostedService<BrokerMaintenanceService>();
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, BrokerJsonContext.Default));
         var contexts = new HttpContextAccessor();
         builder.Services.AddSingleton<IHttpContextAccessor>(contexts);
-        builder.Services.AddMcpServer()
+        builder.Services.AddMcpServer(options => options.ServerInstructions = Instructions)
             .WithHttpTransport(options => options.Stateless = true)
-            .WithTools(UnityBrokerTools.CreateTools(new UnityBrokerTools(registry, contexts)));
+            .WithTools(UnityBrokerTools.CreateTools(new UnityBrokerTools(registry, contexts)).Concat(WorkspaceTools.Create(workspace, contexts)));
 
         var app = builder.Build();
         app.UseHostFiltering();
@@ -47,8 +54,7 @@ internal static class BrokerHost
             // The listener, not a caller-supplied header, chooses the export boundary.
             if (context.Connection.LocalPort != localPort)
             {
-                var workspaceRequest = context.Request.Path.Equals("/remote/mcp", StringComparison.Ordinal);
-                if (!workspaceRequest && !context.Request.Path.Equals("/mcp", StringComparison.Ordinal))
+                if (!context.Request.Path.Equals("/mcp", StringComparison.Ordinal))
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
@@ -96,8 +102,7 @@ internal static class BrokerHost
         app.Map("/unity", UnityWebSocketEndpoint.HandleAsync);
         app.Map("/cli", CliWebSocketEndpoint.HandleAsync);
         app.MapMcp("/mcp");
-        app.MapMethods("/remote/mcp", ["GET", "POST", "DELETE"], workspaceEndpoint.HandleAsync);
-        app.MapGet("/remote/status", () => Results.Content(WorkspaceStatusPage.Html, "text/html; charset=utf-8"));
+        app.MapGet("/status", () => Results.Content(WorkspaceStatusPage.Html, "text/html; charset=utf-8"));
         await app.RunAsync();
     }
 

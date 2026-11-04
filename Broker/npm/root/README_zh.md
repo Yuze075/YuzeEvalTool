@@ -52,8 +52,8 @@ unity tools
 http://127.0.0.1:2347/mcp
 ```
 
-从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
-`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 每次请求
+验证 `remoteAccess` 的 Bearer 密钥。连接通过认证后即可访问
 全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
 Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
 MCP 流程始终是
@@ -79,8 +79,8 @@ unity list
 
 服务密钥可用 `unity remote credential <名称> < secret.txt` 从 stdin 保存，然后在
 `remote add` 的端口后指定名称；远端使用 `remote access token <IP> <端口> <名称>`。
-同一连接密钥用于 `/mcp` 与 `/remote/mcp`，授权覆盖全部已注册项目。网络入口默认关闭，只导出本机能力。
-配置在重启后生效。远程项目使用现有三个 MCP 工具；交互式 CLI 远程执行暂不支持。
+连接密钥用于网络 `/mcp`，授权覆盖全部已注册项目。网络入口默认关闭，只导出本机能力。
+配置在重启后生效。远程 Unity 项目使用同样的三个 Unity 工具；交互式 CLI 远程执行暂不支持。
 更多配置和 HTTPS 部署说明见[远程项目指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md#远程-unity-项目)。
 
 ## 服务管理

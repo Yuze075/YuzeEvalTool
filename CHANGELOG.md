@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+## 5.0.0 — 2026-11-04
+
+- Serve the workspace tools on the stateless `/mcp` endpoint next to the Unity tools; remove `/remote/mcp`, its MCP sessions, SSE events and `tools/list_changed`. One client entry now covers Unity and remote work, and `/remote/status` moved to `/status`.
+- Keep workspace state in context leases that expire when idle. Gateways reuse the Unity federation connection, so each remote has one MCP connection and one identity check; contexts are bound to the listener view that created them.
+- Add `file_glob` (replaces `file_search`), `file_grep`, `file_write`, `file_edit` (replaces `file_apply_patch`, with `replaceAll` and CRLF-aware matching) and all-or-nothing multi-file `file_apply_diff`. `file_read` reads numbered lines from up to 20 files. Glob and grep follow git ignore rules inside git work trees.
+- `terminal_exec` waits up to `waitSeconds` for completion and `terminal_poll` can wait for new output. Remove `workspace_read_skill` (use `file_read` on the catalog path) and `workspace_events`.
+- Replace `workspace.maxSessions` / `maxContextsPerSession` with `maxContexts`; drop `eventRetention` and `heartbeatFailureThreshold`. Document the recommended remote workflow: small edits through tools, large refactors through a local checkout synced by git.
+- Workspace calls require 5.0 on both ends; Unity federation and the Unity wire protocol 2.0 remain compatible.
+
 ## 4.2.0 — 2026-11-04
 
 - Rewrite every Broker MCP tool description and the remote workspace instructions for concise, accurate guidance.

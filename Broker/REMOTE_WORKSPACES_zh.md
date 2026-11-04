@@ -1,187 +1,109 @@
 # 远程开发工作区
 
-[English](REMOTE_WORKSPACES.md) | **简体中文** | [用户指南](../README_zh.md)
+[English](REMOTE_WORKSPACES.md) | **简体中文** | [使用指南](../README_zh.md)
 
-4.0.0 使用统一 MCP 连接授权：网络认证成功后即可访问全部已注册项目、文件、终端和已安装的桌面能力。
-网络监听仍需显式开启；不再存在项目级授权或独立工作区密钥。
+工作区是 Broker 主机上注册的文件夹，可以有、也可以没有正在运行的 Unity 编辑器。
+从 5.0.0 起，Unity 工具和工作区工具都由同一个 Streamable HTTP 入口 `/mcp` 提供。授权归 MCP 连接：
+本机 loopback 入口受信任，可选的网络入口逐请求验证主机密钥。
 
-## 入口与范围
+## 一个入口，两种视图
 
-| 入口 | 工具与访问范围 |
-|---|---|
-| 本机 `/mcp` | 原有 `unity_status`、`unity_connect`、`eval`，访问本地与聚合的远程 Unity |
-| 本机 `/remote/mcp` | 17 个工作区与桌面工具，只能选择已配置的远端主机 |
-| 网络 `/mcp` | 本地 Unity 导出，统一使用主机连接授权 |
-| 网络 `/remote/mcp` | 全部已注册本地项目根，共用连接授权，不转发其他主机 |
-| 本机 `/remote/status` | 浏览器连接状态页，不从网络监听器导出 |
+| 入口 | Unity 工具 | 工作区工具 |
+|---|---|---|
+| 本机 `127.0.0.1:2347/mcp` | 本机实例和已配置的远端 | 只能访问已配置的远端主机，不能操作本机 |
+| 网络 `/mcp`（需开启） | 只有本机实例 | 只有本机注册的文件夹，不转发 |
+| 本机 `/status` | 浏览器连接监视页，网络入口不提供 | |
 
-范围由实际监听器决定，客户端 Header 或布尔参数不能覆盖。经本机 `127.0.0.1` 路由到另一台电脑
-仍属于远程操作。工作区使用 `hostId + workspaceId` 标识，独立于 Unity 是否启动；每个连接上下文
-保留自己的远端 cwd，不存在全局“当前项目”切换。
+视图由监听入口决定，请求头或参数都无法改变。在一种视图里创建的上下文，在另一种视图中会被拒绝。
+对端只按它自己的本地导出被导入，A→B→C 和 A↔B 都不会递归转发；指向本 Broker 或与其他远端重复的配置会被拒绝。
 
-工作区协议采用有会话的 Streamable HTTP MCP `2025-11-25`。初始化后保留 `Mcp-Session-Id`。
-它明确拒绝 `2026-07-28` 无状态发现，允许客户端协商到有会话协议；原 Unity MCP 传输契约不变。
+每台远端只有一条 MCP 连接，Unity 联邦和工作区调用共用。连接是无状态的，不需要 `Mcp-Session-Id`；
+Broker 重启只会让该主机上的上下文和 Unity 租约失效。
 
-## 文件夹注册与 Unity 能力（3.3.0）
+客户端只需注册一项：
 
-项目以本机的规范化文件夹为身份，不要求 Unity 工程结构。手动注册任意现有目录：
-
-```text
-unity workspace add website /absolute/path/to/website "Website"
+```toml
+[mcp_servers.unity_eval]
+url = "http://127.0.0.1:2347/mcp"
 ```
 
-同一目录经相对路径片段、符号链接或 Windows 大小写得到相同规范路径时，复用原 ID 与名称。
-同一 ID 不能指向另一个目录，父目录与子目录分别注册。配置中已有重复规范路径会明确报错，需先保留一个
-项目定义；不会擅自合并不同 ID。升级授权语义见下方 4.0 迁移说明，未填写名称时使用目录名称。
+## 配置主机与文件夹
 
-本机 Unity 通过 `/unity` 注册时，Broker 自动持久注册其上报根目录；已经手动注册则直接关联原项目。
-自动 ID 写入同一个 `workspace.projects` 配置，断开、退出、重启和重新连接不会重新生成。
-导入的远端 Unity 不触发本机注册。注册失败明确返回 `ProjectRegistrationFailed`，不报告保存成功。
-Unity 上报的绝对目录暂不存在时仍保留 Unity 连接与项目记录，并标记 `directoryExists=false`；文件工作区
-连接明确报目录不可用。`workspace remove` 只移除配置，不删除文件；后续新的本机 Unity 连接可以再次自动注册。
-
-手动与自动注册的项目均立即向通过认证的 MCP 连接开放，无需额外授权。CLI 修改仍需重启 Broker；
-运行中的 Unity 自动注册立即可见，写入时与配置 CLI 共用文件锁，保留其他配置字段；失败明确报告。
-
-`workspace_list`、`workspace_connect`、`workspace_status` 返回同一份项目语义：
-
-| 字段 | 含义 |
-|---|---|
-| `workspaceId` / `name` / `displayName` | 稳定 ID、项目名称、带 `[Local]` 或 `[Remote:主机]` 的显示名 |
-| `registeredBy` | 首次登记来源 `manual` 或 `unity`，不随当前连接变化 |
-| `kind` | 当前有连接的本机 Unity 实例时为 `unity`，否则为 `workspace` |
-| `unityState` | `disconnected`、`ready` 或 `busy` |
-| `capabilities.unityConnected` / `unityCanEval` | 实时连接与执行条件，按 Unity 实时状态、编译修复模式判断 |
-| `unityInstances` | 仅包含当前连接实例，附准确 ID、PID、阶段与执行状态；多个实例必须明确选择 |
-| `directoryExists` | 目录当前是否存在；目录消失不会自动删除登记 |
-
-Unity 断开只移除实时能力，不关闭工作区句柄或终端任务；重新查询状态可见变化。
-聚合视图里的 Unity `instanceId` 已转换为同一主机的 `remote:主机:实例`，原值在 `remoteInstanceId`。
-原 Unity MCP 快照增加 `workspaceId` 以关联项目；执行仍通过原 `/mcp` 的 `unity_status` → `unity_connect` → `eval`，
-使用该入口新查询的 `registryRevision`，不把工作区句柄当成 Unity 租约。
-普通项目只由其他主机通过远程工作区使用；本机聚合入口不接受本机普通项目，原本机 Unity MCP 保持可用。
-
-## 配置
-
-复用现有 `remotes` 主机、IP、端口和连接密钥。在双方用 `unity remote credential office-key` 从
-stdin 保存相同密钥，不把密钥放入命令行。被访问主机配置一次：
+在每台导出主机上，通过 stdin 保存密钥并开启网络入口，然后注册文件夹。本机 Unity 连接会自动登记项目根目录，断开后仍保留。
 
 ```text
+unity remote credential office-key
 unity remote access token 10.100.0.100 2348 office-key
 unity workspace add reliclight-main /absolute/path/to/RelicLight
 unity service restart
 ```
 
-调用方配置一次远端：
+在每台调用主机上，配置一次对端：
 
 ```text
 unity remote add mac_studio 10.100.0.100 2348 office-key
 unity service restart
 ```
 
-`/mcp` 与 `/remote/mcp` 共用 `remotes[].credentialRef`。不再提供 `workspace peer`、`workspace grant`
-或 `workspace defaults`。`authMode: none` 表示明确允许匿名访问两个入口及其全部能力。文件仍限制在
-已注册根目录内，终端以 Broker 用户身份执行。桌面可以直接针对主机操作，无需先注册文件夹。
+文件夹身份是规范化后的根路径；别名和中间符号链接复用同一 ID，父目录和子目录是两个独立项目。
+`workspace remove` 只删除配置，不删除文件。跨不可信网络时，请把网络入口放在加密隧道或 HTTPS 代理之后，
+并显式配置 Host/Origin。SSH 私钥不会被复制或转发。
 
-部署、首次接入和故障恢复沿用现有 SSH Host、SSH Agent 和主机校验。Broker 不复制或保存 SSH 私钥，
-不会在每次工具调用时另开 SSH：命令直接由目标机器的 Broker 以其用户身份执行。
-验收时使用 `--config <file>` 隔离配置，避免覆盖正式服务。
+## 工具
 
-AI 客户端增加独立 MCP 入口 `http://127.0.0.1:2347/remote/mcp`，保留已有 `/mcp` 配置。
-Codex 的 TOML 配置例如：
-
-```toml
-[mcp_servers.unity_workspace]
-url = "http://127.0.0.1:2347/remote/mcp"
-```
-
-跨不可信网络时使用加密隧道或 HTTPS 代理，代理到网络导出监听器，并保留明确的 Host / Origin 允许列表。
-不将本机聚合监听器暴露到网络。
-
-## 项目上下文与工具
-
-先通过 `workspace_list` 选择准确的 `hostId`、`workspaceId`，再调用 `workspace_connect`。
-可指定项目相对 `cwd`，默认项目根。返回内容包括远端规范化根目录、cwd、OS、能力、精确匹配的
-本地 Unity 实例、适用项目规则、项目 Skill 摘要和 `contextHandle`。
-
-句柄只属于创建它的 MCP 会话。其他会话、已关闭上下文、过期租约和被替换的远端 Broker / 会话不能复用。
-连接另一个工作区不会修改已有上下文的目录。
-
-| 工具 | 行为 |
+| 工具 | 用途 |
 |---|---|
-| `workspace_status` / `workspace_disconnect` | 查询身份、能力和任务；关闭指定上下文并取消其任务 |
-| `workspace_get_guidance` | 读取项目根到目标目录的原文规则，包含来源、作用域、版本和分页信息 |
-| `workspace_read_skill` | 读取项目 Skill 正文或相对于其远端目录的项目内引用资料 |
-| `file_read` / `file_search` | UTF-8 文本、SHA-256 与分页；文件相对路径子串搜索，不是文件内容搜索 |
-| `file_apply_patch` | 基于预期 SHA-256 的精确替换；新文件用 `missing`；冲突不写入 |
-| `file_view_image` | 直接转发 PNG / JPEG / WebP 的 MCP 图像内容及来源信息 |
-| `terminal_exec` / `terminal_poll` / `terminal_input` / `terminal_cancel` | 异步任务、标准输入、输出游标、退出码和实际取消状态 |
-| `workspace_events` | 按事件游标补读，可等待 0–30 秒，明确报告历史缺口 |
-| `desktop_observe` / `desktop_act` | 经图形用户会话中的独立执行器观察准确窗口、执行有界后台动作 |
+| `workspace_list` | 远端主机（状态、桌面支持）及其工作区，以及每台主机的错误 |
+| `workspace_connect` | 按 `hostId` + `workspaceId` 打开上下文；返回 cwd、OS、shell、Unity 实例、AGENTS 规则和 Skill 目录 |
+| `workspace_status`、`workspace_disconnect` | 上下文身份与任务；显式关闭会取消其任务 |
+| `workspace_get_guidance` | 从根目录到指定目录的 `AGENTS.override.md`，否则为 `AGENTS.md` |
+| `file_read` | 读取 1–20 个文件，带行号，返回 SHA-256 版本、`totalLines`、`lineEnding`、`nextLine` |
+| `file_glob` | 按 glob 查找路径，最新修改的在前 |
+| `file_grep` | .NET 正则搜索：匹配的文件、带上下文的行或计数 |
+| `file_write` | 新建（`expectedVersion: "missing"`）或覆盖（当前 SHA-256）文本文件 |
+| `file_edit` | 精确替换，可选 `replaceAll`；LF 编辑也能匹配 CRLF 文件 |
+| `file_apply_diff` | 跨文件统一 diff（新增、修改、删除、重命名），要么全部应用，要么都不写 |
+| `file_view_image` | 以 MCP 图片内容返回 PNG、JPEG 或 WebP |
+| `terminal_exec`、`terminal_poll`、`terminal_input`、`terminal_cancel` | 进程执行，支持 `waitSeconds`、输出游标、stdin 和确认式取消 |
+| `desktop_observe`、`desktop_act` | 通过主机桌面执行器观察窗口并执行有界输入 |
 
-文件路径相对于项目根，也可使用项目内绝对路径。终端命令默认使用上下文 cwd；单次请求可覆盖到项目内
-其他目录。文件服务会解析中间符号链接，拒绝越过项目根的路径。预期哈希可阻止普通的陈旧补丁，但这不是
-针对任意外部写入者的原子事务，也不是操作系统沙箱。**终端能力允许以 Broker 用户运行程序，不限制程序
-只能访问项目文件。** 主动脱离进程树的守护进程不在终端任务的生命周期保证内。
+路径可以是项目相对路径，也可以是项目内的绝对路径。文件操作会解析每一级路径（包括中间符号链接），拒绝离开根目录的路径。
+在 git 工作树内，`file_glob` 和 `file_grep` 遵循 git 的忽略规则（`git ls-files --cached --others --exclude-standard`）；
+其他情况下所有普通文件都参与。含 `/` 的 glob 匹配相对搜索目录的路径，不含 `/` 的匹配任意深度的文件名。
+`file_grep` 跳过二进制文件、超过 `maxFileBytes` 的文件和非 UTF-8 内容。
 
-`terminal_exec` 支持 `program + args` 的字面参数模式，或 `command + shell` 的显式 Shell 模式。
-普通任务分别返回 stdout / stderr。PTY 合并输出为终端流，可能包含 ANSI 转义序列；macOS / Linux 使用
-系统 `script`，Windows 使用 ConPTY。缺少系统能力会明确报错。PTY 尺寸在创建时读取配置，目前没有实时
-resize 工具。已完成任务保留到上下文关闭，仍计入 `maxTasksPerContext`。
+`file_apply_diff` 在项目根目录运行 `git apply`：写入前检查所有 hunk，拒绝离开根目录或穿过符号链接的路径。
+项目位于更大的仓库内时，diff 路径仍相对项目根目录。git 工作树内的 glob/grep 和 diff 都需要 Broker 的 PATH 中有 `git`。
 
-## 项目规则与 Skills
+终端程序以 Broker 用户身份运行，**不局限于项目文件**。使用 `program` 加字面量 `args`，或 `command` 加明确的 `shell`。
+`terminal_exec` 最多等待 `waitSeconds`（默认 30 秒）并返回完成结果；否则用 `terminal_poll` 轮询，它也可以等待新输出。
+PTY 输出合并且包含转义序列（macOS/Linux 用 `script`，Windows 用 ConPTY）。脱离的子进程不受任务生命周期约束。
 
-规则只从项目根逐层解析到目标目录，同目录优先 `AGENTS.override.md`，否则 `AGENTS.md`。
-不混入兄弟目录规则，也不读取远端用户全局规则。返回的是带来源的项目数据，不伪装成系统指令。
-项目明确引用的其他规则仍应通过远程上下文读取，例如先确认 Git 身份，再读取对应个人规则。
-服务无法静态推断任意 Shell 命令涉及的全部目录，也不保证模型必然遵守规则。
+## 推荐流程
 
-默认 Skill 目录是项目 `.agents/skills` 下各直接子目录。可在项目配置 `skillDirectories` 中增加其他
-项目相对目录，目录或引用的符号链接不得跨出项目。不会扫描 `~/.agents/skills`、`~/.codex/skills`。
-连接返回 Skill 的 ID、name、description、路径、根目录与内容哈希；需要时用 `workspace_read_skill`
-读取 `SKILL.md`、references 或 assets，读取不会执行 scripts。目录支持常用文本 scalar、引号和折叠 / 字面
-描述块；不能解析的条目在 `errors` 中显式列出。连接和读取时重新发现目录；规则变化后重新读取对应内容。
+1. 先 `workspace_list`，再 `workspace_connect`；用 `file_read` 阅读返回的规则和与任务相关的 Skill。它们是标注来源的项目规则数据，不是系统指令。
+2. 小改动：用 `file_read` 拿到版本后执行 `file_edit` 或 `file_write`。跨文件改动：`file_apply_diff`。
+3. 大规模重构：在本地克隆仓库，在独立分支上修改并推送；再用 `terminal_exec` 在远端主机上把干净的工作树快进到该分支，然后构建、测试、验证 Unity。这样每次同步都有 git 记录，冲突会被报告，而不是静默覆盖他人的修改。
+4. 构建和测试用 `terminal_exec` 在远端执行；Unity 检查对返回的 `remote:<host>:<id>` 实例使用 `unity_status`、`unity_connect`、`eval`。
+5. `terminal_exec` 运行在 Broker 所在的用户会话中，macOS 上可以使用登录钥匙串里的 git 和 CLI 凭据，SSH 会话通常做不到。
 
-文本分页使用 UTF-16 字符偏移，返回 `complete`、`nextOffset`、`totalCharacters`。
-规则原文未完整返回时，用 `file_read` 继续读取其来源路径。规则、Skill 和文件读取沿用同一 MCP 连接授权；
-初次连接返回的规则与摘要属于已连接工作区的上下文元数据。MCP 返回不会自动安装客户端原生 Skills，也不会
-卸载调用方原有 Skills。文件图片按源尺寸返回，受文件大小预算约束，目前不提供裁剪和缩放；桌面截图另有尺寸配置。
+## 上下文、故障与结果不确定
 
-## 断线、恢复与通知
+上下文是租约，不是 MCP 会话。闲置超过 `leaseSeconds` 后过期并关闭其任务；`maxContexts` 限制同时打开的上下文数。
+网关上下文记录远端 Broker 实例；远端重启后返回 `ContextHandleInvalid`，需要重新连接。
+远端离线时，调用不发送即被拒绝，`workspace_status` 返回带 `isStale: true` 的最后快照。
 
-每个 MCP 会话拥有独立的远端传输、上下文、任务和有界事件日志。事件有递增 ID、时间，以及适用的主机、
-项目、任务、原因和恢复建议。探测按配置的失败阈值、期限和指数退避执行，状态变化通知一次，持续离线不刷屏。
-不同会话独立维护；同一会话的操作串行，长操作可能推迟该会话心跳，操作请求期限给出等待上界。
-
-已知离线或重连中的上下文不会继续发送新操作。`workspace_status` 可返回最后快照，但会带上 `isStale`、
-连接状态和 `lastSeenAtUtc`。写入发送后未得到结果时返回 `ExecutionOutcomeUnknown`、
-`mayHaveExecuted: true`、`retryAutomatically: false`；恢复后读取真实文件、窗口或任务状态，不自动重放。
-列表查询不会擅自销毁持有上下文的远端会话。显式重新连接可能替换已失效的远端会话，其旧句柄一直无效。
-
-取消任务后需要实际退出并完成输出读取才算确认；`cancellation-pending` 不表示成功。
-任务输出和事件保留超限时返回 `gap`，必须用新状态快照恢复，不能补造事件或把任务不存在当作执行成功。
-会话过期或 DELETE 会关闭其上下文；活动请求和 GET 事件流续租，其他会话按空闲期限过期。
-Broker 重启后不保留任务 / 句柄日志。
-
-服务提供 GET SSE `notifications/message`、`Last-Event-ID` 补读、`workspace://events` Resource 和
-`workspace_events` 工具。客户端必须实际监听或轮询；**发出通知不代表闲置模型被唤醒，也不保证客户端 UI 展示。**
-本机 `/remote/status` 页面打开时轮询连接变化，显示离线提示与历史；用户允许浏览器通知后还可收到桌面通知。
-页面也检测本机 Broker 中断，并在重启后重新初始化。页面关闭、浏览器挂起时不保证通知，页面本身不能唤醒 AI。
+写操作发出后传输失败，返回 `ExecutionOutcomeUnknown`，并带 `mayHaveExecuted: true` 和 `retryAutomatically: false`。
+JSON-RPC 错误或 HTTP 401/403/404 证明调用没有执行。转发的失败保留对端自己的错误码和消息。
+重试前先检查文件、任务列表或窗口；Broker 和客户端都不会自动重放。
+`terminal_cancel` 在确认进程退出且输出流结束之前返回 `cancellation-pending`。保留的输出被淘汰时，输出游标报告 `gap`。
 
 ## 桌面执行器
 
-桌面能力属于主机。`desktop_observe` 可直接传 `hostId` 和准确 `processId`，无需注册文件夹或创建
-项目上下文；`desktop_act` 使用同一主机及返回的 `observationId`。也可传项目 `contextHandle` 关联
-其唯一 Unity 进程，两种目标方式不能同时传入。网络导出端省略 hostId，禁止转发其他主机。
+桌面权限按主机划分：目标为 `hostId` 加确切的 `processId`，或其项目只有一个 Unity 进程的 `contextHandle`，两者不能同时传。
+没有配置驱动的主机，桌面调用返回 `ToolUnavailable`；`workspace_list` 会报告每台主机的 `desktopToolsAvailable`。
 
-Cua 是可选组件。未配置驱动或配置的可执行文件不存在时，网络入口
-不显示 `desktop_observe`、`desktop_act`。本机聚合入口始终显示全部 17 个工具，自己不需要安装 Cua；
-对没有驱动的主机调用桌面工具时，返回该主机的 `ToolUnavailable` 错误。`workspace_status` / `workspace_list`
-的 `hosts[].desktopToolsAvailable` 报告每台已发现主机的桌面能力。工具目录固定，不发送 `notifications/tools/list_changed`。
-文件、终端和 Unity 功能不依赖 Cua。驱动安装不等于系统授权与 worker 就绪，后两项在桌面调用时检查。
-
-当前适配要求 **Cua Driver 0.38.0**。使用官方平台发行包并校验其 SHA-256；其他版本需要先验证契约。
-Broker 不捆绑安装驱动、不导入其全局 Skills、不绕过系统授权，也不调用嵌套 AI 模型。
+适配器要求 **Cua Driver 0.38.0**。安装官方发行版后执行：
 
 ```text
 unity workspace desktop-driver /absolute/path/to/cua-driver
@@ -189,88 +111,45 @@ unity service restart
 unity desktop worker
 ```
 
-最后一条必须在同一用户已登录的图形会话运行，且事先完成驱动系统授权。自定义配置时每条命令传
-`--config <file>`。`unity service` 管理 Broker，不管理独立 worker；需要自动启动时由使用者配置图形用户
-登录启动项。远程工具调用不会隐式启动桌面执行器。
+在授予驱动所需的系统权限后，于同一用户已登录的图形会话中运行执行器；Broker 服务本身从不发起桌面输入。
+Windows 上执行器拒绝在 session 0 运行，管道只允许该用户 SID 访问。Linux 需要 X11/Wayland 会话。
 
-- macOS：由 Cua 稳定应用身份持有屏幕录制 / 辅助功能权限。`permissions grant` 可能显示系统界面，必须
-  先取得本次前台操作许可，不能把 SSH 登录解释为已获得桌面权限。
-- Windows：worker 拒绝 session 0，必须运行在已登录交互用户会话。管道 ACL / 客户端校验采用真实用户 SID，
-  允许同一账户的提升权限 Broker 与普通权限 GUI worker 通信，不向其他账户放开权限。
-- Linux：必须存在 X11 / Wayland 图形会话。当前所配置 Linux 主机没有图形 display，桌面能力不可用。
+`desktop_observe` 不带 `windowId` 时列出窗口；带上则返回截图、几何信息和 `observationId`。
+`desktop_act` 使用新鲜的观察结果，校验进程启动时间，执行 1–10 个有界动作（`click`、`double_click`、`right_click`、
+`type_text`、`press_key`、`hotkey`、`scroll`、`drag`；文本最多 1,024 字符）。`deliveryMode` 默认 `background`；
+`foreground` 会激活目标窗口、可能移动鼠标并让窗口留在前台，调用方必须先取得用户对该主机和窗口的明确许可。
+macOS 像素动作需要 foreground。后续动作被拒绝时，序列可能只完成一部分，会以 `sequenceCompleted: false` 报告。
+只支持点击和有界手势，不支持按住按键、解锁或游戏操作。
 
-未指定 `processId` 时，只在该工作区存在唯一、精确路径匹配的本地 Unity 注册实例时自动关联。
-否则需要明确进程 ID；未指定 `windowId` 时列出该进程窗口，选定返回的窗口 ID 后取得图像、树、尺寸 / 缩放和
-`observationId`。显式选择其他进程不会使其被伪称为 Unity 项目窗口。
+## 升级到 5.0
 
-动作必须引用同一上下文的新鲜观察，验证进程启动身份并投递到已观察的 PID / 窗口。
-`desktop_act.deliveryMode` 默认 `background`；调用方必须先取得用户对当前主机 / 窗口的明确前台许可，
-才能为当次调用指定 `foreground`。前台模式先验证目标窗口已置前，再执行整个序列，可能移动实际鼠标，
-完成后保留目标窗口在前台，避免逐动作恢复旧焦点破坏点击后输入。许可不会保存为会话默认值。
-服务端只能验证明确的调用参数，不能替调用客户端验证人类是否同意。子动作不能覆盖当次模式或目标。
-已实测 Cua Driver 0.38.0 的 macOS 像素后台路由可能临时激活目标，因此 macOS 像素动作在默认模式下
-会在发送前返回 `ForegroundRequired`；不会静默升级。截图仍可在后台读取。
-支持 1–10 个有界 `click`、`double_click`、`right_click`、`type_text`、`press_key`、`hotkey`、`scroll`、
-`drag` 动作，单个文字输入最多 1,024 字符。目标覆盖、全桌面输入、子动作模式覆盖、zoom 坐标、无界持续时间、
-跨调用保持按键 / 鼠标按下均被拒绝。整段序列开始前检查目标和预算，驱动仍会逐项验证具体动作参数；后续
-动作被拒绝可能产生部分执行，通过 `sequenceCompleted: false` 和各项结果明确返回。
-
-一段序列最多在开头包含一个像素动作。click 使用驱动原子消费的 capture ID；其他像素动作执行前重新检查
-窗口位置、尺寸与截图比例。该检查不承诺 Unity 逐帧确定性。任意动作都会使 worker 中旧观察失效。
-输入由 worker 串行执行，返回各动作结果和动作后的新观察；驱动请求超时后停止接受后续动作，避免未知输入重叠。
-驱动的有界动作自行配对按下 / 释放，不保留跨调用按键租约；后台不可用时明确返回，不自动改用前台。
-目前支持点按与有界手势，不支持持续按住移动键、远程解锁、连续音视频或确定性游戏输入。
-
-## 升级到 4.0
-
-这是授权契约变更：原有连接密钥现在可以访问全部已注册文件夹及可用主机能力。旧 `workspaceCredentialRef`、
-项目 `*CredentialRef`、`workspace.autoRegistrationGrants`、`maxStoredTokens` 和 `auth.json` 已不再使用，可移除。
-Unity 项目 token 设置页、verifier Asset、token 转发和等待授权状态均已删除。升级项目时删除
-`Assets/Resources/UnityEvalToolAuthorizationSettings.asset`。旧 Unity Client 若仍要求项目验证，返回
-`UnityUpgradeRequired`，需更新 UPM Package；Unity 协议继续为 2.0，项目 ID 保留。
-操作系统权限与登录图形会话中的 worker 仍须就绪，MCP 密钥不会替代系统授权。
+- 删除客户端里的 `/remote/mcp` 配置，只保留 `/mcp`。`/remote/status` 改为 `/status`。
+- `file_search` 改为 `file_glob`，`file_apply_patch` 改为 `file_edit`，`file_read` 改为按行读取多个文件，
+  `workspace_read_skill` 由对 Skill 目录路径执行 `file_read` 取代。删除 `workspace_events`、SSE 通知和 `tools/list_changed`。
+- `workspace.maxSessions`、`maxContextsPerSession`、`eventRetention`、`heartbeatFailureThreshold` 不再使用，改用 `maxContexts`。
+- 所有主机一起升级：5.0 网关调用旧版对端的工作区工具时会报告 `RemoteIncompatible`。Unity 联邦保持兼容，Unity 注册协议仍为 2.0。
 
 ## 配置参考
 
-`config.json` 的 `workspace` 字段默认值如下，启动时检查有效范围：
+`config.json` 中的 `workspace`，启动时校验。
 
-| 字段 | 默认值 | 用途 |
+| 属性 | 默认值 | 用途 |
 |---|---:|---|
-| `projects` | `[]` | 项目 ID、rootPath、名称、注册来源及 skillDirectories |
-| `leaseSeconds` | 1800 | 空闲 MCP 会话存活时间 |
-| `maxSessions` / `maxContextsPerSession` | 64 / 16 | 会话与上下文数量上限 |
-| `requestTimeoutSeconds` | 60 | 远程工作区操作请求期限 |
-| `heartbeatFailureThreshold` | 1 | 连续探测失败达到几次后标记离线 |
-| `eventRetention` | 512 | 每会话保留的事件数量 |
-| `maxTextCharacters` / `maxFileBytes` | 32768 / 8388608 | 文本页 / 输入预算、单文件 / 请求字节预算 |
-| `maxTasksPerContext` | 16 | 包括已完成记录在内的任务上限 |
-| `maxTaskOutputCharacters` / `maxTaskSeconds` | 262144 / 3600 | 输出保留量与任务最长运行秒数 |
-| `ptyColumns` / `ptyRows` | 120 / 30 | PTY 初始尺寸 |
-| `desktopObservationSeconds` | 30 | 桌面观察有效秒数 |
-| `maxDesktopSequenceMilliseconds` | 5000 | 一段动作的投递 / 持续时间预算 |
-| `desktopDriverTimeoutSeconds` | 15 | 单次驱动调用的响应期限 |
-| `desktopMaxImageDimension` | 1600 | 桌面截图最长边 |
-| `desktopDriverPath` | 未设置 | 明确安装的驱动绝对路径 |
-| `desktopDriverArguments` | `["mcp"]` | 驱动 stdio 参数 |
-| `desktopPipeName` | `YuzeEvalTool.Desktop` | 同用户 IPC 名称，隔离验收使用不同名称 |
+| `projects` | `[]` | 注册的根目录：ID、rootPath、显示名、登记来源、Skill 目录 |
+| `leaseSeconds` | 1800 | 上下文闲置寿命 |
+| `maxContexts` | 64 | 本 Broker 同时打开的上下文数 |
+| `requestTimeoutSeconds` | 60 | 工作区操作期限，另加 `waitSeconds` |
+| `maxTextCharacters` / `maxFileBytes` | 32768 / 8388608 | 文本页与单文件预算 |
+| `maxTasksPerContext` | 16 | 运行中及保留的任务数 |
+| `maxTaskOutputCharacters` / `maxTaskSeconds` | 262144 / 3600 | 任务输出保留量与运行时限 |
+| `ptyColumns` / `ptyRows` | 120 / 30 | 初始 PTY 尺寸 |
+| `desktopObservationSeconds` | 30 | 观察结果寿命 |
+| `maxDesktopSequenceMilliseconds` | 5000 | 动作序列时长预算 |
+| `desktopDriverTimeoutSeconds` | 15 | 驱动响应期限 |
+| `desktopMaxImageDimension` | 1600 | 截图最长边 |
+| `desktopDriverPath` / `desktopDriverArguments` | 未设置 / `["mcp"]` | Cua 可执行文件与 stdio 参数 |
+| `desktopPipeName` | `YuzeEvalTool.Desktop` | 同用户执行器 IPC 名称 |
 
-主机探测复用 `discoveryIntervalSeconds`、`connectionTimeoutSeconds`、`transportGraceSeconds`、
-`reconnectMaxDelaySeconds`。单次心跳期限为连接超时加传输宽限；退避从发现间隔倍增到重连上限。
-桌面请求使用独立期限，一个桌面组件故障不代表整台电脑的 Unity 服务不可用。
-
-## 已验证与尚未验收
-
-4.0 授权变更已通过 NativeAOT HTTP 验证：两个入口共用密钥、拒绝错误密钥、匿名访问、无 grants 的文件及终端操作、
-无项目的主机桌面路由、可选驱动发现、Unity 连接和断开、自动注册与稳定 ID。实际 Unity 包编译为 0 错误、0 警告。
-
-此前工作区版本已使用两个实际 HTTP Broker、真实 Windows 导出进程、macOS / Windows PTY 和 Codex 0.163.0
-app-server 工具发现进行验证。原 `/mcp` 实际只显示 3 个工具，新入口最多显示 17 个；可选 Cua 联调确认缺少驱动时为 15 个，安装 / 卸载后动态刷新。故障注入覆盖响应丢失后
-不重放、已知离线拒绝、陈旧快照、恢复后原任务查询、Broker 替换、事件缺口、任务期限、输出预算及 SSE 通知。
-状态页在线 / 离线变化和窄屏布局已在无界面 Chromium 中检查。
-
-此前 Mac Studio 经明确许可完成系统授权，NativeAOT 远程 MCP 链路已验证真实 Unity 窗口截图、
-显式前台点击后中文输入、Project 显示滑块拖拽、窗口尺寸变化后的截图更新及旧观察拒绝。
-默认 macOS 像素输入在发送前拒绝，子动作不能覆盖模式；前台动作逐项成功不代替回传图像的实际效果检查。
-Windows 图形用户 worker / 服务会话 IPC 已另行联调，其实际窗口输入与新增前台路径尚未验收；无图形会话的
-Linux 不支持桌面。Unity 游戏输入和持续按键未验证，也未证明 Codex 展示 MCP 日志通知或唤醒闲置模型。
-部署前应核对本次交付记录中的平台范围；前台 Unity Editor 操作通过不代表纯后台或游戏操作通过。
+Skill 目录取自每个 `skillDirectories` 条目（默认 `.agents/skills`）的直接子目录。远端发现与重试使用
+`discoveryIntervalSeconds`、`connectionTimeoutSeconds`、`transportGraceSeconds` 和 `reconnectMaxDelaySeconds`；
+重试间隔从发现间隔开始倍增，直到上限。

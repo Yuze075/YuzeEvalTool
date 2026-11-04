@@ -7,14 +7,11 @@ internal sealed class WorkspaceOptions
 {
     public List<WorkspaceDefinition> Projects { get; set; } = [];
     public int LeaseSeconds { get; set; } = 1800;
-    public int MaxSessions { get; set; } = 64;
-    public int MaxContextsPerSession { get; set; } = 16;
-    public int EventRetention { get; set; } = 512;
+    public int MaxContexts { get; set; } = 64;
     public int MaxTextCharacters { get; set; } = 32768;
     public int MaxFileBytes { get; set; } = 8388608;
     public int MaxTasksPerContext { get; set; } = 16;
     public int RequestTimeoutSeconds { get; set; } = 60;
-    public int HeartbeatFailureThreshold { get; set; } = 1;
     public int MaxTaskOutputCharacters { get; set; } = 262144;
     public int MaxTaskSeconds { get; set; } = 3600;
     public int PtyColumns { get; set; } = 120;
@@ -30,14 +27,11 @@ internal sealed class WorkspaceOptions
     public void Validate()
     {
         BrokerConfiguration.RequireRange(LeaseSeconds, 30, 86400, "workspace.leaseSeconds");
-        BrokerConfiguration.RequireRange(MaxSessions, 1, 256, "workspace.maxSessions");
-        BrokerConfiguration.RequireRange(MaxContextsPerSession, 1, 128, "workspace.maxContextsPerSession");
-        BrokerConfiguration.RequireRange(EventRetention, 8, 10000, "workspace.eventRetention");
+        BrokerConfiguration.RequireRange(MaxContexts, 1, 1024, "workspace.maxContexts");
         BrokerConfiguration.RequireRange(MaxTextCharacters, 1024, 1048576, "workspace.maxTextCharacters");
         BrokerConfiguration.RequireRange(MaxFileBytes, 1024, 67108864, "workspace.maxFileBytes");
         BrokerConfiguration.RequireRange(MaxTasksPerContext, 1, 128, "workspace.maxTasksPerContext");
         BrokerConfiguration.RequireRange(RequestTimeoutSeconds, 5, 600, "workspace.requestTimeoutSeconds");
-        BrokerConfiguration.RequireRange(HeartbeatFailureThreshold, 1, 10, "workspace.heartbeatFailureThreshold");
         BrokerConfiguration.RequireRange(MaxTaskOutputCharacters, 1024, 4194304, "workspace.maxTaskOutputCharacters");
         BrokerConfiguration.RequireRange(MaxTaskSeconds, 1, 86400, "workspace.maxTaskSeconds");
         BrokerConfiguration.RequireRange(PtyColumns, 20, 500, "workspace.ptyColumns");

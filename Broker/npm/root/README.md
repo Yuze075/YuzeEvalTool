@@ -53,7 +53,7 @@ http://127.0.0.1:2347/mcp
 ```
 
 From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
-the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+the network `/mcp` endpoint checks the `remoteAccess` Bearer
 credential on every request. An authorized connection can use every registered project, file
 read/write, terminals and available desktop controls. There are no Unity project tokens or
 per-project capability grants. Cua remains optional and the operating system must allow its
@@ -82,8 +82,8 @@ unity list
 
 Store a service secret from stdin with `unity remote credential <name> < secret.txt`,
 then add the credential name after the port in `remote add`. The peer uses
-`remote access token <IP> <port> <name>`. The same connection credential authorizes `/mcp` and `/remote/mcp`. Network export is disabled by default and exports only local capabilities.
-Changes take effect after restart. Remote execution uses the existing three MCP tools;
+`remote access token <IP> <port> <name>`. The connection credential authorizes the network `/mcp` endpoint. Network export is disabled by default and exports only local capabilities.
+Changes take effect after restart. Remote Unity work uses the same three Unity tools;
 interactive remote CLI execution is not supported yet. See the
 [remote-project guide](https://github.com/Yuze075/YuzeEvalTool#remote-unity-projects)
 for configuration and HTTPS deployment.

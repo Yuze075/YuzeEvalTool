@@ -2,226 +2,134 @@
 
 **English** | [简体中文](REMOTE_WORKSPACES_zh.md) | [User guide](../README.md)
 
-4.0.0 uses one MCP connection authorization policy. After network authentication, a caller can use
-every registered project, files, terminals and installed desktop capabilities. Network listening is
-still opt-in. There are no per-project grants or separate workspace credentials.
+A workspace is a registered folder on a Broker host, with or without a running Unity Editor.
+From 5.0.0 the single Streamable HTTP endpoint `/mcp` serves both the Unity tools and the
+workspace tools. Authorization belongs to the MCP connection: the loopback listener is trusted,
+and the optional network listener checks the host credential on every request.
 
-## Two MCP views
+## One endpoint, two views
 
-| Listener / path | Catalog and scope |
-|---|---|
-| Local `/mcp` | Existing `unity_status`, `unity_connect`, `eval`; local and federated Unity instances |
-| Local `/remote/mcp` | 17 workspace and desktop tools; configured remote hosts only |
-| Network `/mcp` | Local Unity export with host connection authorization |
-| Network `/remote/mcp` | All registered local folders with the same connection authorization; no onward routing |
-| Local `/remote/status` | Browser connection monitor; never exposed by the network listener |
+| Listener | Unity tools | Workspace tools |
+|---|---|---|
+| Local `127.0.0.1:2347/mcp` | This machine's instances plus configured remotes | Configured remote hosts only; never this machine |
+| Network `/mcp` (opt-in) | This machine's instances only | This machine's registered folders only; never forwards |
+| Local `/status` | Browser connection monitor; not exposed on the network listener | |
 
-The listener selects the boundary. A header or a caller-supplied flag cannot make the local
-workspace endpoint operate on a local project or make a network peer forward to another peer.
-A workspace can exist without a running Unity Editor. Its identity is `hostId + workspaceId`,
-not its display name, and each connected context has its own remote cwd.
+The listener decides the view; no header or argument can change it. Contexts created on one view
+are rejected on the other. Peers are imported only as their own local exports, so A→B→C and A↔B
+never route recursively, and a remote that resolves to this Broker or duplicates another
+configured Broker is rejected.
 
-The workspace endpoint uses session-affine Streamable HTTP MCP `2025-11-25`. Initialize it
-and retain `Mcp-Session-Id`; `2026-07-28` stateless discovery is explicitly declined so clients
-can negotiate the session protocol. The original Unity endpoint's transport is unchanged.
+Each remote has exactly one MCP connection, shared by Unity federation and workspace calls. It is
+stateless: no `Mcp-Session-Id` is required, and a Broker restart invalidates only the contexts
+and Unity leases on that host.
 
-## Folder registration and live Unity capabilities (3.3.0)
+Register one client entry:
 
-A project is a canonical local folder; Unity layout and a running Editor are not required.
-Register any existing absolute directory, optionally supplying a display name:
-
-```text
-unity workspace add website /absolute/path/to/website "Website"
+```toml
+[mcp_servers.unity_eval]
+url = "http://127.0.0.1:2347/mcp"
 ```
 
-Canonical aliases (including intermediate symlinks and Windows path casing) reuse the existing
-ID and name. An ID cannot point to another directory. Parent and child folders remain
-separate projects. Existing configuration with duplicate canonical roots is rejected explicitly;
-choose one definition instead of silently merging IDs. A missing display name uses the directory name. See the 4.0 migration notes below.
+## Configure hosts and folders
 
-Each local Unity `/unity` registration persists its reported root in the same `workspace.projects`
-list, or attaches to the already registered folder. The generated ID survives disconnects, process
-exit, Broker restart and reconnect. Imported remote Unity instances never register local folders.
-Persistence failures return `ProjectRegistrationFailed`. A reported absolute root that is temporarily
-absent still retains the Unity connection and project record with `directoryExists=false`; connecting
-a file workspace reports the unavailable directory. `workspace remove` removes configuration, not
-files; a subsequent local Unity connection can automatically register that directory again.
-
-Manual and automatic registrations are immediately available to authenticated MCP connections.
-CLI changes require a Broker restart. Runtime Unity registration becomes visible immediately; it uses
-the same config-file lock as the CLI and preserves unrelated fields. Persistence failures are explicit.
-
-List, connect and status use the same project metadata: stable `workspaceId`, `name`, source-prefixed
-`displayName`, first registration source `registeredBy` (`manual` / `unity`), and `directoryExists`.
-`kind` is `unity` while a matching local instance is connected and `workspace` otherwise.
-`unityState` is `disconnected`, `ready` or `busy`;
-`capabilities.unityConnected` and `unityCanEval` follow the existing Unity execution policy, including
-compilation repair mode. `unityInstances` contains only connected instances with exact ID, PID,
-phase and execution state. Multiple instances require explicit selection.
-
-Unity disconnects do not close workspace handles or terminal tasks. Read status again to observe
-capability changes. Aggregated Unity IDs use `remote:host:instance`, with the original in
-`remoteInstanceId`. The original Unity snapshot adds `workspaceId`; Unity execution still uses the
-separate `/mcp` `unity_status` → `unity_connect` → `eval` flow and its fresh registry revision.
-A workspace context is not a Unity lease. Ordinary projects are available only through other hosts'
-remote workspace access; the local gateway cannot target its own ordinary folders. Local Unity MCP
-remains available.
-
-## Configure one remote
-
-Use the same host/IP/port and connection credential configured by `unity remote`. Provision its secret
-through stdin with `unity remote credential office-key`, then configure the exporting host:
+On each exporting host, enable the network listener with a credential stored through stdin,
+then register folders. Local Unity connections register their project roots automatically and keep
+them after disconnects.
 
 ```text
+unity remote credential office-key
 unity remote access token 10.100.0.100 2348 office-key
 unity workspace add reliclight-main /absolute/path/to/RelicLight
 unity service restart
 ```
 
-On the calling host, configure that peer once:
+On each calling host, add the peer once:
 
 ```text
 unity remote add mac_studio 10.100.0.100 2348 office-key
 unity service restart
 ```
 
-The same `remotes[].credentialRef` is used by `/mcp` and `/remote/mcp`. No `workspace peer`,
-`workspace grant` or `workspace defaults` command exists. Inbound `authMode: none` explicitly allows
-anonymous access to both endpoints and all their capabilities. Files remain scoped to registered roots;
-terminal execution runs as the Broker user. Desktop access can target a host without any registered folder.
+Folder identity is the canonical root path; aliases and intermediate symbolic links reuse one ID,
+and parent and child folders stay separate projects. `workspace remove` removes configuration,
+not files. Across untrusted networks, place the network listener behind an encrypted tunnel or
+HTTPS proxy with explicit Host/Origin allowances. SSH keys are never copied or forwarded.
 
-Use existing SSH Host entries/SSH Agent for installation and recovery. No SSH private keys
-are copied, stored in Broker configuration or forwarded between hosts. Once connected,
-commands execute locally on the exporting Broker rather than opening a new SSH connection
-for every tool call. `--config <file>` isolates CLI configuration for acceptance runs.
+## Tools
 
-Register a separate HTTP MCP server in the AI client at:
-
-```text
-http://127.0.0.1:2347/remote/mcp
-```
-
-For Codex's TOML configuration, a separate server entry is sufficient:
-
-```toml
-[mcp_servers.unity_workspace]
-url = "http://127.0.0.1:2347/remote/mcp"
-```
-
-Keep the existing Unity server entry at `/mcp`. Do not expose the aggregate local listener
-to a network. Across untrusted networks, use an encrypted tunnel or HTTPS proxy to the
-network export listener with explicit Host/Origin allowances, as in the Unity federation guide.
-
-## Context and tools
-
-1. `workspace_list` returns configured remote workspaces and explicit errors for unavailable
-   or unconfigured peers.
-2. `workspace_connect` takes an exact `hostId`, `workspaceId` and optional project-relative
-   `cwd`. It returns an opaque context handle, canonical remote root/cwd, OS, capabilities,
-   local Unity matches, applicable project guidance and project Skill summaries.
-3. Reuse that context handle in the same MCP session. It is not valid in another session,
-   after context closure, lease expiry, or a replaced peer session/Broker. Connecting another
-   context does not change the first one's cwd.
-
-| Tools | Contract |
+| Tool | Purpose |
 |---|---|
-| `workspace_status`, `workspace_disconnect` | Current identity/tasks/capabilities; explicit context closure cancels its owned tasks |
-| `workspace_get_guidance` | Root-to-target `AGENTS.override.md`, otherwise `AGENTS.md`; path, scope, hash and raw text |
-| `workspace_read_skill` | A selected project Skill or a project-contained reference relative to its remote Skill root |
-| `file_read`, `file_search` | Strict UTF-8 paged text and SHA-256; paged path-substring search, not content search |
-| `file_apply_patch` | Exact replacements with an expected SHA-256, or `missing` for creation; conflicts write nothing |
-| `file_view_image` | PNG/JPEG/WebP bytes as MCP image content, with remote source metadata |
-| `terminal_exec`, `terminal_poll`, `terminal_input`, `terminal_cancel` | Async task handles, argv or explicit shell, stdin, output cursors, exit/cancellation state |
-| `workspace_events` | Session event cursor and optional 0–30 second wait; explicit retention gaps |
-| `desktop_observe`, `desktop_act` | Exact window observations and bounded actions through a user-session worker; background by default |
+| `workspace_list` | Remote hosts (state, desktop support) and their workspaces, plus per-host errors |
+| `workspace_connect` | Open a context on `hostId` + `workspaceId`; returns cwd, OS, shells, Unity instances, AGENTS guidance and the Skill catalog |
+| `workspace_status`, `workspace_disconnect` | Context identity and tasks; explicit close cancels its tasks |
+| `workspace_get_guidance` | Root-to-directory `AGENTS.override.md`, otherwise `AGENTS.md` |
+| `file_read` | 1–20 files as numbered lines with SHA-256 version, `totalLines`, `lineEnding`, `nextLine` |
+| `file_glob` | Paths by glob, newest first |
+| `file_grep` | .NET regular expression search: matching files, lines with context, or counts |
+| `file_write` | Create (`expectedVersion: "missing"`) or overwrite (current SHA-256) a text file |
+| `file_edit` | Exact replacements, optional `replaceAll`; LF edits also match CRLF files |
+| `file_apply_diff` | Multi-file unified diff (add, modify, delete, rename) applied all-or-nothing |
+| `file_view_image` | PNG, JPEG or WebP as MCP image content |
+| `terminal_exec`, `terminal_poll`, `terminal_input`, `terminal_cancel` | Processes with `waitSeconds`, output cursors, stdin and verified cancellation |
+| `desktop_observe`, `desktop_act` | Window observation and bounded input through the host's desktop worker |
 
-File paths are project-relative, or absolute within the authorized project. Terminal cwd
-defaults to the context cwd and can be overridden per request within the project. The file
-executor checks canonical paths including intermediate symbolic links; it rejects links outside
-the root. Files may still be changed concurrently by the user or other processes. The expected
-hash prevents ordinary stale patches; this is not an OS filesystem sandbox or an atomic
-transaction with arbitrary external writers. Terminal authorization executes programs as the
-Broker user and therefore is **not confined to project files**. Detached processes are outside
-the terminal task's lifetime guarantee; cancellation reports actual root/stream completion.
+Paths are project-relative or absolute inside the project. Files resolve every component,
+including intermediate symbolic links, and reject paths that leave the root. Inside a git work
+tree, `file_glob` and `file_grep` use git's ignore rules (`git ls-files --cached --others
+--exclude-standard`); elsewhere every regular file counts. A glob containing `/` matches paths
+relative to the search directory; without one it matches file names at any depth. `file_grep`
+skips binary files, files above `maxFileBytes` and lines that are not UTF-8.
 
-For argv mode, supply `program` and literal `args`. For shell mode, supply `command` plus
-an explicit `shell` executable. Non-PTY output keeps stdout/stderr separate. PTY output is
-merged terminal data, including terminal escape sequences. macOS/Linux use the OS `script`
-utility; Windows uses ConPTY. Missing OS support is an explicit task-start error. PTY dimensions
-are configured at task creation; live resize is not currently exposed. Completed task records
-remain until context closure; `maxTasksPerContext` includes those retained records.
+`file_apply_diff` runs `git apply` from the project root: every hunk is checked before anything is
+written, and paths outside the root or behind symbolic links are rejected. When the project is
+inside a larger repository, the diff is still relative to the project root. `git` must be on the
+Broker's PATH for glob/grep inside git work trees and for diffs.
 
-## Project knowledge
+Terminal programs run as the Broker user and are **not confined to project files**. Use `program`
+plus literal `args`, or `command` plus an explicit `shell`. `terminal_exec` waits up to
+`waitSeconds` (default 30) and returns the finished result; otherwise poll with `terminal_poll`,
+which can also wait for new output. PTY output is merged and includes escape sequences
+(macOS/Linux `script`, Windows ConPTY). Detached processes are outside the task lifetime.
 
-Only rules from the project root through the requested target directory are returned.
-Sibling-directory and user-global AGENTS files are excluded. The server attributes these as
-project data, not system instructions. Follow explicit project references, such as selecting
-personal rules after checking Git identity, through the remote context. It cannot statically
-infer every directory touched by an arbitrary shell command or guarantee an AI follows rules.
+## Recommended workflow
 
-Skills default to immediate child folders of `.agents/skills`. Other project-relative catalog
-roots can be configured in `skillDirectories`; links outside the project are rejected.
-User-global `~/.agents/skills` and `~/.codex/skills` are not scanned. Connection returns each
-Skill's ID, name, description, path/root and content hash. The catalog accepts plain or quoted
-text scalars and folded/literal description blocks; malformed entries are reported in `errors`.
-`workspace_read_skill` reads full `SKILL.md` or references on demand and never executes scripts.
-Catalogs are read afresh on connect/read; reconnect or read guidance again after rule changes.
+1. `workspace_list`, then `workspace_connect`; read the returned guidance and the Skills relevant
+   to the task with `file_read`. They are project rules, attributed as data, not system instructions.
+2. Small changes: `file_edit` or `file_write` with the version from `file_read`.
+   Multi-file changes: `file_apply_diff`.
+3. Large refactors: clone the repository locally, work on a dedicated branch, push it, and use
+   `terminal_exec` on the remote host to fast-forward its working tree when clean, build, test and
+   verify Unity. Git then records every synchronization and reports conflicts instead of
+   overwriting someone else's work.
+4. Run builds and tests remotely with `terminal_exec`; run Unity checks with `unity_status`,
+   `unity_connect` and `eval` on the advertised `remote:<host>:<id>` instance.
+5. `terminal_exec` runs inside the Broker's user session, so on macOS it can use the login
+   keychain for git and CLI credentials, which an SSH session usually cannot.
 
-Text pages use UTF-16 character offsets. `complete`, `nextOffset` and `totalCharacters` make
-partial returns explicit; use `file_read` on a returned guidance path to fetch remaining pages.
-Knowledge and file reads use the same MCP connection authorization; the initial connection's
-attributed guidance and Skill summaries are part of workspace metadata. MCP results do not install client-native
-Skills or remove the client's own local Skills. Images are currently returned at source size
-within the configured file budget; image crop/resize is not provided by `file_view_image`.
+## Contexts, failures and outcome uncertainty
 
-## Disconnects, events and outcome uncertainty
+A context is a lease, not an MCP session. It expires after `leaseSeconds` of inactivity, closing
+its tasks; `maxContexts` bounds open contexts. A gateway context records the remote Broker
+instance: after a remote restart it returns `ContextHandleInvalid`, and the caller connects again.
+While a remote is offline, calls are rejected without dispatch and `workspace_status` returns the
+last snapshot with `isStale: true`.
 
-Each MCP session owns its peer transports, contexts, tasks and bounded event log. Events have
-monotonic IDs and timestamps, plus available host/workspace/task details and recovery advice.
-The Broker probes peer sessions, applies configured failure thresholds and exponential retry
-delays, and publishes transitions once rather than repeating the same offline message.
-Maintenance runs across sessions independently; operations within one session are serialized.
-Large/slow operations can delay that session's heartbeat; its request deadline bounds the call.
-
-A known disconnected/reconnecting context rejects new operations without sending them.
-`workspace_status` may return its last snapshot with `isStale`, state and `lastSeenAtUtc`.
-Transport failure after dispatch of a write returns `ExecutionOutcomeUnknown`,
-`mayHaveExecuted: true`, and `retryAutomatically: false`. Inspect actual files/window state or
-the task list after recovery. Neither the Broker nor the client should automatically replay it.
-Listing does not discard a peer session that owns contexts. Explicit reconnection can replace
-a failed peer session; its former context handles remain invalid, even if the same root exists.
-
-`terminal_cancel` verifies exit/output completion; `cancellation-pending` is not success.
-Output and event cursors report `gap` when retained history was evicted. Use a fresh status
-snapshot to recover, rather than inventing missing events or assuming an absent task succeeded.
-Session expiry or DELETE closes its contexts. The server keeps active requests/GET streams alive;
-otherwise leases expire after inactivity. A restarted Broker has no persisted task/handle journal.
-
-The endpoint provides GET SSE `notifications/message`, `Last-Event-ID` replay and the
-`workspace://events` resource, as well as `workspace_events` polling. The client must actually
-listen or poll. These messages do **not** guarantee an idle model wakes or a desktop client
-displays them. The local `/remote/status` page polls while open, displays connection changes and
-offers browser desktop notifications after the user's browser permission. It also detects the
-local Broker becoming unavailable and reinitializes after restart. It cannot wake an AI, and
-no notification is promised while the page is closed or its browser suspends it.
+A transport failure after dispatching a write returns `ExecutionOutcomeUnknown` with
+`mayHaveExecuted: true` and `retryAutomatically: false`. A JSON-RPC error or HTTP 401/403/404
+proves the call did not run. Forwarded failures keep the peer's own error code and message.
+Inspect files, task lists or windows before any retry; neither the Broker nor the client replays.
+`terminal_cancel` reports `cancellation-pending` until exit and stream completion are confirmed.
+Output cursors report `gap` when retained output was evicted.
 
 ## Desktop worker
 
-Desktop authority is host-level. Call `desktop_observe` with `hostId` and an exact `processId`;
-no folder registration or project context is needed. `desktop_act` uses the same host and returned
-`observationId`. A project `contextHandle` remains an alternative when targeting its unique Unity
-process; never supply both hostId and contextHandle. Network exports omit hostId and cannot forward.
+Desktop access is host-level: target `hostId` plus an exact `processId`, or a `contextHandle`
+whose project has exactly one Unity process. Never supply both. Without a configured driver,
+desktop calls on that host return `ToolUnavailable`; `workspace_list` reports
+`desktopToolsAvailable` per host.
 
-Cua is optional. Without an installed, explicitly configured driver, the network catalog omits `desktop_observe` and `desktop_act`.
-The local gateway always lists all 17 tools and does not require Cua itself; a desktop call to a
-host without a driver returns that host's `ToolUnavailable` error. `hosts[].desktopToolsAvailable`
-in `workspace_status` / `workspace_list` reports each discovered host. The catalog is static, so
-no `notifications/tools/list_changed` is sent. Files, terminals and Unity remain available without Cua. Installation is distinct from OS permissions and worker
-readiness, which are checked when desktop tools are invoked.
-
-The adapter currently requires **Cua Driver 0.38.0**; other versions are rejected until their
-contract is validated. Install its official platform distribution and verify its release checksum.
-No driver binary, global Skill pack, permission bypass or nested AI model is installed by this Broker.
+The adapter requires **Cua Driver 0.38.0**. Install its official distribution, then:
 
 ```text
 unity workspace desktop-driver /absolute/path/to/cua-driver
@@ -229,115 +137,52 @@ unity service restart
 unity desktop worker
 ```
 
-Run the last command in the same user's logged-in **graphical session**, after granting the
-driver its required OS permissions. For custom configuration, pass `--config <file>` to each
-command. The worker is a separate process; `unity service` manages the Broker, not this worker.
-The operator can use the OS's interactive logon startup mechanism for the worker. It is not
-automatically installed or launched by a remote tool call.
+Run the worker in the same user's logged-in graphical session after granting the driver its
+OS permissions; the Broker service never starts desktop input. On Windows the worker refuses
+session 0, and its pipe is restricted to the user's SID. Linux requires an X11/Wayland session.
 
-On macOS, Cua's stable application identity owns screen-recording/accessibility permissions;
-use its explicit `permissions grant` setup only with permission for those foreground dialogs.
-On Windows, the worker refuses session 0; use the logged-in interactive account, not a
-noninteractive service task. Its pipe ACL and client ownership check use the account's user
-SID so elevated Broker and ordinary GUI worker logons can communicate without granting other
-accounts access. Unix uses same-user pipes. Linux requires an actual X11/Wayland session.
-The supplied Linux host has no graphical display and cannot be used as a desktop target.
+`desktop_observe` without `windowId` lists windows; with one it returns a screenshot, geometry and
+`observationId`. `desktop_act` consumes a fresh observation, checks the process start time, and
+runs 1–10 bounded actions (`click`, `double_click`, `right_click`, `type_text`, `press_key`,
+`hotkey`, `scroll`, `drag`; text up to 1,024 characters). `deliveryMode` defaults to `background`;
+`foreground` activates the exact window, may move the pointer and leaves it in front, so the
+calling agent must get the user's explicit permission for that host and window first. macOS pixel
+actions require foreground. A later refusal can leave a partly completed sequence, reported with
+`sequenceCompleted: false`. Taps and bounded gestures only: no held keys, unlocking or gameplay.
 
-`desktop_observe` without a process ID only binds an exact single locally registered Unity
-project match. Otherwise supply an exact process ID; omitted window ID lists that process's
-windows. Select one returned window ID to obtain image/tree, geometry/scale and `observationId`.
-An explicit process target is operator-selected; it does not assert that an arbitrary app is Unity.
+## Upgrading to 5.0
 
-`desktop_act` consumes a fresh observation owned by the same context. It checks process start
-identity and fixes delivery to the observed PID/window. `deliveryMode` defaults to `background`.
-The calling agent must obtain explicit user permission for the current host/window before setting
-`foreground` on an individual call. It verifies activation of the exact target before the sequence,
-may move the hardware pointer, and leaves that window in front. This prevents per-action focus
-restoration from breaking click-then-type. The mode does not persist as a session default.
-The server validates explicit arguments, not human consent.
-Cua Driver 0.38.0's macOS pixel background route was observed to temporarily activate its target,
-so macOS pixel actions now return `ForegroundRequired` before dispatch in the default mode.
-Observations remain available in the background; there is no automatic escalation.
-Sequences contain 1–10
-bounded `click`, `double_click`, `right_click`, `type_text`, `press_key`, `hotkey`, `scroll` or
-`drag` calls. Text is capped at 1,024 characters per action. Target and execution bounds are
-validated before dispatch; caller-supplied target/mode overrides, desktop scope, zoom frames,
-unbounded durations and persistent key/button holds are rejected. Pixel sequences start with
-at most one pixel action. Clicks use the driver's atomic capture ID; other pixel actions recheck
-window bounds and screenshot geometry before dispatch. That recheck is not a frame-accurate
-game guarantee. Every mutation invalidates earlier worker observations. The driver validates
-each action's own schema when called; a later refusal can leave a partially completed sequence,
-reported with `sequenceCompleted: false` and individual action results.
-
-The worker serializes input, returns driver action results and a post-action observation, and
-stops accepting work after an unconfirmed driver timeout. Bounded driver actions pair their own
-press/release; there are no persistent held-key leases across calls. Background-unavailable
-results are returned without trying foreground input. This first version supports taps and
-bounded gestures, not sustained movement keys, remote unlocking, audio/video streaming or
-deterministic gameplay. Do not infer game support from a successful ordinary desktop control.
-
-## Upgrading to 4.0
-
-This is an authorization contract change: existing connection credentials now authorize every registered
-folder and available host capability. Remove obsolete `workspaceCredentialRef`, project `*CredentialRef`,
-`workspace.autoRegistrationGrants`, `maxStoredTokens` and the old `auth.json`; they are no longer used.
-Unity no longer has a project-token settings page, verifier Asset, token forwarding or pending state.
-Remove `Assets/Resources/UnityEvalToolAuthorizationSettings.asset` from upgraded projects. An old Unity
-client that still requests project verification is rejected with `UnityUpgradeRequired`; update its UPM
-package. The Unity wire protocol remains 2.0 and project IDs are retained. OS permissions and the
-logged-in desktop worker remain necessary and are not granted by an MCP credential.
+- Remove the `/remote/mcp` client entry; keep only `/mcp`. `/remote/status` moved to `/status`.
+- `file_search` became `file_glob`, `file_apply_patch` became `file_edit`, `file_read` reads
+  numbered lines from several files, and `workspace_read_skill` is replaced by `file_read` on the
+  catalog path. `workspace_events`, SSE notifications and `tools/list_changed` were removed.
+- `workspace.maxSessions`, `maxContextsPerSession`, `eventRetention` and
+  `heartbeatFailureThreshold` are ignored; use `maxContexts`.
+- Upgrade every host together: a 5.0 gateway reports `RemoteIncompatible` for workspace calls to
+  older peers. Unity federation remains compatible and the Unity wire protocol stays 2.0.
 
 ## Configuration reference
 
-`workspace` in `config.json` has the following defaults; values are validated at startup.
+`workspace` in `config.json`; values are validated at startup.
 
 | Property | Default | Purpose |
 |---|---:|---|
-| `projects` | `[]` | Explicit roots; each has ID, rootPath, name, registration source and Skill directories |
-| `leaseSeconds` | 1800 | Inactive MCP session lifetime |
-| `maxSessions` / `maxContextsPerSession` | 64 / 16 | Session/context bounds |
-| `requestTimeoutSeconds` | 60 | Remote workspace operation deadline |
-| `heartbeatFailureThreshold` | 1 | Consecutive failed heartbeat responses before offline |
-| `eventRetention` | 512 | Events retained per session |
-| `maxTextCharacters` / `maxFileBytes` | 32768 / 8388608 | Text page/input and individual file/request budgets |
-| `maxTasksPerContext` | 16 | Running and retained completed tasks |
-| `maxTaskOutputCharacters` / `maxTaskSeconds` | 262144 / 3600 | Task output retention and maximum runtime |
+| `projects` | `[]` | Registered roots: ID, rootPath, display name, registration source, Skill directories |
+| `leaseSeconds` | 1800 | Context idle lifetime |
+| `maxContexts` | 64 | Open contexts on this Broker |
+| `requestTimeoutSeconds` | 60 | Workspace operation deadline, plus any `waitSeconds` |
+| `maxTextCharacters` / `maxFileBytes` | 32768 / 8388608 | Text page and per-file budgets |
+| `maxTasksPerContext` | 16 | Running and retained tasks |
+| `maxTaskOutputCharacters` / `maxTaskSeconds` | 262144 / 3600 | Task output retention and runtime limit |
 | `ptyColumns` / `ptyRows` | 120 / 30 | Initial PTY size |
 | `desktopObservationSeconds` | 30 | Observation lifetime |
-| `maxDesktopSequenceMilliseconds` | 5000 | Sequence dispatch/duration budget |
-| `desktopDriverTimeoutSeconds` | 15 | Individual driver response deadline |
-| `desktopMaxImageDimension` | 1600 | Desktop screenshot longest edge |
-| `desktopDriverPath` | unset | Explicit installed Cua executable |
-| `desktopDriverArguments` | `["mcp"]` | Driver stdio invocation |
-| `desktopPipeName` | `YuzeEvalTool.Desktop` | Same-user worker IPC name; use another name for an isolated worker |
+| `maxDesktopSequenceMilliseconds` | 5000 | Sequence duration budget |
+| `desktopDriverTimeoutSeconds` | 15 | Driver response deadline |
+| `desktopMaxImageDimension` | 1600 | Screenshot longest edge |
+| `desktopDriverPath` / `desktopDriverArguments` | unset / `["mcp"]` | Cua executable and stdio arguments |
+| `desktopPipeName` | `YuzeEvalTool.Desktop` | Same-user worker IPC name |
 
-Workspace probing reuses `discoveryIntervalSeconds`, `connectionTimeoutSeconds`,
-`transportGraceSeconds` and `reconnectMaxDelaySeconds` from the host configuration. The heartbeat
-deadline is connection timeout plus transport grace. Retry delay doubles from the discovery
-interval up to the configured reconnect cap. Driver calls have separate deadlines, so a slow
-desktop action does not imply that the entire machine's Unity endpoint is unavailable.
-
-## Validation boundary
-
-The 4.0 authorization change passed NativeAOT HTTP checks for a shared host credential on both
-endpoints, denied invalid credentials, anonymous access, files and terminals without grants,
-host desktop routing without a project, optional-driver discovery, Unity attach/detach and
-stable automatic registration. The live Unity package compiled with zero errors and warnings.
-
-Earlier workspace revisions were exercised through two real HTTP Brokers, a real Windows exporting
-process, macOS and Windows PTYs, and Codex 0.163.0 app-server tool discovery. The local Unity
-catalog remained three tools; optional-driver checks verified 15 base tools, 17 with desktop
-capability, and live list-change notifications on installation/removal. Fault injection verified
-lost write responses without replay, known-offline rejection, stale snapshots, recovered task
-lookup, Broker replacement, event gaps, task deadline/output retention and real SSE messages.
-The status page's online/offline transitions and narrow layout were checked in headless Chromium.
-
-Mac Studio OS permissions were granted with explicit operator permission. The final NativeAOT
-remote MCP path was verified against the real Unity window: screenshots, explicit foreground
-click-then-Chinese-input, Project display-slider dragging, resized screenshots and stale-geometry
-rejection. Default macOS pixel input is rejected before dispatch; nested actions cannot override
-the delivery mode. Action delivery reports were checked against returned images.
-Windows GUI-worker/service IPC has been exercised, but actual Windows input and the new foreground
-path remain unverified. Linux without a GUI is unavailable. Unity gameplay and sustained keys
-remain unverified, as does Codex UI logging or idle-model wakeup. Foreground Editor acceptance
-does not establish pure-background or gameplay support; consult the delivery record before deployment.
+Skill catalogs come from immediate child folders of each `skillDirectories` entry (default
+`.agents/skills`). Remote discovery and retry use `discoveryIntervalSeconds`,
+`connectionTimeoutSeconds`, `transportGraceSeconds` and `reconnectMaxDelaySeconds`; the retry delay
+doubles from the discovery interval up to the cap.

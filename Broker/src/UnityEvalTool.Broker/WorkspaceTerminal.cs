@@ -15,7 +15,6 @@ internal sealed class WorkspaceTerminal : IDisposable
     private readonly WorkspaceWindowsPty? _windowsPty;
     private readonly bool _pty;
     private readonly WorkspaceOptions _options;
-    private readonly Action<string, JsonObject> _publish;
     private readonly Queue<(long Offset, string Stream, string Text)> _output = new();
     private long _nextOffset;
     private int _retainedCharacters;
@@ -28,11 +27,9 @@ internal sealed class WorkspaceTerminal : IDisposable
     public DateTimeOffset Deadline { get; }
     public bool Finished { get { lock (_sync) return _state != "running"; } }
 
-    public WorkspaceTerminal(WorkspaceFiles files, string cwd, JsonObject arguments, WorkspaceOptions options,
-        Action<string, JsonObject> publish)
+    public WorkspaceTerminal(WorkspaceFiles files, string cwd, JsonObject arguments, WorkspaceOptions options)
     {
         _options = options;
-        _publish = publish;
         var timeout = arguments["timeoutSeconds"]?.GetValue<int>() ?? options.MaxTaskSeconds;
         if (timeout < 1 || timeout > options.MaxTaskSeconds) throw WorkspaceFiles.Error("InvalidRequest", "Task timeout exceeds the configured limit.");
         Deadline = DateTimeOffset.UtcNow.AddSeconds(timeout);
@@ -132,7 +129,19 @@ internal sealed class WorkspaceTerminal : IDisposable
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException)
         { lock (_sync) { _state = "unknown"; _failure = ex.Message; } }
-        _publish("terminal.completed", Snapshot(0, 0));
+    }
+
+    // Waits until the task exits or, unless untilExit, output beyond offset exists.
+    public async Task<JsonObject> WaitAsync(int seconds, long offset, int maxCharacters, bool untilExit, CancellationToken token)
+    {
+        if (seconds is < 0 or > 300) throw WorkspaceFiles.Error("InvalidRequest", "waitSeconds must be 0–300.");
+        var until = DateTimeOffset.UtcNow.AddSeconds(seconds);
+        while (DateTimeOffset.UtcNow < until && !Finished)
+        {
+            if (!untilExit) lock (_sync) if (_nextOffset > offset) break;
+            await Task.Delay(100, token);
+        }
+        return Snapshot(offset, maxCharacters);
     }
 
     public JsonObject Snapshot(long offset, int maxCharacters)
@@ -194,7 +203,6 @@ internal sealed class WorkspaceTerminal : IDisposable
             catch (System.ComponentModel.Win32Exception ex)
             {
                 _failure = "Cancellation could not be confirmed: " + ex.Message;
-                _publish("terminal.cancellation-failed", new JsonObject { ["taskId"] = Id, ["reason"] = _failure });
             }
             // Cancellation is only confirmed after WaitForExit and both output streams complete.
         }
@@ -202,7 +210,7 @@ internal sealed class WorkspaceTerminal : IDisposable
 
     public async Task<JsonObject> CancelAsync()
     {
-        Cancel("Cancellation requested by the owning workspace session.");
+        Cancel("Cancellation requested through the workspace context.");
         try { await _completion.WaitAsync(TimeSpan.FromSeconds(5)); }
         catch (TimeoutException) { return new JsonObject { ["taskId"] = Id, ["state"] = "cancellation-pending" }; }
         return Snapshot(0, _options.MaxTextCharacters);
@@ -210,7 +218,7 @@ internal sealed class WorkspaceTerminal : IDisposable
 
     public void Dispose()
     {
-        Cancel("Workspace session closed or expired.");
+        Cancel("Workspace context closed or expired.");
         _ = _completion.ContinueWith(_ => { _windowsPty?.Dispose(); _process.Dispose(); }, TaskScheduler.Default);
     }
 

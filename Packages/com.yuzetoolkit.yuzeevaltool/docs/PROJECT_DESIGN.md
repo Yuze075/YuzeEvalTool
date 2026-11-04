@@ -60,10 +60,10 @@ compilation keeps the old domain loaded and enters executable repair mode.
 ## Security
 
 Kestrel's local listener trusts loopback clients and rejects non-loopback Host/Origin values.
-The optional network listener authorizes each request using one host credential shared by
-`/mcp` and `/remote/mcp`, or explicitly configured anonymous access. A permitted connection
+The optional network listener authorizes each `/mcp` request using one host credential,
+or explicitly configured anonymous access. A permitted connection
 can access all local projects and available host operations. There are no project tokens,
-workspace grants, or separate desktop credentials. File-root bounds, session ownership,
+workspace grants, or separate desktop credentials. File-root bounds, context ownership,
 optional Cua installation and operating-system permissions remain enforced. Port conflicts,
 invalid credential/config files and protocol mismatches fail explicitly.
 

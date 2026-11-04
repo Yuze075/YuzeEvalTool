@@ -1,7 +1,7 @@
 #nullable enable
 namespace YuzeToolkit.Eval.Broker;
 
-internal sealed class BrokerMaintenanceService(BrokerRegistry registry) : BackgroundService
+internal sealed class BrokerMaintenanceService(BrokerRegistry registry, WorkspaceService workspace) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(MaintainLocalAsync(stoppingToken), registry.RunRemoteDiscoveryAsync(stoppingToken));
@@ -12,11 +12,15 @@ internal sealed class BrokerMaintenanceService(BrokerRegistry registry) : Backgr
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
                 await registry.RunMaintenanceAsync(stoppingToken);
+                workspace.Maintain();
+            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // Normal host shutdown.
         }
+        finally { workspace.Stop(); }
     }
 }
