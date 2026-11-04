@@ -256,7 +256,7 @@ npm 不会自动执行服务卸载 helper。
 
 ## 从源码构建与打包
 
-源码构建需要 `global.json` 选定的精确 .NET SDK（当前为 10.0.300）、Node.js 22，
+源码构建需要 `global.json` 选定的精确 .NET SDK（当前为 10.0.403）、Node.js 22，
 以及当前操作系统和架构所需的 NativeAOT 工具链。在该仓库 clone 中执行：
 
 ```bash

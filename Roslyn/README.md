@@ -13,7 +13,7 @@ installs do not need a separate build step.
 ## Prerequisites
 
 Install the exact .NET SDK selected by [`global.json`](../global.json), currently
-`10.0.300`. Roll-forward is disabled.
+`10.0.403`. Roll-forward is disabled.
 
 ## Build and test
 

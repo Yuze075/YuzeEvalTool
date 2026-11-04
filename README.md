@@ -280,7 +280,7 @@ npm does not automatically run the service-uninstall helper.
 
 ## Build and package from source
 
-Source builds require the exact .NET SDK selected by `global.json` (currently 10.0.300),
+Source builds require the exact .NET SDK selected by `global.json` (currently 10.0.403),
 Node.js 22, and the NativeAOT toolchain for the host OS and architecture. From a clone of
 this repository, package the current platform and the platform-independent npm entry with:
 

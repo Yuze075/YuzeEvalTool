@@ -8,7 +8,7 @@ only. Publishing and registry automation are intentionally outside its scope.
 
 ## Prerequisites
 
-- The exact .NET SDK selected by [`global.json`](../global.json), currently `10.0.300`.
+- The exact .NET SDK selected by [`global.json`](../global.json), currently `10.0.403`.
   Roll-forward is disabled.
 - Node.js 22 for repository build and packaging scripts. The installed npm entry package
   supports Node.js 18 or newer at runtime.

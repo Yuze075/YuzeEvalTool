@@ -11,7 +11,7 @@ Source Generator 会读取带 `YuzeToolkit.Eval.EvalToolAttribute` 的 partial C
 
 ## 前置条件
 
-安装 [`global.json`](../global.json) 选定的精确 .NET SDK，当前为 `10.0.300`。
+安装 [`global.json`](../global.json) 选定的精确 .NET SDK，当前为 `10.0.403`。
 已禁用 roll-forward。
 
 ## 构建与测试

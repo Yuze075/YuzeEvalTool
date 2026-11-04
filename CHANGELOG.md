@@ -6,6 +6,8 @@
 
 ## 4.0.0 - 2026-11-04
 
+- Pin the build SDK to .NET 10.0.403, including the 10.0.14 NativeAOT security fix, and keep NuGet vulnerability auditing enabled.
+
 - Use MCP connection authentication for every registered project and available host capability. Both network endpoints share the host credential; remove project grants, workspace-only credentials and their CLI commands.
 - Remove Unity project token storage, verification settings/assets, forwarding and authorization-pending state. Legacy clients still demanding project verification must upgrade their Unity package.
 - Support desktop observation/actions by host and process without registering a folder. Cua remains optional; OS permissions, graphical-session workers and per-call foreground selection remain required.

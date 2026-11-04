@@ -8,7 +8,7 @@
 
 ## 前置条件
 
-- [`global.json`](../global.json) 选定的精确 .NET SDK，当前为 `10.0.300`；已禁用
+- [`global.json`](../global.json) 选定的精确 .NET SDK，当前为 `10.0.403`；已禁用
   roll-forward。
 - Node.js 22，用于仓库构建与打包脚本。安装后的 npm 入口包运行时支持
   Node.js 18 或更高版本。
