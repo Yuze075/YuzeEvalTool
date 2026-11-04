@@ -108,7 +108,6 @@ internal sealed partial class BrokerConfiguration
             if (!endpoints.Add(remote.Endpoint.AbsoluteUri))
                 throw new InvalidDataException("The same remote endpoint cannot be configured twice.");
             ValidateCredential(remote.CredentialRef);
-            ValidateCredential(remote.WorkspaceCredentialRef);
         }
         if (RemoteAccess.AuthMode is not ("none" or "token"))
             throw new InvalidDataException("remoteAccess.authMode must be none or token.");
@@ -121,7 +120,7 @@ internal sealed partial class BrokerConfiguration
             RemoteAccess.AllowedOrigins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
                 uri.Scheme is not ("http" or "https") || uri.GetLeftPart(UriPartial.Authority) != origin))
             throw new InvalidDataException("Network hosts and origins must be explicit valid hosts / HTTP origins without wildcards.");
-        Workspace.Validate(this);
+        Workspace.Validate();
         if (RemoteAccess.Enabled)
         {
             if (RemoteAccess.AuthMode == "token" && RemoteAccess.CredentialRef == null)
@@ -176,7 +175,6 @@ internal sealed class RemoteBrokerOptions
     public int Port { get; set; } = 2348;
     public string Scheme { get; set; } = "http";
     public string? CredentialRef { get; set; }
-    public string? WorkspaceCredentialRef { get; set; }
     public bool Enabled { get; set; } = true;
     [JsonIgnore] public Uri Endpoint => new UriBuilder(Scheme, Host, Port, "/mcp").Uri;
 }

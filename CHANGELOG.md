@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+## 4.0.0 - 2026-11-04
+
+- Use MCP connection authentication for every registered project and available host capability. Both network endpoints share the host credential; remove project grants, workspace-only credentials and their CLI commands.
+- Remove Unity project token storage, verification settings/assets, forwarding and authorization-pending state. Legacy clients still demanding project verification must upgrade their Unity package.
+- Support desktop observation/actions by host and process without registering a folder. Cua remains optional; OS permissions, graphical-session workers and per-call foreground selection remain required.
+- Preserve project IDs, local-only export, remote source prefixes and Unity protocol 2.0; document the changed authorization contract and migration.
+
 ## 3.3.0 - 2026-11-03
 
 - Unify folder registration for ordinary and Unity projects. Local Unity connections persist their roots automatically, reuse manually registered projects and retain IDs after disconnect/restart; remote imports never register locally.

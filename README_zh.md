@@ -52,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -60,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0"
   }
 }
 ```
@@ -129,23 +129,10 @@ Broker 提供以下 Streamable HTTP MCP 端点：
 http://127.0.0.1:2347/mcp
 ```
 
-项目 token 验证默认关闭，因此 MCP Client 通常只需配置端点 URL。若要保护某个项目或
-发行 Player，请打开 **Project Settings > YuzeToolkit > Eval Tool**，生成或输入 token，
-Apply 后开启验证。Unity 只会把加盐 verifier 保存到
-`Assets/Resources/UnityEvalToolAuthorizationSettings.asset`，原始 token 不会写入项目。
-Unity 会把该资源直接打进 Player，并通过标准 Resources API 读取。
-
-首次可让 MCP Client 携带该 token：
-
-```text
-Authorization: Bearer <token[/另一个-token...]>
-```
-
-Broker 会把传入值持久化到 `~/.unityevaltool/auth.json`，并发送给仍在等待验证的所有 Unity；
-之后 MCP 可以不再携带 Header。原生 CLI 通过 `unity --token <token> ...` 执行同样的首次录入。
-也可直接维护 `auth.json`。默认最多保存 5 个不同 token，可在
-`~/.unityevaltool/config.json` 通过 `maxStoredTokens` 调整（硬上限 32）。token 只允许 ASCII
-大小写字母、数字、`_`、`-`，`/` 用来分隔多个值。
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
+`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
+Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
 
 MCP Server 只提供三个工具，必须按此顺序使用：
 
@@ -206,8 +193,7 @@ unity list
 远程实例 ID 形如 `remote:office-pc:<原实例ID>`；必须明确选择来源，不能用本机工作目录匹配远程路径。
 远程交互式 CLI 执行暂不支持，选择远程实例时会明确报告 `RemoteCliUnsupported`。
 
-服务密钥在网络入口的每个请求中验证，且不会进入 Unity 项目 token 库；远端项目仍需由远端 Broker
-按原有流程完成 Unity 授权。跨不可信网络使用 HTTPS 反向代理或加密隧道；代理应指向网络导出端口，
+网络入口在每个请求中验证连接密钥，验证成功即取得全部已注册项目的访问能力。跨不可信网络使用 HTTPS 反向代理或加密隧道；代理应指向网络导出端口，
 并保留明确的 Host / Origin 允许列表，不能转发到本机聚合入口。HTTPS 出站可用
 `unity remote add office-pc <主机名> <端口> office-key https` 配置。
 完整配置、来源字段、断线和租约语义见 [Broker 协议](Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
@@ -219,7 +205,7 @@ unity list
 
 可选的 `/remote/mcp` 视图提供项目文件与图片、终端任务、项目范围的 AGENTS / Skills、
 会话事件和独立桌面执行器。本机视图只路由到配置的远端；经过鉴权的网络视图只导出明确共享的
-本地项目根目录。原 `/mcp` 仍保持三个 Unity 工具，现有 Unity 密钥不会自动获得新能力。
+本地项目根目录。原 `/mcp` 保持三个 Unity 工具，两个入口共用同一连接密钥，不再额外授予项目能力。
 
 配置、授权、客户端接入、故障恢复和桌面验证边界见[远程工作区指南](Broker/REMOTE_WORKSPACES_zh.md)。
 本机 `/remote/status` 页面打开时会展示连接变化；它不能唤醒闲置的 AI 会话。
@@ -229,7 +215,7 @@ unity list
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.0.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻
@@ -240,12 +226,13 @@ Prefab。面板不会自动创建。模块、持久化模型、默认快捷键�
 
 ## 安全边界
 
-本机入口绑定 `127.0.0.1:2347`，并拒绝非 loopback Host/Origin；网络入口默认关闭，显式开启后
-使用独立的服务鉴权策略。本机入口只负责保存并转发候选项目 token；每个 Unity 项目或 Player 自己决定是否要求验证，并且只有某个
-候选 token 能生成已保存的加盐 verifier 后才接受操作。包含 Yuze Eval Tool 的、受支持的非
-WebGL Release Player 会有意向 Broker 注册，并保留任意 JavaScript eval 能力；它不仅限于
-Development Build，也不依赖 Yuze Agent Tool。该 verifier 能阻止不知道 token 的普通 Broker
-访问，但不能抵御能够修改 Player 二进制的攻击者。详见
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
+`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
+Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
+
+网络入口默认关闭，仍执行 Host / Origin 校验并仅导出本机项目。受支持的非 WebGL Release Player
+注册到受信任本机 Broker 后保留任意 JavaScript eval。详见
 [Editor 与 Player 注册](Packages/com.yuzetoolkit.yuzeevaltool/docs/RUNTIME_SERVICES_zh.md)。
 
 ## 服务管理与卸载

@@ -30,7 +30,7 @@ Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.B
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
@@ -56,11 +56,11 @@ Editor 会在 eval 之外独立报告导入、编译、编译失败、程序集�
 文件目录作为项目路径注册。Release Player 会有意保留与 Editor 相同的任意 JavaScript
 eval 能力。它不受 Development Build 开关限制，也不依赖可选的 Yuze Agent Tool Package。
 
-项目 token 验证默认关闭。发行 Player 需要拒绝没有 token 的 Broker 时，在
-**Project Settings > YuzeToolkit > Eval Tool** 中按项目开启。项目只在
-`Assets/Resources/UnityEvalToolAuthorizationSettings.asset` 保存加盐 verifier；Unity 会将其
-直接打入 Player，并通过标准 Resources API 读取。如果该 eval 能力不适合产品发行版，应把
-排除或修改 Package 作为明确的产品决策。WebGL 不是受支持的 Broker 目标。
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
+`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
+Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
+WebGL 不是受支持的 Broker 目标。
 
 生命周期细节与公开连接 API 见 [Editor 与 Player 注册](docs/RUNTIME_SERVICES_zh.md)。
 
@@ -115,12 +115,9 @@ Tool 树和函数契约，不依赖任何 Debug UI。根 Tool 可通过 `EvalToo
 | `ws://127.0.0.1:2347/unity` | Unity 注册与中转 |
 | `ws://127.0.0.1:2347/cli` | 原生 CLI 控制台 |
 
-Broker 的本机入口绑定 loopback，并在 `2347` 端口不可用时明确失败。它不决定项目鉴权结果：MCP 与 CLI
-可把候选 token 录入 `~/.unityevaltool/auth.json`；每条 Unity 连接自行验证，在匹配前以
-`Pending` 状态保持可发现但不可执行。
-
-原生 Broker 还可配置独立的网络导出入口与远端聚合；网络入口只开放本地项目，并使用独立服务密钥。
-Unity Package 的注册方式不变。配置与来源语义见 [Broker 协议](docs/BROKER_PROTOCOL_zh.md#单跳远程聚合)。
+Broker 本机入口绑定 loopback，端口 `2347` 不可用时明确失败。网络 MCP 的统一连接认证配置在
+Broker，覆盖所有本机项目与可用能力。Unity 注册、编译与 VM 生命周期独立于连接密钥。
+详见 [Broker 协议](docs/BROKER_PROTOCOL_zh.md#单跳远程聚合)。
 
 ## 从源码构建
 

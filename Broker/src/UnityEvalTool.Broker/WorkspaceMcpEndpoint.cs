@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace YuzeToolkit.Eval.Broker;
 
 // This separate, session-affine 2025-11-25 endpoint deliberately leaves /mcp's
-// stateless Unity catalog and credential semantics unchanged.
+// stateless Unity catalog intact. Both endpoints share the host's connection authorization.
 internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
 {
     private readonly ConcurrentDictionary<string, WorkspaceSession> _sessions = new(StringComparer.Ordinal);
@@ -67,7 +67,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
             {
                 if (_sessions.Count < Options.MaxSessions)
                 {
-                    session = new WorkspaceSession(exporting, authHash, Options) { ExportCredentialReferences = service.ExportCredentials(authorization) };
+                    session = new WorkspaceSession(exporting, authHash, Options);
                     _sessions[session.Id] = session;
                 }
             }
@@ -100,7 +100,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
                     var tool = WorkspaceService.Required(parameters, "name");
                     var args = parameters["arguments"] as JsonObject ?? new JsonObject();
                     Interlocked.Increment(ref session.ActiveRequests);
-                    try { result = await service.CallAsync(session, tool, args, authorization, http.RequestAborted); }
+                    try { result = await service.CallAsync(session, tool, args, http.RequestAborted); }
                     finally
                     {
                         session.ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(Options.LeaseSeconds);

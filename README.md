@@ -54,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -62,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0"
   }
 }
 ```
@@ -137,26 +137,12 @@ The Broker exposes a Streamable HTTP MCP endpoint at:
 http://127.0.0.1:2347/mcp
 ```
 
-Project token verification is disabled by default, so the MCP client normally needs only
-the endpoint URL. To protect one project or shipped Player, open **Project Settings >
-YuzeToolkit > Eval Tool**, generate or enter a token, apply it, and enable verification.
-Unity stores only a salted verifier in
-`Assets/Resources/UnityEvalToolAuthorizationSettings.asset`; the original token is not saved
-in the project. Unity includes this asset in Player builds and loads it through the standard
-Resources API.
-
-Supply that token once from an MCP client:
-
-```text
-Authorization: Bearer <token[/another-token...]>
-```
-
-The Broker persists supplied tokens in `~/.unityevaltool/auth.json` and offers them to every
-connected Unity that is still awaiting verification. Later MCP calls may omit the header.
-The native CLI has the same provisioning behavior through `unity --token <token> ...`.
-You may also edit `auth.json` directly; the default capacity is five distinct tokens and
-`~/.unityevaltool/config.json` can override it with `maxStoredTokens` (hard maximum 32).
-Token values allow ASCII letters, digits, `_`, and `-`; `/` separates multiple values.
+From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
+the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+credential on every request. An authorized connection can use every registered project, file
+read/write, terminals and available desktop controls. There are no Unity project tokens or
+per-project capability grants. Cua remains optional and the operating system must allow its
+Accessibility / Screen Recording permissions; MCP authorization cannot grant those system permissions.
 
 The server exposes three MCP tools, used in this order:
 
@@ -223,8 +209,7 @@ all configured sources through the existing three tools. Remote IDs have the for
 `remote:office-pc:<original-instance-id>`; select the exact source instead of matching a remote
 path to the local working directory. Remote interactive CLI execution reports `RemoteCliUnsupported`.
 
-Network service credentials are validated on every request and never enter the Unity project
-token store. Project authorization remains the remote Broker's responsibility. Use an HTTPS
+Network connection credentials are validated on every request and authorize all registered projects. Use an HTTPS
 reverse proxy or encrypted tunnel across untrusted networks; proxy to the network export listener,
 not the local aggregate endpoint, and configure explicit Host / Origin allowances. Configure
 HTTPS outbound connections with `unity remote add office-pc <host> <port> office-key https`.
@@ -240,10 +225,9 @@ capability attached to a stable folder identity.
 The opt-in `/remote/mcp` view adds project files and images, terminal tasks, project-scoped
 AGENTS/Skills, session events and a separate desktop worker. The local view routes only to
 configured peers; the authenticated network view exports only explicitly shared local roots.
-The existing `/mcp` tool catalog remains Unity-only. Existing Unity credentials grant none of
-these capabilities automatically.
+The existing `/mcp` catalog remains Unity-only. Both endpoints use the same connection credential and all registered projects are available after authentication.
 
-See [Remote workspace setup and contracts](Broker/REMOTE_WORKSPACES.md) for grants, client
+See [Remote workspace setup and contracts](Broker/REMOTE_WORKSPACES.md) for connection authorization, client
 configuration, recovery, desktop prerequisites and the current validation limits. The local
 `/remote/status` page shows connection transitions while open; it does not wake an idle AI.
 
@@ -252,7 +236,7 @@ configuration, recovery, desktop prerequisites and the current validation limits
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.0.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a
@@ -264,16 +248,16 @@ The default keys are `F8` for Yuze Agent Tool and `F10` for the Performance and 
 
 ## Security boundary
 
-The local listener binds to `127.0.0.1:2347` and rejects non-loopback Host/Origin values.
-Network export is disabled by default and uses a separate service authentication policy when enabled.
-The local listener persists and forwards candidate project tokens. Each
-Unity project or Player independently decides whether verification is required and accepts
-commands only after one candidate produces its stored salted verifier. Supported non-WebGL
-release Players that include Yuze Eval Tool intentionally register with the Broker and retain
-arbitrary-JavaScript evaluation; this behavior is not limited to Development Builds and does
-not depend on Yuze Agent Tool. The verifier prevents ordinary Broker access without the token,
-but cannot prevent an attacker who can patch the Player binary. See
-[Editor and Player registration](Packages/com.yuzetoolkit.yuzeevaltool/docs/RUNTIME_SERVICES.md).
+From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
+the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+credential on every request. An authorized connection can use every registered project, file
+read/write, terminals and available desktop controls. There are no Unity project tokens or
+per-project capability grants. Cua remains optional and the operating system must allow its
+Accessibility / Screen Recording permissions; MCP authorization cannot grant those system permissions.
+
+Network export is disabled by default. Host/Origin validation and local-only export boundaries remain enforced.
+Supported non-WebGL release Players retain arbitrary-JavaScript eval after registering with the trusted local Broker.
+See [Editor and Player registration](Packages/com.yuzetoolkit.yuzeevaltool/docs/RUNTIME_SERVICES.md).
 
 ## Service management and uninstall
 

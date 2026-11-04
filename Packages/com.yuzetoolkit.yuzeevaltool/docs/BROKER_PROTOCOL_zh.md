@@ -12,26 +12,11 @@
 - `ws://127.0.0.1:2347/cli`：交互式 CLI 连接。
 - `http://127.0.0.1:2347/health`：Broker 健康状态快照。
 
-本机入口绑定 loopback。如果 `2347` 不可用，必须明确失败，不得静默改用其它端口。
-本机入口不设置全局鉴权门禁，只保存候选 token 并转发给 Unity；验证结果由每条 Unity 连接
-自己决定。健康状态中的 `requireToken` 固定为 false，同时报告 `storedTokenCount` 与
-`maxStoredTokenCount`。
-
-MCP 可通过 `Authorization: Bearer token[/token...]` 或 `X-Yuze Eval Tool-Token` 录入候选值；
-CLI 通过公开的 `--token` 参数把同一列表放入 `cli/hello`。值只允许 ASCII 大小写字母、数字、
-`_`、`-`，`/` 仅作为列表分隔符。显式传入的值保存到 `~/.unityevaltool/auth.json`；默认容量
-为 5，可在 `~/.unityevaltool/config.json` 用 `maxStoredTokens` 调整，硬上限 32。相同值不会
-重复保存。
-
-手工配置使用以下 schema（单数 `token` 镜像第一项，用于兼容旧读取方）：
-
-```json
-{
-  "schemaVersion": 2,
-  "token": "project-one_token",
-  "tokens": ["project-one_token", "project-two_token"]
-}
-```
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
+`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
+Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
+本机端口不可用时明确失败。健康状态只报告服务进程与 Unity 状态，不存在项目 token 存储。
 
 ## 单跳远程聚合
 
@@ -40,14 +25,13 @@ CLI 通过公开的 `--token` 参数把同一列表放入 `cli/hello`。值只�
 也不接受导入项目的 ID 或租约；本机 MCP 和 CLI 列表则返回聚合视图。A→B→C 与 A↔B
 都不会递归导入。Unity 注册协议仍为 `2.0`，本地 ID 保持不变，但 `remote:` 前缀保留给导入实例。
 
-独立授权的 `/remote/mcp` 工作区协议见 [Broker 远程工作区指南](../../../Broker/REMOTE_WORKSPACES_zh.md)。
-它的项目根、密钥、会话句柄和工具目录独立于 Unity 租约，同样只导出自身本地能力。
+共用连接授权的 `/remote/mcp` 工作区协议见 [Broker 远程工作区指南](../../../Broker/REMOTE_WORKSPACES_zh.md)。
+它的项目根、会话句柄和工具目录独立于 Unity 租约，同样只导出自身本地能力。
 
-`config.json` 可与现有 `maxStoredTokens` 共存，例如：
+`config.json` 配置统一连接边界，例如：
 
 ```json
 {
-  "maxStoredTokens": 5,
   "remotes": [
     { "id": "office-pc", "host": "192.168.1.20", "port": 2348,
       "scheme": "http", "credentialRef": "office-key", "enabled": true }
@@ -133,26 +117,18 @@ Unity 和 CLI WebSocket 每条 WebSocket 消息交换一个 UTF-8 JSON object：
 
 Unity 的第一条消息必须是 `unity/register`。其 payload 包含：
 
-- `authToken`：保留为空的兼容字段
 - `instanceId`：在单个 Unity 进程的 Domain Reload 之间保持稳定
 - `connectionEpoch`：每个 Unity 侧连接 generation 递增
 - `processId` 和 `processStartedAtUtc`
 - `projectName`、规范化 `projectPath`、`unityVersion`、`packageVersion`
 - `environment`：`Editor` 或 `Player`
-- `authorizationRequired`：该 Unity 项目是否要求 token
-- `authorizationState`：初始 `NotRequired` 或 `Pending` 状态
 - 完整的初始 `status`
 
 只有主 Unity Editor 进程可以注册。Asset Import Worker 绝对不得注册或启动 Broker。
 成功响应包含 `brokerInstanceId`，它在当前 Broker 进程中唯一。如果该值改变，Unity
 会丢弃所有保留的 PuerTS session，避免新 Broker 进程意外继承已不属于它的 session。
-同一响应会在 `tokens` 中带上当前保存的所有候选值。Unity 使用项目 salt 对候选值做 hash，
-并通过 `unity/authorization` 发布 `Authorized`、`Pending` 或 `NotRequired`。之后新增的候选值
-通过 `auth/tokens` event 发送。
-
-Pending Unity 仍会出现在发现和状态结果中，但 `ready` 等待以及所有 MCP/CLI 操作都会以
-`UnityAuthorizationPending` 拒绝。验证对每次 Unity 连接只执行一次；任一候选值成功后，
-后续命令不会重复验证，也不设置过期时间。
+响应不再携带项目 token，Unity 不再具有等待项目授权的状态。旧客户端若明确上报仍启用项目验证，
+会得到 `UnityUpgradeRequired`，需升级 Unity Package 至 4.0.0。Unity 协议 2.0 与执行生命周期保留。
 
 ## 状态
 
@@ -214,7 +190,7 @@ Unity 在 `CompilationPipeline.compilationStarted` 时发布 `Compiling`，在�
 ## 稳定错误码
 
 - `AuthenticationFailed`
-- `UnityAuthorizationPending`
+- `UnityUpgradeRequired`
 - `ProtocolMismatch`
 - `InvalidRequest`
 - `DiscoveryRequired`
@@ -231,4 +207,4 @@ Unity 在 `CompilationPipeline.compilationStarted` 时发布 `Compiling`，在�
 
 Broker 3.3.0 在本机 Unity 注册时持久登记其规范化项目目录；重复路径复用工作区 ID。
 断开不删除项目，导入的远端实例不触发登记；Unity 快照增加可选 `workspaceId` 供关联。
-注册请求字段与协议版本不变，文件 / 终端授权仍独立。详见 [工作区注册](../../../Broker/REMOTE_WORKSPACES_zh.md)。
+文件 / 终端共用 MCP 连接授权，项目注册 ID 与协议版本不变。详见 [工作区注册](../../../Broker/REMOTE_WORKSPACES_zh.md)。

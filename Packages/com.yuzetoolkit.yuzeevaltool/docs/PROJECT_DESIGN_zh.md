@@ -10,8 +10,8 @@ AI MCP clients ──HTTP /mcp──┐
 原生 unity CLI ───WS /cli───┘                                      └────────── Unity B
 ```
 
-Broker 拥有发现、状态快照、事件驱动等待、选择租约、本机候选 token 存储、MCP 协议、
-CLI 控制台和请求路由。Unity 拥有鉴权、主线程真实状态、编译/重载观察、PuerTS VM、
+Broker 拥有发现、状态快照、事件驱动等待、选择租约、MCP 连接鉴权、MCP 协议、
+CLI 控制台和请求路由。Unity 拥有主线程真实状态、编译/重载观察、PuerTS VM、
 helper tool 注册和 CLI 命令解析。
 
 ## 源码归属
@@ -20,8 +20,8 @@ helper tool 注册和 CLI 命令解析。
 |---|---|---|
 | 原生 Broker | 仓库 `Broker/src/UnityEvalTool.Broker` | 2347、注册表、MCP、CLI、用户服务管理 |
 | npm 打包 | 仓库 `Broker/npm` | 平台选择、显式用户服务 helper、RID 平台包 |
-| Unity 传输 | `Runtime/Broker` | 注册、项目 token 验证、心跳、中转请求、session |
-| Editor 生命周期 | `Editor/Broker` | 稳定进程身份、Resources 鉴权设置、编译/重载状态、拉起 Broker |
+| Unity 传输 | `Runtime/Broker` | 注册、心跳、中转请求、session |
+| Editor 生命周期 | `Editor/Broker` | 稳定进程身份、编译/重载状态、拉起 Broker |
 | Eval 引擎 | `Runtime/Core` 与 `Runtime/Tools` | PuerTS 执行和生成的 helper module |
 | CLI 解析 | `Runtime/CLI/EvalCliCommandService*` | 现有命令语法和打印结果 |
 
@@ -52,11 +52,11 @@ Broker 内部，不依赖 eval。编译失败不会卸载旧脚本域，而是�
 
 ## 安全
 
-Kestrel 的本机入口监听 loopback，并拒绝非 loopback Host/Origin。本机入口没有全局鉴权策略；MCP/CLI
-输入或用户编辑的 `auth.json` 提供原始候选 token，Broker 只保存和转发。每个 Unity 项目
-默认不验证，或在 Resources Asset 保存加盐 PBKDF2 verifier，并在任一候选值匹配前拒绝所有
-操作。一次连接匹配成功后，在该连接生命周期内保持 Authorized。端口冲突、非法凭据/配置
-文件、非法项目 verifier 和协议不匹配都会明确失败。
+Kestrel 的本机入口信任 loopback 客户端，并拒绝非 loopback Host/Origin。可选网络入口逐请求
+验证主机连接密钥，`/mcp` 和 `/remote/mcp` 使用同一密钥，也可显式配置匿名访问。连接获准后
+即可访问全部本地项目和可用的主机操作，不再设置项目 token、工作区 grants 或独立桌面凭据。
+文件根目录边界、会话归属、可选 Cua 安装和操作系统权限仍然生效。端口冲突、非法凭据/配置
+文件和协议不匹配都会明确失败。
 
 可选网络监听只导出直接注册的本地实例，并逐请求验证独立的服务密钥（也可显式配置无密钥）。
 本机注册表聚合远端快照并维护来源限定 ID、独立租约和目录版本；网络入口不再导出这些导入项。

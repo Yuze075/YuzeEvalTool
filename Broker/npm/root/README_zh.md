@@ -24,7 +24,7 @@ macOS 使用 LaunchAgent，Linux 使用 systemd user unit，Windows 使用计划
 通过 Unity Package Manager 添加 Unity 侧 Package：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
 ```
 
 打开 Unity 项目并等待编译完成，然后执行 `unity list`。只有看到该 Editor 才完成
@@ -52,17 +52,12 @@ unity tools
 http://127.0.0.1:2347/mcp
 ```
 
-Unity 项目默认不要求 token 验证，因此 MCP Client 通常只需配置端点 URL。某个 Unity 项目已在
-Project Settings 开启验证时，首次通过以下 Header 录入 token：
+从 4.0.0 起，授权统一归 MCP 连接所有。本机 loopback 入口为受信任入口；网络 `/mcp` 与
+`/remote/mcp` 共用 `remoteAccess`，每次请求验证同一把 Bearer 密钥。连接通过认证后即可访问
+全部已注册项目、文件读写、终端和可用的桌面控制，不再设置 Unity 项目 token 或项目能力授权。
+Cua 保持可选；操作系统仍须允许它的辅助功能 / 屏幕录制权限，MCP 密钥不能代替系统授权。
+MCP 流程始终是
 
-```text
-Authorization: Bearer <token[/另一个-token...]>
-```
-
-Broker 会把传入值保存到 `~/.unityevaltool/auth.json`，之后可省略 Header。CLI 等价入口为
-`unity --token <token> ...`，也可以直接编辑 `auth.json`。默认最多保存 5 个 token；可在
-`~/.unityevaltool/config.json` 用 `maxStoredTokens` 调整，硬上限 32。Broker 只转发候选值；
-每个 Unity 自行验证，匹配前保持可发现但不可执行。MCP 流程始终是
 `unity_status` → `unity_connect` → `eval`；必须先发现并明确选择。详见
 [使用指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md) 和
 [Broker 协议](https://github.com/Yuze075/YuzeEvalTool/blob/main/Packages/com.yuzetoolkit.yuzeevaltool/docs/BROKER_PROTOCOL_zh.md)。
@@ -84,7 +79,7 @@ unity list
 
 服务密钥可用 `unity remote credential <名称> < secret.txt` 从 stdin 保存，然后在
 `remote add` 的端口后指定名称；远端使用 `remote access token <IP> <端口> <名称>`。
-服务密钥与现有 Unity 项目 token 分开管理。网络入口默认关闭，仅开放本地实例的 `/mcp`。
+同一连接密钥用于 `/mcp` 与 `/remote/mcp`，授权覆盖全部已注册项目。网络入口默认关闭，只导出本机能力。
 配置在重启后生效。远程项目使用现有三个 MCP 工具；交互式 CLI 远程执行暂不支持。
 更多配置和 HTTPS 部署说明见[远程项目指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/README_zh.md#远程-unity-项目)。
 
@@ -120,5 +115,5 @@ npm uninstall --global @yuzetoolkit/unityevaltool
 
 3.3.0 可用 `unity workspace add <id> <绝对目录> [名称]` 注册非 Unity 文件夹，供其他主机远程访问。
 Unity 连接会自动注册本机项目根目录；连接 / 断开只改变 Unity 能力，保留项目 ID、文件与终端能力。
-自动注册的共享策略用 `unity workspace defaults <能力> <密钥引用|off>` 设置，默认不授权。
+4.0.0 起，MCP 连接通过认证即取得全部已注册项目能力，无需额外配置项目授权。
 完整配置与能力说明见[远程工作区指南](https://github.com/Yuze075/YuzeEvalTool/blob/main/Broker/REMOTE_WORKSPACES_zh.md)。

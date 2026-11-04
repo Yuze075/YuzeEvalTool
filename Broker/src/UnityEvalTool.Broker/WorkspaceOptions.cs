@@ -1,6 +1,4 @@
 #nullable enable
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Serialization;
 
 namespace YuzeToolkit.Eval.Broker;
@@ -8,7 +6,6 @@ namespace YuzeToolkit.Eval.Broker;
 internal sealed class WorkspaceOptions
 {
     public List<WorkspaceDefinition> Projects { get; set; } = [];
-    public WorkspaceGrants AutoRegistrationGrants { get; set; } = new();
     public int LeaseSeconds { get; set; } = 1800;
     public int MaxSessions { get; set; } = 64;
     public int MaxContextsPerSession { get; set; } = 16;
@@ -30,7 +27,7 @@ internal sealed class WorkspaceOptions
     public string DesktopPipeName { get; set; } = "YuzeEvalTool.Desktop";
     public List<string> DesktopDriverArguments { get; set; } = ["mcp"];
 
-    public void Validate(BrokerConfiguration config)
+    public void Validate()
     {
         BrokerConfiguration.RequireRange(LeaseSeconds, 30, 86400, "workspace.leaseSeconds");
         BrokerConfiguration.RequireRange(MaxSessions, 1, 256, "workspace.maxSessions");
@@ -49,13 +46,12 @@ internal sealed class WorkspaceOptions
         BrokerConfiguration.RequireRange(MaxDesktopSequenceMilliseconds, 1, 10000, "workspace.maxDesktopSequenceMilliseconds");
         BrokerConfiguration.RequireRange(DesktopDriverTimeoutSeconds, 1, 120, "workspace.desktopDriverTimeoutSeconds");
         BrokerConfiguration.RequireRange(DesktopMaxImageDimension, 256, 8192, "workspace.desktopMaxImageDimension");
-        if (Projects == null || AutoRegistrationGrants == null || DesktopDriverArguments == null)
-            throw new InvalidDataException("Workspace projects, autoRegistrationGrants and desktopDriverArguments cannot be null.");
+        if (Projects == null || DesktopDriverArguments == null)
+            throw new InvalidDataException("Workspace projects and desktopDriverArguments cannot be null.");
         if (string.IsNullOrWhiteSpace(DesktopPipeName) || DesktopPipeName.Length > 80 || DesktopPipeName.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('.' or '-' or '_')))
             throw new InvalidDataException("workspace.desktopPipeName must be 1–80 ASCII letters, digits, dots, hyphens or underscores.");
         if (DesktopDriverPath != null && !Path.IsPathFullyQualified(DesktopDriverPath))
             throw new InvalidDataException("workspace.desktopDriverPath must be an absolute executable path.");
-        foreach (var reference in AutoRegistrationGrants.CredentialReferences) config.ValidateCredential(reference);
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var roots = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (var project in Projects)
@@ -71,12 +67,11 @@ internal sealed class WorkspaceOptions
             if (project.DisplayName != null && string.IsNullOrWhiteSpace(project.DisplayName)) throw new InvalidDataException("Workspace displayName cannot be blank.");
             if (project.SkillDirectories == null || project.SkillDirectories.Any(Path.IsPathFullyQualified))
                 throw new InvalidDataException("Skill directories must be project-relative paths.");
-            foreach (var reference in project.CredentialReferences) config.ValidateCredential(reference);
         }
     }
 }
 
-internal sealed class WorkspaceDefinition : WorkspaceGrants
+internal sealed class WorkspaceDefinition
 {
     public string Id { get; set; } = string.Empty;
     public string RootPath { get; set; } = string.Empty;
@@ -84,31 +79,4 @@ internal sealed class WorkspaceDefinition : WorkspaceGrants
     public string RegisteredBy { get; set; } = "manual";
     public List<string> SkillDirectories { get; set; } = [".agents/skills"];
     [JsonIgnore] public string Name => DisplayName ?? (Path.GetFileName(RootPath) is { Length: > 0 } name ? name : Id);
-}
-
-internal class WorkspaceGrants
-{
-    public string? FilesReadCredentialRef { get; set; }
-    public string? FilesWriteCredentialRef { get; set; }
-    public string? TerminalCredentialRef { get; set; }
-    public string? DesktopCredentialRef { get; set; }
-    [JsonIgnore] public IEnumerable<string?> CredentialReferences =>
-        [FilesReadCredentialRef, FilesWriteCredentialRef, TerminalCredentialRef, DesktopCredentialRef];
-
-    public bool Allows(string capability, string authorization, BrokerConfiguration config)
-    {
-        var reference = capability switch
-        {
-            "filesRead" => FilesReadCredentialRef,
-            "filesWrite" => FilesWriteCredentialRef,
-            "terminal" => TerminalCredentialRef,
-            "desktop" => DesktopCredentialRef,
-            _ => throw new InvalidOperationException("Unknown workspace capability.")
-        };
-        return reference != null && Matches(config.GetCredential(reference)!, authorization);
-    }
-
-    internal static bool Matches(string secret, string authorization) =>
-        authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) &&
-        CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(authorization[7..]));
 }

@@ -9,9 +9,8 @@ internal static partial class CliApplication
 {
     public static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken)
     {
-        var parsedArguments = ExtractTokenOption(args);
-        args = parsedArguments.Arguments;
-        var suppliedTokenList = parsedArguments.TokenList;
+        if (args.Any(argument => argument == "--token" || argument.StartsWith("--token=", StringComparison.Ordinal)))
+            throw new InvalidOperationException("Project token provisioning was removed. Configure the MCP host connection with `unity remote`.");
         var command = args.Length == 0 ? string.Empty : args[0].ToLowerInvariant();
         if (command is "-h" or "--help" or "help")
         {
@@ -29,7 +28,7 @@ internal static partial class CliApplication
         if (command == "workspace") return ConfigureWorkspaces(args.Skip(1).ToArray());
         if (command == "desktop") return await WorkspaceDesktopWorker.RunAsync(args.Skip(1).ToArray(), cancellationToken);
 
-        await using var connection = await OpenConnectionAsync(suppliedTokenList, cancellationToken);
+        await using var connection = await OpenConnectionAsync(cancellationToken);
         if (command is "list" or "status")
         {
             PrintRegistry(await connection.ListAsync(cancellationToken));
@@ -68,8 +67,7 @@ internal static partial class CliApplication
         return 0;
     }
 
-    private static async Task<BrokerCliConnection> OpenConnectionAsync(string? tokenList,
-        CancellationToken cancellationToken)
+    private static async Task<BrokerCliConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
         Exception? lastError = null;
         for (var attempt = 0; attempt < 30; attempt++)
@@ -77,7 +75,7 @@ internal static partial class CliApplication
             var connection = new BrokerCliConnection();
             try
             {
-                await connection.ConnectAsync(tokenList, cancellationToken);
+                await connection.ConnectAsync(cancellationToken);
                 return connection;
             }
             catch (Exception ex)
@@ -160,12 +158,6 @@ internal static partial class CliApplication
         var selected = snapshot.GetProperty("selectedUnity");
         if (selected.ValueKind == JsonValueKind.Null)
             throw new BrokerOperationException(BrokerErrorCodes.UnityDisconnected, "Selected Unity is unavailable.");
-        var authorizationState = selected.TryGetProperty("authorizationState", out var authorizationElement)
-            ? authorizationElement.GetString() ?? "NotRequired"
-            : "NotRequired";
-        if (string.Equals(authorizationState, "Pending", StringComparison.Ordinal))
-            throw new BrokerOperationException(BrokerErrorCodes.UnityAuthorizationPending,
-                "Unity is connected but its project token has not been verified. Supply --token or update auth.json.");
         var status = selected.GetProperty("status");
         if (CanExecute(status)) return;
         var phase = status.GetProperty("phase").GetString() ?? "Unknown";
@@ -230,7 +222,6 @@ internal static partial class CliApplication
             Console.WriteLine($"{instance.GetProperty("instanceId").GetString()}  " +
                               $"{(instance.TryGetProperty("displayName", out var displayName) ? displayName.GetString() : instance.GetProperty("projectName").GetString())}  " +
                               $"{(instance.GetProperty("isConnected").GetBoolean() ? "Connected" : "Disconnected")}  " +
-                              $"{(instance.TryGetProperty("authorizationState", out var auth) ? auth.GetString() : "NotRequired")}  " +
                               $"{status.GetProperty("phase").GetString()}  " +
                               $"PID {instance.GetProperty("processId").GetInt32()}  " +
                               instance.GetProperty("projectPath").GetString());
@@ -256,9 +247,6 @@ internal static partial class CliApplication
     private static async Task<int> DoctorAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine("Executable: " + (InstallMetadataStore.GetCurrentExecutable() ?? "unpublished/dotnet host"));
-        var tokenStore = new AuthTokenStore();
-        Console.WriteLine($"Auth file: {tokenStore.FilePath} ({tokenStore.GetTokens().Count}/{tokenStore.MaxStoredTokens} stored tokens)");
-        Console.WriteLine("Auth config: " + tokenStore.ConfigPath);
         Console.WriteLine("Broker endpoint: http://127.0.0.1:2347");
         try
         {
@@ -281,36 +269,6 @@ internal static partial class CliApplication
             ? "\"" + argument.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\""
             : argument));
 
-    private static (string? TokenList, string[] Arguments) ExtractTokenOption(IReadOnlyList<string> args)
-    {
-        string? tokenList = null;
-        var remaining = new List<string>(args.Count);
-        for (var index = 0; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (string.Equals(argument, "--token", StringComparison.Ordinal))
-            {
-                if (tokenList != null)
-                    throw new InvalidOperationException("--token can only be supplied once.");
-                if (++index >= args.Count)
-                    throw new InvalidOperationException("--token requires a value.");
-                tokenList = args[index];
-                continue;
-            }
-            if (argument.StartsWith("--token=", StringComparison.Ordinal))
-            {
-                if (tokenList != null)
-                    throw new InvalidOperationException("--token can only be supplied once.");
-                tokenList = argument["--token=".Length..];
-                if (tokenList.Length == 0)
-                    throw new InvalidOperationException("--token requires a value.");
-                continue;
-            }
-            remaining.Add(argument);
-        }
-        return (tokenList, remaining.ToArray());
-    }
-
     private static string TryNormalizePath(string value)
     {
         try { return Path.GetFullPath(value).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar); }
@@ -329,8 +287,6 @@ internal static partial class CliApplication
     private const string HelpText = """
 Yuze Eval Tool Broker CLI
 
-  unity --token <token[/token...]> [command]
-                                Persist one or more Unity project tokens before continuing.
   unity                         Auto-select Unity for the current directory and enter its console.
   unity list                    List registered Unity instances and states.
   unity status                  Alias for list.
@@ -338,11 +294,11 @@ Yuze Eval Tool Broker CLI
   unity connect <instance> -- <command...>
                                 Execute one Unity-side CLI command.
   unity <command...>            Auto-select by current directory and execute once.
-  unity doctor                  Diagnose executable, optional auth file, port and Broker health.
+  unity doctor                  Diagnose executable, port and Broker health.
   unity service <action>        install|uninstall|start|stop|restart|status.
   unity remote                 Show remote configuration commands.
   unity remote list            Validate and list configured peers without printing credentials.
-  unity workspace              Configure opt-in remote projects and per-capability grants.
+  unity workspace              Register remote project folders and configure the optional desktop driver.
   unity desktop worker         Run the desktop driver bridge in the graphical user session.
   unity broker                  Run the foreground Broker host on 127.0.0.1:2347.
     --config <file> --local-port <port>

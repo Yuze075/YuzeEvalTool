@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.WebSockets;
 using System.Text.Json;
 
@@ -5,7 +6,7 @@ namespace YuzeToolkit.Eval.Broker;
 
 internal static class UnityWebSocketEndpoint
 {
-    public static async Task HandleAsync(HttpContext context, BrokerRegistry registry, AuthTokenStore tokens)
+    public static async Task HandleAsync(HttpContext context, BrokerRegistry registry)
     {
         if (!context.WebSockets.IsWebSocketRequest)
         {
@@ -34,15 +35,17 @@ internal static class UnityWebSocketEndpoint
                 string.IsNullOrWhiteSpace(envelope.Id))
                 throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest,
                     "The first Unity message must be a unity/register request with an id.");
+            if (envelope.Payload.TryGetProperty("authorizationRequired", out var legacyAuthorization) && legacyAuthorization.GetBoolean())
+                throw new BrokerOperationException("UnityUpgradeRequired",
+                    "Upgrade the Unity package to 4.0.0 or later. Project-token authorization has been removed; authorization belongs to the MCP connection.");
             var registration = envelope.Payload.Deserialize(BrokerJsonContext.Default.UnityRegistration)
                                ?? throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest,
                                    "Unity registration payload is empty.");
-            var storedTokens = tokens.GetTokens();
             authenticationSlot.Dispose();
             connection = registry.Register(socket, registration);
             var responsePayload = JsonSerializer.SerializeToElement(
                 new UnityRegistrationResponse(registration.InstanceId, BrokerConstants.ProtocolVersion,
-                    BrokerHost.InstanceId, storedTokens), BrokerJsonContext.Default.UnityRegistrationResponse);
+                    BrokerHost.InstanceId), BrokerJsonContext.Default.UnityRegistrationResponse);
             await WebSocketJson.SendAsync(socket,
                 WebSocketJson.CreateEnvelope("response", envelope.Method, envelope.Id, responsePayload), sendGate,
                 context.RequestAborted);

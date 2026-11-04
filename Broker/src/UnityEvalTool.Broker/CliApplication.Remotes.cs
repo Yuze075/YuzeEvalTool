@@ -30,7 +30,7 @@ Remote MCP configuration (changes take effect after `unity service restart`):
 
 The network listener exports directly registered local Unity instances only.
 No credential-ref means anonymous outbound access. The peer must allow it.
-The existing Unity project token store is separate from these service credentials.
+Both network MCP endpoints share these connection credentials; access includes every registered project and available host capability.
 For additional host/origin allowances and timing settings, edit config.json.
 Use --config <file> with any remote command to manage an isolated configuration.
 """);

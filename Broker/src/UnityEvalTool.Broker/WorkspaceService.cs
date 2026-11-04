@@ -13,9 +13,8 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
     private readonly WorkspaceDesktop _desktop = new(config.Workspace, registry);
     private bool DesktopInstalled => config.Workspace.DesktopDriverPath is { } path && File.Exists(path);
 
-    public string[] ExportCredentials(string authorization) => config.Credentials.Where(pair => WorkspaceDefinition.Matches(pair.Value, authorization)).Select(pair => pair.Key).ToArray();
     private bool DesktopAvailable(WorkspaceSession session) => session.Exporting
-        ? DesktopInstalled && config.Projects.Any(project => project.DesktopCredentialRef != null && session.ExportCredentialReferences.Contains(project.DesktopCredentialRef))
+        ? DesktopInstalled
         : session.Peers.Values.Any(peer => peer.State == "online" && peer.DesktopToolsAvailable);
 
     public async Task<JsonArray> ListToolsAsync(WorkspaceSession session, CancellationToken token)
@@ -30,10 +29,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         finally { session.Gate.Release(); }
     }
 
-    public bool Accepts(string authorization) => config.Projects.Any(project =>
-        project.CredentialReferences.Any(reference => reference != null && WorkspaceDefinition.Matches(config.GetCredential(reference)!, authorization)));
-
-    public async Task<JsonObject> CallAsync(WorkspaceSession session, string name, JsonObject args, string authorization, CancellationToken cancellationToken)
+    public async Task<JsonObject> CallAsync(WorkspaceSession session, string name, JsonObject args, CancellationToken cancellationToken)
     {
         if (name == "workspace_events")
         {
@@ -54,11 +50,31 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         try
         {
             if (session.Closed) throw WorkspaceFiles.Error("ContextHandleInvalid", "This MCP session was closed. Initialize again.");
-            if (name == "workspace_list") return await ListAsync(session, authorization, cancellationToken);
-            if (name == "workspace_connect") return await ConnectAsync(session, args, authorization, cancellationToken);
+            if (name == "workspace_list") return await ListAsync(session, cancellationToken);
+            if (name == "workspace_connect") return await ConnectAsync(session, args, cancellationToken);
             if (name == "workspace_status" && !args.ContainsKey("contextHandle")) return WorkspaceTools.Result(HostSnapshot(session));
+            if (name is "desktop_observe" or "desktop_act")
+            {
+                if (args.ContainsKey("hostId") && (session.Exporting || args.ContainsKey("contextHandle")))
+                    throw WorkspaceFiles.Error("InvalidDesktopTarget", "Use either a remote hostId or a workspace context. Network exports cannot forward a hostId.");
+                if (!args.ContainsKey("contextHandle"))
+                {
+                    if (!session.Exporting)
+                    {
+                        var peer = await PeerAsync(session, Required(args, "hostId"), cancellationToken);
+                        if (peer.State != "online") throw WorkspaceFiles.Error("RemoteUnavailable", "The remote desktop host is offline. No request was sent.");
+                        if (!peer.DesktopToolsAvailable) throw WorkspaceFiles.Error("ToolUnavailable", "The remote host has no installed, configured Cua Driver.");
+                        var forwarded = (JsonObject)args.DeepClone(); forwarded.Remove("hostId");
+                        return await InvokeAsync(session, peer, name, forwarded, cancellationToken);
+                    }
+                    if (!DesktopInstalled) throw WorkspaceFiles.Error("ToolUnavailable", "This host has no installed, configured Cua Driver.");
+                    return name == "desktop_observe"
+                        ? await _desktop.ObserveAsync(session.Id, null, args, cancellationToken)
+                        : await _desktop.ActAsync(session.Id, null, args, cancellationToken);
+                }
+            }
             if (name is "desktop_observe" or "desktop_act" && !DesktopAvailable(session))
-                throw WorkspaceFiles.Error("ToolUnavailable", "Desktop tools are not available. The remote host must have an installed, configured Cua Driver and an authorized workspace; discover or connect that host first.");
+                throw WorkspaceFiles.Error("ToolUnavailable", "Desktop tools are not available. The remote host must have an installed, configured Cua Driver; discover or connect that host first.");
             var context = session.RequireContext(Required(args, "contextHandle"));
             if (context.Peer != null)
             {
@@ -89,16 +105,11 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
                 }
                 return result;
             }
-            var definition = context.Definition!;
             var files = context.Files!;
-            var capability = name.StartsWith("terminal_", StringComparison.Ordinal) ? "terminal" :
-                name.StartsWith("desktop_", StringComparison.Ordinal) ? "desktop" : name == "file_apply_patch" ? "filesWrite" : "filesRead";
-            if (name is not ("workspace_status" or "workspace_disconnect") && !definition.Allows(capability, authorization, config))
-                throw WorkspaceFiles.Error("CapabilityDenied", "This workspace credential does not grant " + capability + ".");
             JsonNode data;
             switch (name)
             {
-                case "workspace_status": data = Describe(context, authorization); break;
+                case "workspace_status": data = Describe(context); break;
                 case "workspace_disconnect":
                     context.Dispose(); session.Contexts.TryRemove(context.Handle, out _);
                     session.Publish("workspace.closed", new JsonObject { ["workspaceId"] = context.WorkspaceId });
@@ -138,24 +149,19 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         { ["hostId"] = p.Id, ["state"] = p.State, ["error"] = p.Error, ["lastSeenAtUtc"] = p.LastSeenAtUtc?.ToString("O") }).ToArray())
     };
 
-    private async Task<JsonObject> ListAsync(WorkspaceSession session, string authorization, CancellationToken token)
+    private async Task<JsonObject> ListAsync(WorkspaceSession session, CancellationToken token)
     {
         var result = HostSnapshot(session);
         var projects = new JsonArray(); var errors = new JsonArray();
         if (session.Exporting)
         {
-            foreach (var project in config.Projects.Where(p => p.CredentialReferences.Any(r => r != null && WorkspaceDefinition.Matches(config.GetCredential(r)!, authorization))))
-                projects.Add((JsonNode)DescribeProject(project, authorization));
+            foreach (var project in config.Projects)
+                projects.Add((JsonNode)DescribeProject(project));
         }
         else
         {
             foreach (var remote in config.Remotes.Where(p => p.Enabled))
             {
-                if (remote.WorkspaceCredentialRef == null)
-                {
-                    errors.Add((JsonNode)new JsonObject { ["hostId"] = remote.Id, ["error"] = "WorkspaceNotConfigured", ["message"] = "Configure a separate workspaceCredentialRef and explicit grants on the peer." });
-                    continue;
-                }
                 try
                 {
                     var peer = await PeerAsync(session, remote.Id, token);
@@ -178,7 +184,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         return WorkspaceTools.Result(result);
     }
 
-    private async Task<JsonObject> ConnectAsync(WorkspaceSession session, JsonObject args, string authorization, CancellationToken token)
+    private async Task<JsonObject> ConnectAsync(WorkspaceSession session, JsonObject args, CancellationToken token)
     {
         if (session.Contexts.Count >= config.Workspace.MaxContextsPerSession) throw WorkspaceFiles.Error("ContextLimitReached", "Close an existing context first.");
         var id = Required(args, "workspaceId");
@@ -189,11 +195,9 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
             if (args.ContainsKey("hostId")) throw WorkspaceFiles.Error("RecursiveRouteRejected", "Network workspaces export local projects only; hostId is not accepted.");
             var project = config.Projects.SingleOrDefault(p => p.Id == id)
                 ?? throw WorkspaceFiles.Error("WorkspaceNotFound", "This workspace is not explicitly shared.");
-            if (!project.CredentialReferences.Any(r => r != null && WorkspaceDefinition.Matches(config.GetCredential(r)!, authorization)))
-                throw WorkspaceFiles.Error("CapabilityDenied", "This credential does not grant this workspace.");
             var files = new WorkspaceFiles(project, config.Workspace);
             context = new WorkspaceContext(id, files.DirectoryPath(Text(args, "cwd", "."))) { Files = files, Definition = project };
-            snapshot = Describe(context, authorization);
+            snapshot = Describe(context);
             snapshot["guidance"] = files.Guidance(context.Cwd);
             snapshot["skills"] = files.Skills();
         }
@@ -214,9 +218,9 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         return WorkspaceTools.Result(snapshot);
     }
 
-    private JsonObject Describe(WorkspaceContext context, string authorization)
+    private JsonObject Describe(WorkspaceContext context)
     {
-        var snapshot = DescribeProject(context.Definition!, authorization);
+        var snapshot = DescribeProject(context.Definition!);
         snapshot["contextHandle"] = context.Handle;
         snapshot["brokerId"] = config.BrokerId; snapshot["brokerInstanceId"] = BrokerHost.InstanceId;
         snapshot["view"] = "local"; snapshot["cwd"] = context.Cwd;
@@ -227,34 +231,33 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         return snapshot;
     }
 
-    private JsonObject DescribeProject(WorkspaceDefinition project, string authorization)
+    private JsonObject DescribeProject(WorkspaceDefinition project)
     {
         var instances = registry.GetSnapshot().UnityInstances.Where(unity => unity.Source.Kind == "local" && unity.IsConnected &&
             WorkspaceFiles.SamePath(unity.ProjectPath, project.RootPath)).ToArray();
-        var canEval = instances.Any(unity => BrokerStatePolicy.CanExecute(unity.Status) && BrokerStatePolicy.IsAuthorized(unity));
+        var canEval = instances.Any(unity => BrokerStatePolicy.CanExecute(unity.Status));
         return new JsonObject
         {
             ["workspaceId"] = project.Id, ["name"] = project.Name, ["displayName"] = "[Local] " + project.Name,
             ["rootPath"] = project.RootPath, ["registeredBy"] = project.RegisteredBy, ["source"] = "local",
             ["directoryExists"] = Directory.Exists(project.RootPath),
             ["kind"] = instances.Length == 0 ? "workspace" : "unity",
-            ["unityState"] = instances.Length == 0 ? "disconnected" : canEval ? "ready" : instances.Any(BrokerStatePolicy.IsAuthorized) ? "busy" : "authorizationRequired",
-            ["desktopAvailable"] = DesktopInstalled && project.Allows("desktop", authorization, config),
+            ["unityState"] = instances.Length == 0 ? "disconnected" : canEval ? "ready" : "busy",
+            ["desktopAvailable"] = DesktopInstalled,
             ["capabilities"] = new JsonObject
             {
-                ["filesRead"] = project.Allows("filesRead", authorization, config), ["filesWrite"] = project.Allows("filesWrite", authorization, config),
-                ["terminal"] = project.Allows("terminal", authorization, config), ["pty"] = true,
+                ["filesRead"] = true, ["filesWrite"] = true,
+                ["terminal"] = true, ["pty"] = true,
                 ["unityConnected"] = instances.Length != 0, ["unityCanEval"] = canEval,
-                ["desktopAuthorized"] = project.Allows("desktop", authorization, config), ["desktopDriverConfigured"] = config.Workspace.DesktopDriverPath != null,
-                ["desktopDriverInstalled"] = DesktopInstalled, ["desktopAvailable"] = DesktopInstalled && project.Allows("desktop", authorization, config),
+                ["desktopDriverConfigured"] = config.Workspace.DesktopDriverPath != null,
+                ["desktopDriverInstalled"] = DesktopInstalled, ["desktopAvailable"] = DesktopInstalled,
                 ["desktopExecutionMode"] = "background-default-foreground-explicit",
                 ["shells"] = new JsonArray(OperatingSystem.IsWindows() ? "powershell.exe" : Environment.GetEnvironmentVariable("SHELL") ?? "/bin/sh")
             },
             ["unityInstances"] = new JsonArray(instances.Select(unity => (JsonNode)new JsonObject
             {
                 ["instanceId"] = unity.InstanceId, ["processId"] = unity.ProcessId, ["projectPath"] = unity.ProjectPath,
-                ["phase"] = unity.Status.Phase, ["canEval"] = BrokerStatePolicy.CanExecute(unity.Status) && BrokerStatePolicy.IsAuthorized(unity),
-                ["authorizationRequired"] = unity.AuthorizationRequired, ["authorizationState"] = unity.AuthorizationState
+                ["phase"] = unity.Status.Phase, ["canEval"] = BrokerStatePolicy.CanExecute(unity.Status)
             }).ToArray())
         };
     }
@@ -280,8 +283,8 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
         if (session.Peers.TryGetValue(hostId, out var existing) && existing.State == "online") return existing;
         // Listing is observational: it must not dispose a peer session and kill its tasks.
         if (existing != null && !reconnect && session.Contexts.Values.Any(context => context.Peer == existing)) return existing;
-        var remote = config.Remotes.SingleOrDefault(p => p.Id == hostId && p.Enabled && p.WorkspaceCredentialRef != null)
-            ?? throw WorkspaceFiles.Error("WorkspaceNotConfigured", "Select a configured remote with workspaceCredentialRef.");
+        var remote = config.Remotes.SingleOrDefault(p => p.Id == hostId && p.Enabled)
+            ?? throw WorkspaceFiles.Error("WorkspaceNotConfigured", "Select an enabled remote MCP host.");
         if (existing != null)
         {
             existing.InstanceId = null;
@@ -297,7 +300,7 @@ internal sealed class WorkspaceService(BrokerConfiguration config, BrokerRegistr
             Name = hostId, TransportMode = HttpTransportMode.StreamableHttp,
             EnableStandaloneGetStream = false, MaxReconnectionAttempts = 0,
             ConnectionTimeout = TimeSpan.FromSeconds(config.ConnectionTimeoutSeconds),
-            AdditionalHeaders = new Dictionary<string, string> { ["Authorization"] = "Bearer " + config.GetCredential(remote.WorkspaceCredentialRef) }
+            AdditionalHeaders = remote.CredentialRef == null ? null : new Dictionary<string, string> { ["Authorization"] = "Bearer " + config.GetCredential(remote.CredentialRef) }
         }, http, ownsHttpClient: false);
         McpClient? created = null;
         try

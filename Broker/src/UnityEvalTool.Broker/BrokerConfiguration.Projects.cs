@@ -32,13 +32,10 @@ internal sealed partial class BrokerConfiguration
             var project = FindProject(latest.Projects, root, id);
             if (project == null)
             {
-                var grants = id == null ? Workspace.AutoRegistrationGrants : new WorkspaceGrants();
                 project = new WorkspaceDefinition
                 {
                     Id = id ?? "project-" + Guid.NewGuid().ToString("N"), RootPath = root,
-                    DisplayName = displayName, RegisteredBy = id == null ? "unity" : "manual",
-                    FilesReadCredentialRef = grants.FilesReadCredentialRef, FilesWriteCredentialRef = grants.FilesWriteCredentialRef,
-                    TerminalCredentialRef = grants.TerminalCredentialRef, DesktopCredentialRef = grants.DesktopCredentialRef
+                    DisplayName = displayName, RegisteredBy = id == null ? "unity" : "manual"
                 };
                 var document = ReadDocument(FilePath);
                 var workspace = document["workspace"] as JsonObject;
@@ -48,8 +45,6 @@ internal sealed partial class BrokerConfiguration
                 projects.Add(JsonSerializer.SerializeToNode(project, BrokerJsonContext.Default.WorkspaceDefinition));
                 WriteDocument(FilePath, document, validateConfig: true);
             }
-            // Credentials changed through the CLI still require a Broker restart before use.
-            foreach (var reference in project.CredentialReferences) ValidateCredential(reference);
             Volatile.Write(ref _projects, Projects.Append(project).ToArray());
             return project;
         }

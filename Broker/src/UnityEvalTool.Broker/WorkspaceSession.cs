@@ -17,7 +17,6 @@ internal sealed class WorkspaceSession(bool exporting, string authorizationHash,
     public string Id { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
     public bool Exporting { get; } = exporting;
     public string AuthorizationHash { get; } = authorizationHash;
-    public IReadOnlyList<string> ExportCredentialReferences { get; init; } = [];
     public DateTimeOffset ExpiresAtUtc
     {
         get => new(Interlocked.Read(ref _expiresAtTicks), TimeSpan.Zero);

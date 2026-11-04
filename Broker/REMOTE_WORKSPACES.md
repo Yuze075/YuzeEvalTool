@@ -2,8 +2,9 @@
 
 **English** | [简体中文](REMOTE_WORKSPACES_zh.md) | [User guide](../README.md)
 
-Available in npm 3.2.0 and later. Workspace exports and credentials are opt-in; upgrading
-an existing installation does not grant file, terminal or desktop access.
+4.0.0 uses one MCP connection authorization policy. After network authentication, a caller can use
+every registered project, files, terminals and installed desktop capabilities. Network listening is
+still opt-in. There are no per-project grants or separate workspace credentials.
 
 ## Two MCP views
 
@@ -11,8 +12,8 @@ an existing installation does not grant file, terminal or desktop access.
 |---|---|
 | Local `/mcp` | Existing `unity_status`, `unity_connect`, `eval`; local and federated Unity instances |
 | Local `/remote/mcp` | 15 workspace tools plus 2 optional desktop tools; configured remote hosts only |
-| Network `/mcp` | Existing local Unity export and its existing authorization |
-| Network `/remote/mcp` | Explicitly shared local workspace roots and capability credentials; no onward routing |
+| Network `/mcp` | Local Unity export with host connection authorization |
+| Network `/remote/mcp` | All registered local folders with the same connection authorization; no onward routing |
 | Local `/remote/status` | Browser connection monitor; never exposed by the network listener |
 
 The listener selects the boundary. A header or a caller-supplied flag cannot make the local
@@ -34,10 +35,9 @@ unity workspace add website /absolute/path/to/website "Website"
 ```
 
 Canonical aliases (including intermediate symlinks and Windows path casing) reuse the existing
-ID, name and grants. An ID cannot point to another directory. Parent and child folders remain
+ID and name. An ID cannot point to another directory. Parent and child folders remain
 separate projects. Existing configuration with duplicate canonical roots is rejected explicitly;
-choose one definition instead of silently merging IDs or permissions. Existing 3.2 configuration
-needs no migration; a missing display name uses the directory name.
+choose one definition instead of silently merging IDs. A missing display name uses the directory name. See the 4.0 migration notes below.
 
 Each local Unity `/unity` registration persists its reported root in the same `workspace.projects`
 list, or attaches to the already registered folder. The generated ID survives disconnects, process
@@ -47,30 +47,17 @@ absent still retains the Unity connection and project record with `directoryExis
 a file workspace reports the unavailable directory. `workspace remove` removes configuration, not
 files; a subsequent local Unity connection can automatically register that directory again.
 
-Manual and automatic registrations have no grants by default. Configure an explicit policy for
-future first-time automatic registrations:
-
-```text
-unity workspace defaults files-read workspace-key
-unity workspace defaults files-write workspace-key
-unity workspace defaults terminal workspace-key
-unity workspace defaults desktop off
-unity service restart
-```
-
-The policy is `workspace.autoRegistrationGrants`, using the same four `*CredentialRef` fields as
-projects. It is copied only when creating a project and never rewrites existing grants. CLI changes
-still require a Broker restart. Runtime Unity registration becomes visible immediately; it uses the
-same config-file lock as the CLI and preserves other fields. Lock contention or persistence failures
-reject registration explicitly.
+Manual and automatic registrations are immediately available to authenticated MCP connections.
+CLI changes require a Broker restart. Runtime Unity registration becomes visible immediately; it uses
+the same config-file lock as the CLI and preserves unrelated fields. Persistence failures are explicit.
 
 List, connect and status use the same project metadata: stable `workspaceId`, `name`, source-prefixed
 `displayName`, first registration source `registeredBy` (`manual` / `unity`), and `directoryExists`.
 `kind` is `unity` while a matching local instance is connected and `workspace` otherwise.
-`unityState` is `disconnected`, `ready`, `busy` or `authorizationRequired`;
+`unityState` is `disconnected`, `ready` or `busy`;
 `capabilities.unityConnected` and `unityCanEval` follow the existing Unity execution policy, including
 compilation repair mode. `unityInstances` contains only connected instances with exact ID, PID,
-phase and authorization state. Multiple instances require explicit selection.
+phase and execution state. Multiple instances require explicit selection.
 
 Unity disconnects do not close workspace handles or terminal tasks. Read status again to observe
 capability changes. Aggregated Unity IDs use `remote:host:instance`, with the original in
@@ -82,40 +69,26 @@ remains available.
 
 ## Configure one remote
 
-Keep the existing host/IP/port and Unity credential configuration. Use another credential
-reference for workspace capabilities. On both machines, provision the same workspace secret
-through stdin using `unity remote credential workspace-key`; never put a secret in argv.
-`peer-auth.json` is local user configuration, not a repository file.
-
-On the exporting machine, with an existing network listener:
+Use the same host/IP/port and connection credential configured by `unity remote`. Provision its secret
+through stdin with `unity remote credential office-key`, then configure the exporting host:
 
 ```text
+unity remote access token 10.100.0.100 2348 office-key
 unity workspace add reliclight-main /absolute/path/to/RelicLight
-unity workspace grant reliclight-main files-read workspace-key
-unity workspace grant reliclight-main files-write workspace-key
-unity workspace grant reliclight-main terminal workspace-key
 unity service restart
 ```
 
-Use the target machine's actual absolute path, including a Windows drive when applicable.
-New roots have **no grants**. Only grant the capabilities required. `desktop` is an additional
-grant and requires the worker described below. `off` revokes an individual grant. These
-changes apply after restarting the Broker; driver configuration also needs a worker restart.
-
-On the calling machine:
+On the calling host, configure that peer once:
 
 ```text
-unity workspace peer mac_studio workspace-key
+unity remote add mac_studio 10.100.0.100 2348 office-key
 unity service restart
-unity workspace list
 ```
 
-`mac_studio` must already exist in `remotes`, for example at `10.100.0.100:2348`.
-`workspace peer` stores `workspaceCredentialRef` on that entry; it does not duplicate host
-configuration or change its Unity `credentialRef`. A single credential can receive several
-capability grants. Sharing a Unity token never implicitly grants terminal, files or desktop.
-The workspace network endpoint requires a matching capability credential even if Unity's
-network `authMode` is `none`.
+The same `remotes[].credentialRef` is used by `/mcp` and `/remote/mcp`. No `workspace peer`,
+`workspace grant` or `workspace defaults` command exists. Inbound `authMode: none` explicitly allows
+anonymous access to both endpoints and all their capabilities. Files remain scoped to registered roots;
+terminal execution runs as the Broker user. Desktop access can target a host without any registered folder.
 
 Use existing SSH Host entries/SSH Agent for installation and recovery. No SSH private keys
 are copied, stored in Broker configuration or forwarded between hosts. Once connected,
@@ -196,8 +169,8 @@ Catalogs are read afresh on connect/read; reconnect or read guidance again after
 
 Text pages use UTF-16 character offsets. `complete`, `nextOffset` and `totalCharacters` make
 partial returns explicit; use `file_read` on a returned guidance path to fetch remaining pages.
-Full knowledge/file reads require `files-read`; the initial connection's attributed guidance
-and Skill summaries are part of workspace metadata. MCP results do not install client-native
+Knowledge and file reads use the same MCP connection authorization; the initial connection's
+attributed guidance and Skill summaries are part of workspace metadata. MCP results do not install client-native
 Skills or remove the client's own local Skills. Images are currently returned at source size
 within the configured file budget; image crop/resize is not provided by `file_view_image`.
 
@@ -234,8 +207,12 @@ no notification is promised while the page is closed or its browser suspends it.
 
 ## Desktop worker
 
-Cua is optional. Without an installed, explicitly configured driver and a desktop-authorized
-workspace, the network catalog omits `desktop_observe` and `desktop_act`. The local gateway
+Desktop authority is host-level. Call `desktop_observe` with `hostId` and an exact `processId`;
+no folder registration or project context is needed. `desktop_act` uses the same host and returned
+`observationId`. A project `contextHandle` remains an alternative when targeting its unique Unity
+process; never supply both hostId and contextHandle. Network exports omit hostId and cannot forward.
+
+Cua is optional. Without an installed, explicitly configured driver, the network catalog omits `desktop_observe` and `desktop_act`. The local gateway
 starts with 15 tools and adds those two only after discovering or connecting an online peer
 that exports desktop capability; it does not require Cua on the gateway itself. Driver removal
 or loss of the last capable peer hides them again. Catalog changes emit
@@ -249,7 +226,6 @@ No driver binary, global Skill pack, permission bypass or nested AI model is ins
 
 ```text
 unity workspace desktop-driver /absolute/path/to/cua-driver
-unity workspace grant reliclight-main desktop workspace-key
 unity service restart
 unity desktop worker
 ```
@@ -301,13 +277,24 @@ results are returned without trying foreground input. This first version support
 bounded gestures, not sustained movement keys, remote unlocking, audio/video streaming or
 deterministic gameplay. Do not infer game support from a successful ordinary desktop control.
 
+## Upgrading to 4.0
+
+This is an authorization contract change: existing connection credentials now authorize every registered
+folder and available host capability. Remove obsolete `workspaceCredentialRef`, project `*CredentialRef`,
+`workspace.autoRegistrationGrants`, `maxStoredTokens` and the old `auth.json`; they are no longer used.
+Unity no longer has a project-token settings page, verifier Asset, token forwarding or pending state.
+Remove `Assets/Resources/UnityEvalToolAuthorizationSettings.asset` from upgraded projects. An old Unity
+client that still requests project verification is rejected with `UnityUpgradeRequired`; update its UPM
+package. The Unity wire protocol remains 2.0 and project IDs are retained. OS permissions and the
+logged-in desktop worker remain necessary and are not granted by an MCP credential.
+
 ## Configuration reference
 
 `workspace` in `config.json` has the following defaults; values are validated at startup.
 
 | Property | Default | Purpose |
 |---|---:|---|
-| `projects` | `[]` | Explicit roots; each has ID, rootPath, capability credential refs and Skill directories |
+| `projects` | `[]` | Explicit roots; each has ID, rootPath, name, registration source and Skill directories |
 | `leaseSeconds` | 1800 | Inactive MCP session lifetime |
 | `maxSessions` / `maxContextsPerSession` | 64 / 16 | Session/context bounds |
 | `requestTimeoutSeconds` | 60 | Remote workspace operation deadline |
@@ -333,7 +320,12 @@ desktop action does not imply that the entire machine's Unity endpoint is unavai
 
 ## Validation boundary
 
-This revision has been exercised through two real HTTP Brokers, a real Windows exporting
+The 4.0 authorization change passed NativeAOT HTTP checks for a shared host credential on both
+endpoints, denied invalid credentials, anonymous access, files and terminals without grants,
+host desktop routing without a project, optional-driver discovery, Unity attach/detach and
+stable automatic registration. The live Unity package compiled with zero errors and warnings.
+
+Earlier workspace revisions were exercised through two real HTTP Brokers, a real Windows exporting
 process, macOS and Windows PTYs, and Codex 0.163.0 app-server tool discovery. The local Unity
 catalog remained three tools; optional-driver checks verified 15 base tools, 17 with desktop
 capability, and live list-change notifications on installation/removal. Fault injection verified

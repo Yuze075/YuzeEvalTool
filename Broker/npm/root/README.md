@@ -24,7 +24,7 @@ because npm dependency lifecycle scripts may be disabled; check the command's ex
 Add the Unity-side package through Unity Package Manager:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v3.3.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
 ```
 
 Open the Unity project, wait for compilation, then run `unity list`. Seeing that Editor is
@@ -52,19 +52,13 @@ Connect a Streamable HTTP MCP client to:
 http://127.0.0.1:2347/mcp
 ```
 
-Unity projects do not require token verification by default, so MCP clients normally need
-only the endpoint URL. When a Unity project has enabled verification in Project Settings,
-provision its token once by sending:
+From 4.0.0, authorization belongs to the MCP connection. The local loopback endpoint is trusted;
+the network `/mcp` and `/remote/mcp` endpoints share `remoteAccess` and the same single Bearer
+credential on every request. An authorized connection can use every registered project, file
+read/write, terminals and available desktop controls. There are no Unity project tokens or
+per-project capability grants. Cua remains optional and the operating system must allow its
+Accessibility / Screen Recording permissions; MCP authorization cannot grant those system permissions.
 
-```text
-Authorization: Bearer <token[/another-token...]>
-```
-
-The Broker stores supplied values in `~/.unityevaltool/auth.json`; later calls may omit the
-header. The CLI equivalent is `unity --token <token> ...`, and `auth.json` may also be edited
-directly. Its default capacity is five tokens; set `maxStoredTokens` in
-`~/.unityevaltool/config.json` to change it, up to 32. The Broker only forwards candidates;
-each Unity verifies its own token and stays discoverable but non-executable while pending.
 The MCP workflow is always
 `unity_status` → `unity_connect` → `eval`; discovery and explicit selection are mandatory.
 See the [user guide](https://github.com/Yuze075/YuzeEvalTool#readme) and
@@ -88,8 +82,7 @@ unity list
 
 Store a service secret from stdin with `unity remote credential <name> < secret.txt`,
 then add the credential name after the port in `remote add`. The peer uses
-`remote access token <IP> <port> <name>`. Service credentials are separate from Unity
-project tokens. Network export is disabled by default and exposes local-only `/mcp`.
+`remote access token <IP> <port> <name>`. The same connection credential authorizes `/mcp` and `/remote/mcp`. Network export is disabled by default and exports only local capabilities.
 Changes take effect after restart. Remote execution uses the existing three MCP tools;
 interactive remote CLI execution is not supported yet. See the
 [remote-project guide](https://github.com/Yuze075/YuzeEvalTool#remote-unity-projects)
@@ -129,6 +122,6 @@ If the first command fails, resolve the reported service error before continuing
 
 In 3.3.0, `unity workspace add <id> <absolute-directory> [name]` registers an ordinary folder for
 remote access from other hosts. Local Unity connections register their roots automatically;
-disconnects preserve project IDs and file/terminal capabilities. Configure future automatic grants
-with `unity workspace defaults <capability> <credential-ref|off>`; no grants are enabled by default.
+disconnects preserve project IDs and file/terminal capabilities. From 4.0.0, every authenticated
+MCP connection can access every registered folder without extra grants.
 See the [remote workspace guide](https://github.com/Yuze075/YuzeEvalTool/blob/main/Broker/REMOTE_WORKSPACES.md).

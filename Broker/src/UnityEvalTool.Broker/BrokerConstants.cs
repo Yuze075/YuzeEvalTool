@@ -20,7 +20,6 @@ internal static class BrokerConstants
 internal static class BrokerErrorCodes
 {
     public const string AuthenticationFailed = nameof(AuthenticationFailed);
-    public const string UnityAuthorizationPending = nameof(UnityAuthorizationPending);
     public const string ProtocolMismatch = nameof(ProtocolMismatch);
     public const string InvalidRequest = nameof(InvalidRequest);
     public const string DiscoveryRequired = nameof(DiscoveryRequired);

@@ -6,7 +6,7 @@ namespace YuzeToolkit.Eval.Broker;
 
 internal static class CliWebSocketEndpoint
 {
-    public static async Task HandleAsync(HttpContext context, BrokerRegistry registry, AuthTokenStore tokens)
+    public static async Task HandleAsync(HttpContext context, BrokerRegistry registry)
     {
         if (!context.WebSockets.IsWebSocketRequest)
         {
@@ -46,23 +46,6 @@ internal static class CliWebSocketEndpoint
                         if (!string.Equals(envelope.Method, "cli/hello", StringComparison.Ordinal))
                             throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest,
                                 "The first CLI request must be cli/hello.");
-                        var tokenList = envelope.Payload.TryGetProperty("token", out var tokenElement)
-                            ? tokenElement.GetString()
-                            : envelope.Payload.TryGetProperty("authToken", out var legacyTokenElement)
-                                ? legacyTokenElement.GetString()
-                                : null;
-                        try
-                        {
-                            if (!string.IsNullOrEmpty(tokenList))
-                            {
-                                tokens.AddTokenList(tokenList);
-                                await registry.BroadcastTokensAsync(tokens.GetTokens(), context.RequestAborted);
-                            }
-                        }
-                        catch (InvalidDataException ex)
-                        {
-                            throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest, ex.Message);
-                        }
                         initialized = true;
                         authenticationSlot.Dispose();
                         result = JsonDocument.Parse($"{{\"consoleId\":\"{consoleId}\",\"protocolVersion\":\"{BrokerConstants.ProtocolVersion}\"}}")

@@ -17,20 +17,17 @@ internal static partial class CliApplication
         if (args.Length == 0 || args[0] is "help" or "--help" or "-h")
         {
             Console.WriteLine("""
-Remote workspaces (opt-in; changes apply after Broker/desktop worker restart):
+Remote workspaces (MCP connection authorization; restart Broker/desktop worker after configuration changes):
   unity workspace list
   unity workspace add <workspace-id> <absolute-project-root> [display-name]
-  unity workspace defaults files-read|files-write|terminal|desktop <credential-ref|off>
   unity workspace remove <workspace-id>
-  unity workspace grant <workspace-id> files-read|files-write|terminal|desktop <credential-ref|off>
-  unity workspace peer <existing-remote-id> <workspace-credential-ref|off>
   unity workspace desktop-driver <absolute-executable-path|off>
   unity desktop worker [--config <file>]
 
 Create secrets with `unity remote credential <ref>` through stdin, never argv.
 Local Unity connections automatically register their project folders and retain them after disconnect.
-Manual registrations start with no grants. New automatic registrations copy autoRegistrationGrants, empty by default.
-Default changes affect future registrations only; existing Unity access does not grant workspace access.
+Every authenticated MCP connection can use all registered projects and available capabilities.
+Both network MCP endpoints use remoteAccess and each remote's credentialRef; there are no project grants.
 The local /remote/mcp view operates only on configured peers. /mcp retains its Unity-only catalog.
 The network /remote/mcp view exports explicitly configured local workspaces only.
 Use /remote/status on the local Broker to watch connections in a browser.
@@ -45,9 +42,8 @@ Use --config <file> for isolated configuration. Edit config.json for timing, bud
             var config = BrokerConfiguration.Load(path, false);
             Console.WriteLine("Configuration: " + path);
             foreach (var project in config.Projects)
-                Console.WriteLine(project.Id + "  " + project.Name + "  " + project.RootPath + "  grants=" + string.Join(",", new[]
-                { project.FilesReadCredentialRef == null ? null : "files-read", project.FilesWriteCredentialRef == null ? null : "files-write", project.TerminalCredentialRef == null ? null : "terminal", project.DesktopCredentialRef == null ? null : "desktop" }.Where(value => value != null)));
-            foreach (var peer in config.Remotes) Console.WriteLine("Peer " + peer.Id + ": " + (peer.WorkspaceCredentialRef == null ? "workspace disabled" : "workspace credential configured"));
+                Console.WriteLine(project.Id + "  " + project.Name + "  " + project.RootPath);
+            foreach (var peer in config.Remotes) Console.WriteLine("Peer " + peer.Id + ": " + (peer.Enabled ? "enabled; MCP connection authorization" : "disabled"));
             return 0;
         }
         if (args[0] == "add")
@@ -70,20 +66,6 @@ Use --config <file> for isolated configuration. Edit config.json for timing, bud
             case "remove":
                 if (args.Length != 2) throw new InvalidOperationException("Usage: unity workspace remove <id>");
                 projects.Remove(FindWorkspace(projects, args[1])); break;
-            case "defaults":
-                if (args.Length != 3) throw new InvalidOperationException("Usage: unity workspace defaults files-read|files-write|terminal|desktop <ref|off>");
-                var defaults = workspace["autoRegistrationGrants"] as JsonObject;
-                if (defaults == null) { defaults = new JsonObject(); workspace["autoRegistrationGrants"] = defaults; }
-                defaults[GrantProperty(args[1])] = args[2] == "off" ? null : args[2]; break;
-            case "grant":
-                if (args.Length != 4) throw new InvalidOperationException("Usage: unity workspace grant <id> files-read|files-write|terminal|desktop <ref|off>");
-                var property = GrantProperty(args[2]);
-                FindWorkspace(projects, args[1])[property] = args[3] == "off" ? null : args[3]; break;
-            case "peer":
-                if (args.Length != 3) throw new InvalidOperationException("Usage: unity workspace peer <existing-remote-id> <ref|off>");
-                var remote = root["remotes"]?.AsArray().OfType<JsonObject>().SingleOrDefault(peer => peer["id"]?.GetValue<string>() == args[1])
-                    ?? throw new InvalidDataException("Configure the host once with `unity remote add` before granting workspace access.");
-                remote["workspaceCredentialRef"] = args[2] == "off" ? null : args[2]; break;
             case "desktop-driver":
                 if (args.Length != 2) throw new InvalidOperationException("Usage: unity workspace desktop-driver <absolute-executable-path|off>");
                 if (args[1] != "off" && (!Path.IsPathFullyQualified(args[1]) || !File.Exists(args[1]))) throw new InvalidDataException("The desktop driver executable does not exist at the absolute path.");
@@ -94,13 +76,6 @@ Use --config <file> for isolated configuration. Edit config.json for timing, bud
         Console.WriteLine("Saved. Restart the Broker and, when applicable, its desktop worker to apply.");
         return 0;
     }
-
-    private static string GrantProperty(string capability) => capability switch
-    {
-        "files-read" => "filesReadCredentialRef", "files-write" => "filesWriteCredentialRef",
-        "terminal" => "terminalCredentialRef", "desktop" => "desktopCredentialRef",
-        _ => throw new InvalidDataException("Unknown workspace capability.")
-    };
 
     private static JsonObject FindWorkspace(JsonArray projects, string id) => projects.OfType<JsonObject>().SingleOrDefault(project => project["id"]?.GetValue<string>() == id)
         ?? throw new InvalidDataException("Workspace id was not found.");

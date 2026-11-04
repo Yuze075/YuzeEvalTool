@@ -79,35 +79,6 @@ internal sealed partial class BrokerRegistry
         }
     }
 
-    public async Task BroadcastTokensAsync(IReadOnlyList<string> tokens, CancellationToken cancellationToken)
-    {
-        UnityConnection[] pending;
-        lock (_syncRoot)
-        {
-            pending = _instances.Values
-                .Select(entry => entry.Connection)
-                .Where(connection => connection is { IsConnected: true, AuthorizationRequired: true, IsAuthorized: false })
-                .Cast<UnityConnection>()
-                .ToArray();
-        }
-
-        foreach (var connection in pending)
-        {
-            try
-            {
-                await connection.SendTokensAsync(tokens, cancellationToken);
-            }
-            catch (WebSocketException)
-            {
-                // The persisted tokens will be sent again when this Unity reconnects.
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-        }
-    }
-
     public RegistrySnapshot GetSnapshot(string? connectionHandle = null, string? instanceId = null)
     {
         lock (_syncRoot)

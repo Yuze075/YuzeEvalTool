@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -131,7 +132,7 @@ public sealed class UnityConnectionConcurrencyTests
     {
         var status = new UnityStatus("Ready", true, string.Empty, 1, StartedAt, false, false, false,
             string.Empty, 0, 0, null, null, 1);
-        var registration = new UnityRegistration("token", "instance", 1, 42, StartedAt, "Project", "/Project",
+        var registration = new UnityRegistration("instance", 1, 42, StartedAt, "Project", "/Project",
             "2022.3", "2.0.1", "Editor", status);
         return new UnityConnection(socket, registration, (_, _) => { }, _ => { });
     }

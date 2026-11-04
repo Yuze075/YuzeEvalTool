@@ -10,9 +10,9 @@ AI MCP clients ──HTTP /mcp──┐
 native unity CLI ──WS /cli──┘                                      └────────── Unity B
 ```
 
-The Broker owns discovery, status snapshots, event-driven waits, selection leases, local
-candidate-token storage, MCP protocol handling, CLI consoles, and request routing. Unity owns
-authorization, main-thread truth, compilation/reload observation, PuerTS VMs, helper tool
+The Broker owns discovery, status snapshots, event-driven waits, selection leases,
+MCP connection authorization, protocol handling, CLI consoles, and request routing. Unity owns
+main-thread truth, compilation/reload observation, PuerTS VMs, helper tool
 registration, and CLI command parsing.
 
 ## Source ownership
@@ -21,8 +21,8 @@ registration, and CLI command parsing.
 |---|---|---|
 | Native Broker | Repository `Broker/src/UnityEvalTool.Broker` | Port 2347, registry, MCP tools, CLI, service management |
 | npm packaging | Repository `Broker/npm` | Platform selection, explicit user-service helpers, per-RID packages |
-| Unity transport | `Runtime/Broker` | Registration, project-token verification, heartbeat, routed requests, sessions |
-| Editor lifecycle | `Editor/Broker` | Stable process identity, Resources authorization settings, compile/reload state, Broker startup |
+| Unity transport | `Runtime/Broker` | Registration, heartbeat, routed requests, sessions |
+| Editor lifecycle | `Editor/Broker` | Stable process identity, compile/reload state, Broker startup |
 | Eval engine | `Runtime/Core` and `Runtime/Tools` | PuerTS execution and generated helper modules |
 | CLI parser | `Runtime/CLI/EvalCliCommandService*` | Existing command grammar and printable results |
 
@@ -59,13 +59,13 @@ compilation keeps the old domain loaded and enters executable repair mode.
 
 ## Security
 
-Kestrel's local listener uses loopback. It rejects non-loopback Host/Origin values and has
-no global authorization policy. MCP/CLI input or a user-edited `auth.json` supplies raw
-candidate tokens; the Broker persists and forwards them. Each Unity project defaults to no
-verification, or stores a salted PBKDF2 verifier in a Resources asset and refuses every
-operation until one candidate matches. A matched connection stays authorized for that
-connection lifetime. Port conflicts, invalid credential/config files, invalid project
-verification data, and protocol mismatches fail explicitly.
+Kestrel's local listener trusts loopback clients and rejects non-loopback Host/Origin values.
+The optional network listener authorizes each request using one host credential shared by
+`/mcp` and `/remote/mcp`, or explicitly configured anonymous access. A permitted connection
+can access all local projects and available host operations. There are no project tokens,
+workspace grants, or separate desktop credentials. File-root bounds, session ownership,
+optional Cua installation and operating-system permissions remain enforced. Port conflicts,
+invalid credential/config files and protocol mismatches fail explicitly.
 
 Optional network export exposes directly registered local instances only, with per-request
 service credentials or explicit anonymous access. The local registry aggregates peer snapshots

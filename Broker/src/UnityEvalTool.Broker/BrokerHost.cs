@@ -24,7 +24,6 @@ internal static class BrokerHost
             if (configuration.RemoteAccess.Enabled)
                 options.Listen(IPAddress.Parse(configuration.RemoteAccess.ListenAddress), configuration.RemoteAccess.Port);
         });
-        builder.Services.AddSingleton(new AuthTokenStore(Path.Combine(Path.GetDirectoryName(configuration.FilePath)!, "auth.json")));
         var registry = new BrokerRegistry(configuration);
         builder.Services.AddSingleton(registry);
         var workspace = new WorkspaceService(configuration, registry);
@@ -41,8 +40,6 @@ internal static class BrokerHost
             .WithTools(UnityBrokerTools.CreateTools(new UnityBrokerTools(registry, contexts)));
 
         var app = builder.Build();
-        // Invalid user-edited credential/config files fail before the port starts accepting clients.
-        app.Services.GetRequiredService<AuthTokenStore>().GetTokens();
         app.UseHostFiltering();
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(10) });
         app.Use(async (context, next) =>
@@ -67,8 +64,7 @@ internal static class BrokerHost
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
                 }
-                if (!(workspaceRequest ? workspace.Accepts(context.Request.Headers.Authorization.ToString()) :
-                    configuration.AcceptsPeerToken(context.Request.Headers.Authorization.ToString())))
+                if (!configuration.AcceptsPeerToken(context.Request.Headers.Authorization.ToString()))
                 {
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.Headers.WWWAuthenticate = "Bearer realm=\"UnityEvalTool\"";
@@ -90,48 +86,13 @@ internal static class BrokerHost
                 return;
             }
 
-            if (context.Request.Path.StartsWithSegments("/mcp"))
-            {
-                var tokenStore = context.RequestServices.GetRequiredService<AuthTokenStore>();
-                var authorization = context.Request.Headers.Authorization.ToString();
-                var tokenList = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                    ? authorization["Bearer ".Length..].Trim()
-                    : context.Request.Headers["X-UnityEvalTool-Token"].ToString().Trim();
-                if (!string.IsNullOrWhiteSpace(authorization) &&
-                    !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                {
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    await context.Response.WriteAsync("Yuze Eval Tool accepts MCP credentials only as a Bearer token list.");
-                    return;
-                }
-                if (!string.IsNullOrEmpty(tokenList))
-                {
-                    try
-                    {
-                        tokenStore.AddTokenList(tokenList);
-                        var registry = context.RequestServices.GetRequiredService<BrokerRegistry>();
-                        await registry.BroadcastTokensAsync(tokenStore.GetTokens(), context.RequestAborted);
-                    }
-                    catch (InvalidDataException ex)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsync(ex.Message);
-                        return;
-                    }
-                }
-            }
-
             await next(context);
         });
 
-        app.MapGet("/health", (BrokerRegistry registry, AuthTokenStore tokens) =>
+        app.MapGet("/health", (BrokerRegistry registry) =>
             new HealthSnapshot("ready", BrokerConstants.ProtocolVersion,
                 $"http://{BrokerConstants.Host}:{localPort}", StartedAtUtc,
-                registry.Revision, registry.GetSnapshot().ConnectedCount, false)
-            {
-                StoredTokenCount = tokens.GetTokens().Count,
-                MaxStoredTokenCount = tokens.MaxStoredTokens
-            });
+                registry.Revision, registry.GetSnapshot().ConnectedCount));
         app.Map("/unity", UnityWebSocketEndpoint.HandleAsync);
         app.Map("/cli", CliWebSocketEndpoint.HandleAsync);
         app.MapMcp("/mcp");

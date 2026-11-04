@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 namespace YuzeToolkit.Eval.Broker;
 
 internal sealed record UnityRegistration(
-    string AuthToken,
     string InstanceId,
     long ConnectionEpoch,
     int ProcessId,
@@ -15,11 +14,7 @@ internal sealed record UnityRegistration(
     string UnityVersion,
     string PackageVersion,
     string Environment,
-    UnityStatus Status)
-{
-    public bool AuthorizationRequired { get; init; }
-    public string AuthorizationState { get; init; } = "NotRequired";
-}
+    UnityStatus Status);
 
 internal sealed record UnityStatus(
     string Phase,
@@ -52,8 +47,6 @@ internal sealed record UnityInstanceSnapshot(
     DateTimeOffset LastTransportHeartbeatAtUtc,
     UnityStatus Status)
 {
-    public bool AuthorizationRequired { get; init; }
-    public string AuthorizationState { get; init; } = "NotRequired";
     public string? WorkspaceId { get; init; }
     public UnityProjectSource Source { get; init; } = new("local", null, string.Empty, false);
     public string DisplayName => Source.Kind == "remote"
@@ -90,22 +83,12 @@ internal sealed record HealthSnapshot(
     string Endpoint,
     DateTimeOffset StartedAtUtc,
     long RegistryRevision,
-    int ConnectedUnityCount,
-    bool RequireToken)
-{
-    public int StoredTokenCount { get; init; }
-    public int MaxStoredTokenCount { get; init; }
-}
+    int ConnectedUnityCount);
 
 internal sealed record UnityRegistrationResponse(
     string InstanceId,
     string ProtocolVersion,
-    string BrokerInstanceId,
-    IReadOnlyList<string> Tokens);
-
-internal sealed record AuthTokensPayload(IReadOnlyList<string> Tokens);
-
-internal sealed record UnityAuthorizationUpdate(string State);
+    string BrokerInstanceId);
 
 internal sealed record UnityCommandRequest(
     string SessionId,
@@ -134,8 +117,6 @@ internal sealed record ProtocolError(string Code, string Message, bool MayHaveEx
 [JsonSerializable(typeof(ConnectionLeaseResult))]
 [JsonSerializable(typeof(HealthSnapshot))]
 [JsonSerializable(typeof(UnityRegistrationResponse))]
-[JsonSerializable(typeof(AuthTokensPayload))]
-[JsonSerializable(typeof(UnityAuthorizationUpdate))]
 [JsonSerializable(typeof(UnityCommandRequest))]
 [JsonSerializable(typeof(ProtocolEnvelope))]
 [JsonSerializable(typeof(ProtocolError))]

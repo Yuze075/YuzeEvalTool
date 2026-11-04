@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -10,10 +11,10 @@ internal sealed class BrokerCliConnection : IAsyncDisposable
     private readonly ClientWebSocket _socket = new();
     private readonly SemaphoreSlim _requestGate = new(1, 1);
 
-    public async Task ConnectAsync(string? tokenList, CancellationToken cancellationToken)
+    public async Task ConnectAsync(CancellationToken cancellationToken)
     {
         await _socket.ConnectAsync(new Uri($"ws://{BrokerConstants.Host}:{BrokerConstants.Port}/cli"), cancellationToken);
-        await RequestAsync("cli/hello", new JsonObject { ["token"] = tokenList }, cancellationToken);
+        await RequestAsync("cli/hello", new JsonObject(), cancellationToken);
     }
 
     public Task<JsonElement> ListAsync(CancellationToken cancellationToken) =>

@@ -2,7 +2,8 @@
 
 [English](REMOTE_WORKSPACES.md) | **简体中文** | [用户指南](../README_zh.md)
 
-从 npm 3.2.0 起提供。工作区导出和能力授权默认关闭；升级既有安装不会自动开放文件、终端或桌面权限。
+4.0.0 使用统一 MCP 连接授权：网络认证成功后即可访问全部已注册项目、文件、终端和已安装的桌面能力。
+网络监听仍需显式开启；不再存在项目级授权或独立工作区密钥。
 
 ## 入口与范围
 
@@ -10,8 +11,8 @@
 |---|---|
 | 本机 `/mcp` | 原有 `unity_status`、`unity_connect`、`eval`，访问本地与聚合的远程 Unity |
 | 本机 `/remote/mcp` | 15 个工作区工具与 2 个可选桌面工具，只能选择已配置的远端主机 |
-| 网络 `/mcp` | 原有本地 Unity 导出，沿用 Unity 授权 |
-| 网络 `/remote/mcp` | 明确共享的本地项目根，按能力鉴权，不再转发其他主机 |
+| 网络 `/mcp` | 本地 Unity 导出，统一使用主机连接授权 |
+| 网络 `/remote/mcp` | 全部已注册本地项目根，共用连接授权，不转发其他主机 |
 | 本机 `/remote/status` | 浏览器连接状态页，不从网络监听器导出 |
 
 范围由实际监听器决定，客户端 Header 或布尔参数不能覆盖。经本机 `127.0.0.1` 路由到另一台电脑
@@ -29,9 +30,9 @@
 unity workspace add website /absolute/path/to/website "Website"
 ```
 
-同一目录经相对路径片段、符号链接或 Windows 大小写得到相同规范路径时，复用原 ID、名称与授权。
+同一目录经相对路径片段、符号链接或 Windows 大小写得到相同规范路径时，复用原 ID 与名称。
 同一 ID 不能指向另一个目录，父目录与子目录分别注册。配置中已有重复规范路径会明确报错，需先保留一个
-项目定义；不会擅自合并不同 ID 的授权。原有 3.2 配置无需迁移，未填写名称时使用目录名称。
+项目定义；不会擅自合并不同 ID。升级授权语义见下方 4.0 迁移说明，未填写名称时使用目录名称。
 
 本机 Unity 通过 `/unity` 注册时，Broker 自动持久注册其上报根目录；已经手动注册则直接关联原项目。
 自动 ID 写入同一个 `workspace.projects` 配置，断开、退出、重启和重新连接不会重新生成。
@@ -39,19 +40,8 @@ unity workspace add website /absolute/path/to/website "Website"
 Unity 上报的绝对目录暂不存在时仍保留 Unity 连接与项目记录，并标记 `directoryExists=false`；文件工作区
 连接明确报目录不可用。`workspace remove` 只移除配置，不删除文件；后续新的本机 Unity 连接可以再次自动注册。
 
-手动注册默认不授权。自动注册默认同样不授权；可为以后首次自动注册的项目设置明确策略：
-
-```text
-unity workspace defaults files-read workspace-key
-unity workspace defaults files-write workspace-key
-unity workspace defaults terminal workspace-key
-unity workspace defaults desktop off
-unity service restart
-```
-
-该策略位于 `workspace.autoRegistrationGrants`，字段与项目的四项 `*CredentialRef` 相同。
-策略仅在创建新项目时复制，不改变已有项目授权；CLI 修改仍需重启 Broker。
-运行中的 Unity 自动注册立即可见，写入时与配置 CLI 共用文件锁，保留其他配置字段；锁冲突或写入失败明确拒绝。
+手动与自动注册的项目均立即向通过认证的 MCP 连接开放，无需额外授权。CLI 修改仍需重启 Broker；
+运行中的 Unity 自动注册立即可见，写入时与配置 CLI 共用文件锁，保留其他配置字段；失败明确报告。
 
 `workspace_list`、`workspace_connect`、`workspace_status` 返回同一份项目语义：
 
@@ -60,9 +50,9 @@ unity service restart
 | `workspaceId` / `name` / `displayName` | 稳定 ID、项目名称、带 `[Local]` 或 `[Remote:主机]` 的显示名 |
 | `registeredBy` | 首次登记来源 `manual` 或 `unity`，不随当前连接变化 |
 | `kind` | 当前有连接的本机 Unity 实例时为 `unity`，否则为 `workspace` |
-| `unityState` | `disconnected`、`ready`、`busy` 或 `authorizationRequired` |
-| `capabilities.unityConnected` / `unityCanEval` | 实时连接与执行条件，沿用 Unity MCP 的授权、编译修复模式判断 |
-| `unityInstances` | 仅包含当前连接实例，附准确 ID、PID、阶段与授权状态；多个实例必须明确选择 |
+| `unityState` | `disconnected`、`ready` 或 `busy` |
+| `capabilities.unityConnected` / `unityCanEval` | 实时连接与执行条件，按 Unity 实时状态、编译修复模式判断 |
+| `unityInstances` | 仅包含当前连接实例，附准确 ID、PID、阶段与执行状态；多个实例必须明确选择 |
 | `directoryExists` | 目录当前是否存在；目录消失不会自动删除登记 |
 
 Unity 断开只移除实时能力，不关闭工作区句柄或终端任务；重新查询状态可见变化。
@@ -73,35 +63,25 @@ Unity 断开只移除实时能力，不关闭工作区句柄或终端任务；�
 
 ## 配置
 
-复用现有 `remotes` 主机、IP、端口和 Unity 密钥配置，为工作区配置独立密钥引用。
-在双方用 `unity remote credential workspace-key` 从 stdin 录入相同密钥，不把密钥放入命令行。
-`peer-auth.json` 属于用户本机配置，不纳入项目版本控制。
-
-在已有网络监听器的被访问电脑上执行：
+复用现有 `remotes` 主机、IP、端口和连接密钥。在双方用 `unity remote credential office-key` 从
+stdin 保存相同密钥，不把密钥放入命令行。被访问主机配置一次：
 
 ```text
+unity remote access token 10.100.0.100 2348 office-key
 unity workspace add reliclight-main /absolute/path/to/RelicLight
-unity workspace grant reliclight-main files-read workspace-key
-unity workspace grant reliclight-main files-write workspace-key
-unity workspace grant reliclight-main terminal workspace-key
 unity service restart
 ```
 
-路径必须是该电脑上的真实绝对路径，Windows 需包含盘符。新增工作区默认没有任何授权；按需启用
-`files-read`、`files-write`、`terminal`、`desktop`。用 `off` 撤销单项授权。配置在 Broker 重启后生效；
-桌面驱动相关配置还需要重启独立 worker。
-
-在调用方执行：
+调用方配置一次远端：
 
 ```text
-unity workspace peer mac_studio workspace-key
+unity remote add mac_studio 10.100.0.100 2348 office-key
 unity service restart
-unity workspace list
 ```
 
-`mac_studio` 必须是已有远端 ID，例如指向 `10.100.0.100:2348`。`workspace peer` 在同一条主机配置中
-记录 `workspaceCredentialRef`，不修改 Unity 的 `credentialRef`。一把工作区密钥可以获得多个能力授权。
-即使 Unity 网络入口使用 `authMode: none`，工作区网络入口仍要求匹配明确的能力密钥。
+`/mcp` 与 `/remote/mcp` 共用 `remotes[].credentialRef`。不再提供 `workspace peer`、`workspace grant`
+或 `workspace defaults`。`authMode: none` 表示明确允许匿名访问两个入口及其全部能力。文件仍限制在
+已注册根目录内，终端以 Broker 用户身份执行。桌面可以直接针对主机操作，无需先注册文件夹。
 
 部署、首次接入和故障恢复沿用现有 SSH Host、SSH Agent 和主机校验。Broker 不复制或保存 SSH 私钥，
 不会在每次工具调用时另开 SSH：命令直接由目标机器的 Broker 以其用户身份执行。
@@ -141,7 +121,7 @@ url = "http://127.0.0.1:2347/remote/mcp"
 
 文件路径相对于项目根，也可使用项目内绝对路径。终端命令默认使用上下文 cwd；单次请求可覆盖到项目内
 其他目录。文件服务会解析中间符号链接，拒绝越过项目根的路径。预期哈希可阻止普通的陈旧补丁，但这不是
-针对任意外部写入者的原子事务，也不是操作系统沙箱。**终端授权允许以 Broker 用户运行程序，不限制程序
+针对任意外部写入者的原子事务，也不是操作系统沙箱。**终端能力允许以 Broker 用户运行程序，不限制程序
 只能访问项目文件。** 主动脱离进程树的守护进程不在终端任务的生命周期保证内。
 
 `terminal_exec` 支持 `program + args` 的字面参数模式，或 `command + shell` 的显式 Shell 模式。
@@ -163,8 +143,8 @@ resize 工具。已完成任务保留到上下文关闭，仍计入 `maxTasksPer
 描述块；不能解析的条目在 `errors` 中显式列出。连接和读取时重新发现目录；规则变化后重新读取对应内容。
 
 文本分页使用 UTF-16 字符偏移，返回 `complete`、`nextOffset`、`totalCharacters`。
-规则原文未完整返回时，用 `file_read` 继续读取其来源路径。完整规则、Skill 和文件读取需要 `files-read`；
-初次连接返回的规则与摘要属于已授权工作区的上下文元数据。MCP 返回不会自动安装客户端原生 Skills，也不会
+规则原文未完整返回时，用 `file_read` 继续读取其来源路径。规则、Skill 和文件读取沿用同一 MCP 连接授权；
+初次连接返回的规则与摘要属于已连接工作区的上下文元数据。MCP 返回不会自动安装客户端原生 Skills，也不会
 卸载调用方原有 Skills。文件图片按源尺寸返回，受文件大小预算约束，目前不提供裁剪和缩放；桌面截图另有尺寸配置。
 
 ## 断线、恢复与通知
@@ -190,7 +170,11 @@ Broker 重启后不保留任务 / 句柄日志。
 
 ## 桌面执行器
 
-Cua 是可选组件。未配置驱动、配置的可执行文件不存在，或当前凭据没有任何工作区桌面授权时，网络入口
+桌面能力属于主机。`desktop_observe` 可直接传 `hostId` 和准确 `processId`，无需注册文件夹或创建
+项目上下文；`desktop_act` 使用同一主机及返回的 `observationId`。也可传项目 `contextHandle` 关联
+其唯一 Unity 进程，两种目标方式不能同时传入。网络导出端省略 hostId，禁止转发其他主机。
+
+Cua 是可选组件。未配置驱动或配置的可执行文件不存在时，网络入口
 不显示 `desktop_observe`、`desktop_act`。本机聚合入口先显示 15 个工具，发现或连接到具备桌面能力的在线
 远端后才增加这两个工具；聚合入口自己不需要安装 Cua。卸载驱动或最后一个具备桌面能力的远端离线后，
 工具重新隐藏。目录变化发送 `notifications/tools/list_changed`，客户端应据此刷新工具列表。
@@ -201,7 +185,6 @@ Broker 不捆绑安装驱动、不导入其全局 Skills、不绕过系统授权
 
 ```text
 unity workspace desktop-driver /absolute/path/to/cua-driver
-unity workspace grant reliclight-main desktop workspace-key
 unity service restart
 unity desktop worker
 ```
@@ -238,13 +221,22 @@ unity desktop worker
 驱动的有界动作自行配对按下 / 释放，不保留跨调用按键租约；后台不可用时明确返回，不自动改用前台。
 目前支持点按与有界手势，不支持持续按住移动键、远程解锁、连续音视频或确定性游戏输入。
 
+## 升级到 4.0
+
+这是授权契约变更：原有连接密钥现在可以访问全部已注册文件夹及可用主机能力。旧 `workspaceCredentialRef`、
+项目 `*CredentialRef`、`workspace.autoRegistrationGrants`、`maxStoredTokens` 和 `auth.json` 已不再使用，可移除。
+Unity 项目 token 设置页、verifier Asset、token 转发和等待授权状态均已删除。升级项目时删除
+`Assets/Resources/UnityEvalToolAuthorizationSettings.asset`。旧 Unity Client 若仍要求项目验证，返回
+`UnityUpgradeRequired`，需更新 UPM Package；Unity 协议继续为 2.0，项目 ID 保留。
+操作系统权限与登录图形会话中的 worker 仍须就绪，MCP 密钥不会替代系统授权。
+
 ## 配置参考
 
 `config.json` 的 `workspace` 字段默认值如下，启动时检查有效范围：
 
 | 字段 | 默认值 | 用途 |
 |---|---:|---|
-| `projects` | `[]` | 显式项目 ID、rootPath、各能力密钥引用及 skillDirectories |
+| `projects` | `[]` | 项目 ID、rootPath、名称、注册来源及 skillDirectories |
 | `leaseSeconds` | 1800 | 空闲 MCP 会话存活时间 |
 | `maxSessions` / `maxContextsPerSession` | 64 / 16 | 会话与上下文数量上限 |
 | `requestTimeoutSeconds` | 60 | 远程工作区操作请求期限 |
@@ -268,12 +260,15 @@ unity desktop worker
 
 ## 已验证与尚未验收
 
-开发中已使用两个实际 HTTP Broker、真实 Windows 导出进程、macOS / Windows PTY 和 Codex 0.163.0
+4.0 授权变更已通过 NativeAOT HTTP 验证：两个入口共用密钥、拒绝错误密钥、匿名访问、无 grants 的文件及终端操作、
+无项目的主机桌面路由、可选驱动发现、Unity 连接和断开、自动注册与稳定 ID。实际 Unity 包编译为 0 错误、0 警告。
+
+此前工作区版本已使用两个实际 HTTP Broker、真实 Windows 导出进程、macOS / Windows PTY 和 Codex 0.163.0
 app-server 工具发现进行验证。原 `/mcp` 实际只显示 3 个工具，新入口最多显示 17 个；可选 Cua 联调确认缺少驱动时为 15 个，安装 / 卸载后动态刷新。故障注入覆盖响应丢失后
 不重放、已知离线拒绝、陈旧快照、恢复后原任务查询、Broker 替换、事件缺口、任务期限、输出预算及 SSE 通知。
 状态页在线 / 离线变化和窄屏布局已在无界面 Chromium 中检查。
 
-Mac Studio 经本次明确许可完成系统授权，最终 NativeAOT 远程 MCP 链路已验证真实 Unity 窗口截图、
+此前 Mac Studio 经明确许可完成系统授权，NativeAOT 远程 MCP 链路已验证真实 Unity 窗口截图、
 显式前台点击后中文输入、Project 显示滑块拖拽、窗口尺寸变化后的截图更新及旧观察拒绝。
 默认 macOS 像素输入在发送前拒绝，子动作不能覆盖模式；前台动作逐项成功不代替回传图像的实际效果检查。
 Windows 图形用户 worker / 服务会话 IPC 已另行联调，其实际窗口输入与新增前台路径尚未验收；无图形会话的

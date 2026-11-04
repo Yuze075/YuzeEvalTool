@@ -30,10 +30,6 @@ namespace YuzeToolkit.Eval
         private long _runGeneration;
         private bool _configured;
         private bool _isConnected;
-        private bool _authorizationRequired;
-        private string _authorizationState = "NotRequired";
-        private UnityEvalToolAuthorizationSettings.AuthorizationVerifier _authorizationVerifier =
-            UnityEvalToolAuthorizationSettings.AuthorizationVerifier.Disabled;
 
         private UnityBrokerClient()
         {
@@ -49,11 +45,6 @@ namespace YuzeToolkit.Eval
         public bool IsRunning
         {
             get { lock (_syncRoot) return _runTask != null; }
-        }
-
-        public string AuthorizationState
-        {
-            get { lock (_syncRoot) return _authorizationState; }
         }
 
         public BrokerClientIdentity Identity
@@ -89,17 +80,12 @@ namespace YuzeToolkit.Eval
 
         public void Start()
         {
-            var settings = UnityEvalToolAuthorizationSettings.Load();
-            var verifier = settings == null
-                ? UnityEvalToolAuthorizationSettings.AuthorizationVerifier.Disabled
-                : settings.CreateVerifier();
             lock (_syncRoot)
             {
                 if (_runTask != null) return;
                 if (!_configured) _latestStatus.VmGeneration = _identity.VmGeneration;
                 var generation = ++_runGeneration;
                 var sessions = _sessions;
-                _authorizationVerifier = verifier;
                 var lifetime = new CancellationTokenSource();
                 _lifetime = lifetime;
                 _runTask = Task.Run(() => RunReconnectLoopAsync(generation, sessions, lifetime.Token));
@@ -170,7 +156,6 @@ namespace YuzeToolkit.Eval
                 _socket = null;
                 _runTask = null;
                 _isConnected = false;
-                _authorizationState = _authorizationRequired ? "Pending" : "NotRequired";
                 _sessions = new BrokerEvalSessionRouter();
             }
 
@@ -247,14 +232,6 @@ namespace YuzeToolkit.Eval
         private async Task ConnectAndRunAsync(long generation, BrokerEvalSessionRouter sessions,
             Action onConnected, CancellationToken cancellationToken)
         {
-            UnityEvalToolAuthorizationSettings.AuthorizationVerifier authorizationVerifier;
-            lock (_syncRoot) authorizationVerifier = _authorizationVerifier;
-            var authorizationRequired = authorizationVerifier.RequireToken;
-            lock (_syncRoot)
-            {
-                _authorizationRequired = authorizationRequired;
-                _authorizationState = authorizationRequired ? "Pending" : "NotRequired";
-            }
             var socket = new ClientWebSocket();
             await socket.ConnectAsync(new Uri(BrokerProtocolUtility.Endpoint), cancellationToken);
             lock (_syncRoot)
@@ -268,7 +245,7 @@ namespace YuzeToolkit.Eval
             }
 
             var registerId = Guid.NewGuid().ToString("N");
-            var registration = BuildRegistration(authorizationRequired);
+            var registration = BuildRegistration();
             await SendAsync(socket, BrokerProtocolUtility.Request(registerId, "unity/register", registration), cancellationToken);
             var registrationResponse = await ReceiveAsync(socket, cancellationToken);
             if (registrationResponse == null) throw new IOException("Broker closed during Unity registration.");
@@ -283,10 +260,6 @@ namespace YuzeToolkit.Eval
                 ? payloadValue
                 : null) ?? EvalData.Obj();
             var brokerInstanceId = EvalData.GetString(responsePayload, "brokerInstanceId") ?? string.Empty;
-            var initialTokens = ReadTokens(responsePayload.TryGetValue("tokens", out var tokenValue)
-                ? tokenValue
-                : null);
-            ApplyTokens(authorizationVerifier, initialTokens);
             var resetSessions = false;
             lock (_syncRoot)
             {
@@ -297,7 +270,6 @@ namespace YuzeToolkit.Eval
                 _brokerInstanceId = brokerInstanceId;
                 _isConnected = true;
             }
-            await SendAuthorizationStateAsync(socket, cancellationToken);
             if (resetSessions) sessions.Reset();
             onConnected();
             LogSys.Log($"[Yuze Eval Tool] Connected to local Broker as {_identity.InstanceId} (epoch {_identity.ConnectionEpoch}).");
@@ -305,7 +277,7 @@ namespace YuzeToolkit.Eval
             var heartbeat = RunHeartbeatAsync(socket, connectionLifetime.Token);
             try
             {
-                await ReceiveLoopAsync(socket, sessions, authorizationVerifier, connectionLifetime.Token);
+                await ReceiveLoopAsync(socket, sessions, connectionLifetime.Token);
             }
             finally
             {
@@ -318,7 +290,6 @@ namespace YuzeToolkit.Eval
                     {
                         _socket = null;
                         _isConnected = false;
-                        _authorizationState = _authorizationRequired ? "Pending" : "NotRequired";
                     }
                 }
                 socket.Dispose();
@@ -335,7 +306,6 @@ namespace YuzeToolkit.Eval
         }
 
         private async Task ReceiveLoopAsync(ClientWebSocket socket, BrokerEvalSessionRouter sessions,
-            UnityEvalToolAuthorizationSettings.AuthorizationVerifier authorizationVerifier,
             CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested && socket.State == WebSocketState.Open)
@@ -347,14 +317,6 @@ namespace YuzeToolkit.Eval
                 var method = EvalData.GetString(envelope, "method") ?? string.Empty;
                 var payload = EvalData.AsObject(envelope.TryGetValue("payload", out var rawPayload) ? rawPayload : null)
                               ?? EvalData.Obj();
-                if (string.Equals(type, "event", StringComparison.Ordinal) &&
-                    string.Equals(method, "auth/tokens", StringComparison.Ordinal))
-                {
-                    ApplyTokens(authorizationVerifier,
-                        ReadTokens(payload.TryGetValue("tokens", out var tokens) ? tokens : null));
-                    await SendAuthorizationStateAsync(socket, cancellationToken);
-                    continue;
-                }
                 if (!string.Equals(type, "request", StringComparison.Ordinal)) continue;
                 var id = EvalData.GetString(envelope, "id") ?? string.Empty;
                 await HandleRequestAsync(socket, sessions, id, method, payload, cancellationToken);
@@ -365,21 +327,6 @@ namespace YuzeToolkit.Eval
             string id, string method,
             Dictionary<string, object?> payload, CancellationToken cancellationToken)
         {
-            bool authorized;
-            lock (_syncRoot)
-                authorized = !_authorizationRequired ||
-                             string.Equals(_authorizationState, "Authorized", StringComparison.Ordinal);
-            if (!authorized)
-            {
-                var authorizationError = EvalData.Obj(
-                    ("code", "UnityAuthorizationPending"),
-                    ("message", "This Unity connection has not verified a project token."),
-                    ("mayHaveExecuted", false));
-                await SendAsync(socket,
-                    BrokerProtocolUtility.Response(id, method, EvalData.Obj(), authorizationError),
-                    cancellationToken);
-                return;
-            }
             try
             {
                 object result;
@@ -414,14 +361,13 @@ namespace YuzeToolkit.Eval
             }
         }
 
-        private Dictionary<string, object?> BuildRegistration(bool authorizationRequired)
+        private Dictionary<string, object?> BuildRegistration()
         {
             var process = Process.GetCurrentProcess();
             var projectPath = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
             BrokerUnityStatusSnapshot status;
             lock (_syncRoot) status = _latestStatus;
             return EvalData.Obj(
-                ("authToken", string.Empty),
                 ("instanceId", _identity.InstanceId),
                 ("connectionEpoch", _identity.ConnectionEpoch),
                 ("processId", process.Id),
@@ -431,8 +377,6 @@ namespace YuzeToolkit.Eval
                 ("unityVersion", Application.unityVersion),
                 ("packageVersion", UnityEvalToolVersion.Current),
                 ("environment", Application.isEditor ? "Editor" : "Player"),
-                ("authorizationRequired", authorizationRequired),
-                ("authorizationState", authorizationRequired ? "Pending" : "NotRequired"),
                 ("status", status.ToObject())
             );
         }
@@ -442,44 +386,6 @@ namespace YuzeToolkit.Eval
             BrokerUnityStatusSnapshot status;
             lock (_syncRoot) status = _latestStatus;
             await SendAsync(socket, BrokerProtocolUtility.Event("unity/status", status.ToObject()), cancellationToken);
-        }
-
-        private async Task SendAuthorizationStateAsync(ClientWebSocket socket, CancellationToken cancellationToken)
-        {
-            string state;
-            lock (_syncRoot) state = _authorizationState;
-            await SendAsync(socket, BrokerProtocolUtility.Event("unity/authorization",
-                EvalData.Obj(("state", state))), cancellationToken);
-        }
-
-        private void ApplyTokens(UnityEvalToolAuthorizationSettings.AuthorizationVerifier verifier,
-            IReadOnlyList<string> tokens)
-        {
-            lock (_syncRoot)
-            {
-                if (!_authorizationRequired)
-                {
-                    _authorizationState = "NotRequired";
-                    return;
-                }
-                _authorizationState = verifier.VerifyTokens(tokens)
-                    ? "Authorized"
-                    : "Pending";
-            }
-        }
-
-        private static IReadOnlyList<string> ReadTokens(object? value)
-        {
-            var rawTokens = EvalData.AsArray(value);
-            if (rawTokens == null) return Array.Empty<string>();
-            var tokens = new List<string>(rawTokens.Count);
-            foreach (var raw in rawTokens)
-            {
-                if (raw is not string token)
-                    throw new InvalidDataException("Broker auth token payload contains a non-string value.");
-                tokens.Add(token);
-            }
-            return tokens;
         }
 
         private async Task SendAsync(ClientWebSocket socket, string json, CancellationToken cancellationToken)
