@@ -88,7 +88,8 @@ internal sealed record HealthSnapshot(
 internal sealed record UnityRegistrationResponse(
     string InstanceId,
     string ProtocolVersion,
-    string BrokerInstanceId);
+    string BrokerInstanceId,
+    string BrokerVersion);
 
 internal sealed record UnityCommandRequest(
     string SessionId,

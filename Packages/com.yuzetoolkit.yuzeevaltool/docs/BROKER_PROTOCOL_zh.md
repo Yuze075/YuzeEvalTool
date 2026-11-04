@@ -127,6 +127,9 @@ Unity 的第一条消息必须是 `unity/register`。其 payload 包含：
 只有主 Unity Editor 进程可以注册。Asset Import Worker 绝对不得注册或启动 Broker。
 成功响应包含 `brokerInstanceId`，它在当前 Broker 进程中唯一。如果该值改变，Unity
 会丢弃所有保留的 PuerTS session，避免新 Broker 进程意外继承已不属于它的 session。
+4.1.0 起，响应新增 `brokerVersion`，表示当前 Broker 包版本。Unity 与硬编码的
+`UnityEvalToolVersion.RequiredBrokerVersion` 比较；低于要求或旧 Broker 未报告版本时提示更新 Warning，
+不会因此拒绝注册。协议版本仍为 2.0。
 响应不再携带项目 token，Unity 不再具有等待项目授权的状态。旧客户端若明确上报仍启用项目验证，
 会得到 `UnityUpgradeRequired`，需升级 Unity Package 至 4.0.0。Unity 协议 2.0 与执行生命周期保留。
 

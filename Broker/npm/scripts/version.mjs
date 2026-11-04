@@ -43,6 +43,7 @@ export function resolveAndValidateVersion(brokerRoot) {
   }
   if (!directoryProps.includes(`<Version>${version}</Version>`)) mismatches.push('Broker Directory.Build.props');
   if (!unityVersionSource.includes(`Current = "${version}"`)) mismatches.push('UnityEvalToolVersion.Current');
+  if (!unityVersionSource.includes(`RequiredBrokerVersion = "${version}"`)) mismatches.push('UnityEvalToolVersion.RequiredBrokerVersion');
   if (!brokerProtocolSource.includes(`ProtocolVersion = "${metadata.protocolVersion}"`)) {
     mismatches.push('BrokerConstants.ProtocolVersion');
   }

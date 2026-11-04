@@ -69,6 +69,8 @@ namespace YuzeToolkit.Eval
         private Label _vmGeneration = null!;
         private Label _mainThread = null!;
         private Label _installation = null!;
+        private Label _brokerVersion = null!;
+        private HelpBox _brokerVersionWarning = null!;
         private TextField _toolSearch = null!;
         private Label _toolSearchPlaceholder = null!;
         private bool _toolsDirty = true;
@@ -147,6 +149,9 @@ namespace YuzeToolkit.Eval
 
             var connectionCard = CreateCard("Connection", "Live registration and evaluation availability");
             _connection = AddField(connectionCard, "Broker connection");
+            _brokerVersion = AddField(connectionCard, "Broker version");
+            _brokerVersionWarning = new HelpBox(string.Empty, HelpBoxMessageType.Warning);
+            connectionCard.Add(_brokerVersionWarning);
             _phase = AddField(connectionCard, "Unity phase");
             _canEval = AddField(connectionCard, "Evaluation");
             _busyReason = AddField(connectionCard, "Busy reason");
@@ -229,6 +234,11 @@ namespace YuzeToolkit.Eval
             var identity = client.Identity;
             var connectionText = !enabled ? "Disabled" : connected ? "Connected" : running ? "Reconnecting" : "Stopped";
             _connection.text = connectionText;
+            var brokerVersion = client.BrokerVersion;
+            _brokerVersion.text = connected ? string.IsNullOrEmpty(brokerVersion) ? "Not reported" : brokerVersion : "—";
+            var versionWarning = connected ? UnityEvalToolVersion.GetBrokerVersionWarning(brokerVersion) : string.Empty;
+            _brokerVersionWarning.text = versionWarning;
+            _brokerVersionWarning.style.display = versionWarning.Length == 0 ? DisplayStyle.None : DisplayStyle.Flex;
             ApplyBadge(_connectionBadge, connectionText, connected ? "success" : enabled ? "warning" : "muted");
             _phase.text = status.Phase;
             ApplyBadge(_phaseBadge, status.Phase, status.CanEval ? "success" : "warning");

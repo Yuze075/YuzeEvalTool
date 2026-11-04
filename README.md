@@ -54,7 +54,7 @@ a JavaScript backend for your project.
 In Unity, open **Window > Package Manager**, choose **Add package from git URL**, and enter:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0
 ```
 
 The equivalent `Packages/manifest.json` dependency is:
@@ -62,7 +62,7 @@ The equivalent `Packages/manifest.json` dependency is:
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0"
   }
 }
 ```
@@ -73,11 +73,17 @@ disk** command and select
 
 ### 3. Install the Broker and CLI
 
-After installing the Unity Package, choose **Window > YuzeToolkit > Install Eval Tool (npm)**.
-This opens a terminal and runs the commands below in order, stopping on failure and keeping
-the terminal output visible. Node.js/npm must be available in the terminal environment;
-Linux also requires `x-terminal-emulator`. If Windows denies service installation,
-retry `unity service install` in an administrator terminal.
+After installing the Unity Package, choose **YuzeToolkit > Eval Tool > Install Latest npm Package**.
+The menu checks Node.js/npm, stops the old service, installs `@latest`, and installs/starts and
+checks the Broker in the background. Missing Node.js is an error; the menu never installs Node.js
+or nvm. macOS/Linux use the configured login shell so its Node environment is available.
+Results appear in the Unity Console through Yuze Log Tool; the full log is
+`~/.unityevaltool/npm-install.log`. A failed step stops the remaining commands.
+Open **YuzeToolkit > Eval Tool > Workbench** to inspect the connection.
+
+This Unity package requires Broker **4.1.0** or newer. Registration reports the running Broker
+version; older, unrecognized or unreported versions produce a Console Warning and a workbench
+update notice. This advisory does not disable the connection.
 
 Install the native package globally, then explicitly install its current-user service:
 
@@ -236,7 +242,7 @@ configuration, recovery, desktop prerequisites and the current validation limits
 Install Yuze Agent Tool after Yuze Eval Tool with **Add package from git URL**:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.0.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.1.0
 ```
 
 Then place `Runtime/Panel/Prefabs/DebugPanel.prefab` from that package in a scene or a

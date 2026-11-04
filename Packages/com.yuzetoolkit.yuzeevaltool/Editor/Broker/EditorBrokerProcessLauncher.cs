@@ -9,32 +9,91 @@ namespace YuzeToolkit.Eval
 {
     internal static class EditorBrokerProcessLauncher
     {
-        [MenuItem("Window/YuzeToolkit/Install Eval Tool (npm)")]
+        private static Process? _installer;
+        private static string _installerLog = string.Empty;
+
+        [MenuItem(UnityEvalToolVersion.InstallBrokerMenuPath)]
         private static void InstallFromNpm()
         {
-            const string command = "npm install --global @yuzetoolkit/unityevaltool && unity service install && unity doctor";
+            if (_installer != null) return;
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var directory = Path.Combine(home, ".unityevaltool");
+            Directory.CreateDirectory(directory);
+            _installerLog = Path.Combine(directory, "npm-install.log");
+            File.WriteAllText(_installerLog, "Starting the npm installer.\n");
             var startInfo = new ProcessStartInfo
             {
-                UseShellExecute = true,
-                WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = home
             };
 #if UNITY_EDITOR_WIN
             startInfo.FileName = Environment.GetEnvironmentVariable("ComSpec")
                                  ?? throw new InvalidOperationException("The ComSpec environment variable is missing.");
-            startInfo.Arguments = "/d /k \"" + command + "\"";
-#elif UNITY_EDITOR_OSX
-            startInfo.FileName = "osascript";
-            startInfo.Arguments = "-e \"tell application \\\"Terminal\\\" to do script \\\"" + command +
-                                  "\\\"\" -e \"tell application \\\"Terminal\\\" to activate\"";
-#elif UNITY_EDITOR_LINUX
-            startInfo.FileName = "x-terminal-emulator";
-            startInfo.Arguments = "-e sh -lc \"" + command +
-                                  "; printf '\\nPress Enter to close...'; read reply\"";
+            var command = "where node >nul 2>&1 || (echo Node.js was not found. Install Node.js and reopen Unity. & exit /b 1)" +
+                          " & node --version && call npm.cmd --version && " +
+                          "(where unity >nul 2>&1 & if errorlevel 1 (ver >nul) else (call unity.cmd service stop)) && " +
+                          "call npm.cmd install --global @yuzetoolkit/unityevaltool@latest && " +
+                          "call unity.cmd service install && call unity.cmd doctor";
+            startInfo.Arguments = "/d /s /c \"(" + command + ") > \"" + _installerLog + "\" 2>&1\"";
+#elif UNITY_EDITOR_OSX || UNITY_EDITOR_LINUX
+            startInfo.FileName = Environment.GetEnvironmentVariable("SHELL")
+                                 ?? throw new InvalidOperationException("The SHELL environment variable is missing.");
+            var command = "exec > " + ShellQuote(_installerLog) + " 2>&1; " +
+                          "command -v node >/dev/null 2>&1 || { printf '%s\\n' 'Node.js was not found. Install Node.js and reopen Unity.'; exit 1; }; " +
+                          "set -e; node --version; npm --version; " +
+                          "if command -v unity >/dev/null 2>&1; then unity service stop; fi; " +
+                          "npm install --global @yuzetoolkit/unityevaltool@latest; unity service install; unity doctor";
+            startInfo.Arguments = "-ilc \"" + command.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 #else
             throw new PlatformNotSupportedException("The npm installer requires a Windows, macOS, or Linux Editor.");
 #endif
-            using var terminal = Process.Start(startInfo);
+            // Keep the polling owner alive while npm replaces the native Broker. The child writes
+            // directly to its log, so an Editor quit cannot break npm through a closed output pipe.
+            EditorApplication.LockReloadAssemblies();
+            try
+            {
+                UnityBrokerClient.Shared.Stop();
+                _installer = Process.Start(startInfo) ?? throw new InvalidOperationException("The npm installer process did not start.");
+                EditorApplication.update += PollInstaller;
+                EditorApplication.quitting += ReleaseInstaller;
+                LogSys.Log($"[Yuze Eval Tool] Installing the latest npm package in the background. Log: {_installerLog}");
+            }
+            catch
+            {
+                EditorApplication.UnlockReloadAssemblies();
+                EditorBrokerBootstrap.Reconnect();
+                throw;
+            }
         }
+
+        [MenuItem(UnityEvalToolVersion.InstallBrokerMenuPath, true)]
+        private static bool CanInstallFromNpm() => _installer == null;
+
+        private static void PollInstaller()
+        {
+            if (_installer == null || !_installer.HasExited) return;
+            var exitCode = _installer.ExitCode;
+            ReleaseInstaller();
+            EditorBrokerBootstrap.Reconnect();
+            var output = File.ReadAllText(_installerLog);
+            if (exitCode == 0)
+                LogSys.Log($"[Yuze Eval Tool] Installed the latest npm package and started its Broker.\n{output}");
+            else
+                LogSys.LogError($"[Yuze Eval Tool] npm installation failed (exit {exitCode}). Log: {_installerLog}\n{output}");
+        }
+
+        private static void ReleaseInstaller()
+        {
+            EditorApplication.update -= PollInstaller;
+            EditorApplication.quitting -= ReleaseInstaller;
+            if (_installer == null) return;
+            _installer.Dispose();
+            _installer = null;
+            EditorApplication.UnlockReloadAssemblies();
+        }
+
+        private static string ShellQuote(string value) => "'" + value.Replace("'", "'\"'\"'") + "'";
 
         public static bool EnsureRunning()
         {

@@ -141,6 +141,9 @@ Only the primary Unity Editor process may register. Asset Import Workers must ne
 The successful response includes `brokerInstanceId`, a value unique to the current Broker
 process. Unity discards every retained PuerTS session if this value changes, preventing a
 new Broker process from accidentally inheriting sessions that it no longer owns.
+From 4.1.0 the response also contains `brokerVersion`, the running Broker package version.
+Unity compares it with `UnityEvalToolVersion.RequiredBrokerVersion`; an older or unreported
+version produces an update Warning without blocking registration. Protocol version remains 2.0.
 The response contains no project tokens and Unity has no authorization-pending state. Legacy clients
 that explicitly register with project verification enabled receive `UnityUpgradeRequired`; upgrade
 the Unity package to 4.0.0 or later. Unity protocol 2.0 and the evaluation lifecycle are retained.

@@ -33,7 +33,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's
@@ -42,7 +42,7 @@ For a local source checkout, use **Add package from disk** and select this packa
 ## Editor lifecycle
 
 The primary Editor process starts its Broker client automatically after script loading.
-Asset Import Workers are excluded. Open **YuzeToolkit > Eval Tool** to inspect and
+Asset Import Workers are excluded. Open **YuzeToolkit > Eval Tool > Workbench** to inspect and
 control registration for the current process. The window reports the installed Broker,
 connection state, Unity phase, eval availability, compilation counters, and registered
 tool catalog.
@@ -145,3 +145,9 @@ npm packaging sources live at the repository root. See the
 ## License
 
 [MIT](LICENSE)
+
+## Broker installation and version requirement
+
+Use **YuzeToolkit > Eval Tool > Install Latest npm Package** for background installation of `@latest`. Node.js/npm must already exist; missing Node is an error. The installer stops the old service, installs/starts the new service, runs doctor and restores the Unity connection. The Console reports the result and `~/.unityevaltool/npm-install.log` retains the output.
+
+`UnityEvalToolVersion.RequiredBrokerVersion` is fixed at **4.1.0**. The running version comes from registration; older or unreported versions produce a Yuze Log Tool Warning and a workbench update notice without blocking the connection.

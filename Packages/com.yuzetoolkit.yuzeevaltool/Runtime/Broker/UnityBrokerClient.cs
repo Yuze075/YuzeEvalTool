@@ -26,6 +26,8 @@ namespace YuzeToolkit.Eval
         private Func<bool>? _ensureBrokerRunning;
         private BrokerUnityStatusSnapshot _latestStatus = new();
         private string _brokerInstanceId = string.Empty;
+        private string _brokerVersion = string.Empty;
+        private string _lastBrokerVersionWarning = string.Empty;
         private long _mainThreadTick;
         private long _runGeneration;
         private bool _configured;
@@ -45,6 +47,11 @@ namespace YuzeToolkit.Eval
         public bool IsRunning
         {
             get { lock (_syncRoot) return _runTask != null; }
+        }
+
+        public string BrokerVersion
+        {
+            get { lock (_syncRoot) return _brokerVersion; }
         }
 
         public BrokerClientIdentity Identity
@@ -260,6 +267,9 @@ namespace YuzeToolkit.Eval
                 ? payloadValue
                 : null) ?? EvalData.Obj();
             var brokerInstanceId = EvalData.GetString(responsePayload, "brokerInstanceId") ?? string.Empty;
+            var brokerVersion = EvalData.GetString(responsePayload, "brokerVersion") ?? string.Empty;
+            var versionWarning = UnityEvalToolVersion.GetBrokerVersionWarning(brokerVersion);
+            var reportVersionWarning = false;
             var resetSessions = false;
             lock (_syncRoot)
             {
@@ -268,8 +278,12 @@ namespace YuzeToolkit.Eval
                 resetSessions = !string.IsNullOrWhiteSpace(brokerInstanceId) &&
                                 !string.Equals(_brokerInstanceId, brokerInstanceId, StringComparison.Ordinal);
                 _brokerInstanceId = brokerInstanceId;
+                _brokerVersion = brokerVersion;
+                reportVersionWarning = versionWarning.Length != 0 && versionWarning != _lastBrokerVersionWarning;
+                _lastBrokerVersionWarning = versionWarning;
                 _isConnected = true;
             }
+            if (reportVersionWarning) LogSys.LogWarning("[Yuze Eval Tool] " + versionWarning);
             if (resetSessions) sessions.Reset();
             onConnected();
             LogSys.Log($"[Yuze Eval Tool] Connected to local Broker as {_identity.InstanceId} (epoch {_identity.ConnectionEpoch}).");

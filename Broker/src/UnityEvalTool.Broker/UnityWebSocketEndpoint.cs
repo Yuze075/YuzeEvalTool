@@ -45,7 +45,7 @@ internal static class UnityWebSocketEndpoint
             connection = registry.Register(socket, registration);
             var responsePayload = JsonSerializer.SerializeToElement(
                 new UnityRegistrationResponse(registration.InstanceId, BrokerConstants.ProtocolVersion,
-                    BrokerHost.InstanceId), BrokerJsonContext.Default.UnityRegistrationResponse);
+                    BrokerHost.InstanceId, BrokerConstants.PackageVersion), BrokerJsonContext.Default.UnityRegistrationResponse);
             await WebSocketJson.SendAsync(socket,
                 WebSocketJson.CreateEnvelope("response", envelope.Method, envelope.Id, responsePayload), sendGate,
                 context.RequestAborted);

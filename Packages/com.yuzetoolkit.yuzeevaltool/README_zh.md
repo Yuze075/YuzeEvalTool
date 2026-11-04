@@ -30,7 +30,7 @@ Unity C# API 位于 `YuzeToolkit.Eval`，Broker 源码位于 `YuzeToolkit.Eval.B
 使用 Unity Package Manager 的 **Add package from git URL**：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.0.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0
 ```
 
 如果使用本地源码 checkout，选择 **Add package from disk**，然后选中该 Package
@@ -39,7 +39,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ## Editor 生命周期
 
 主 Editor 进程会在脚本加载后自动启动 Broker Client，Asset Import Worker 会被排除。
-打开 **YuzeToolkit > Eval Tool** 可检查和控制当前进程的注册。该窗口会显示
+打开 **YuzeToolkit > Eval Tool > Workbench** 可检查和控制当前进程的注册。该窗口会显示
 已安装 Broker、连接状态、Unity phase、eval 可用性、编译计数和已注册 Tool 目录。
 
 该窗口使用包自有的深色 UI Toolkit 主题；按钮、页签、开关、Notice、文本输入、Tooltip、
@@ -128,3 +128,9 @@ Broker，覆盖所有本机项目与可用能力。Unity 注册、编译与 VM �
 ## 许可证
 
 [MIT](LICENSE)
+
+## Broker 安装与版本要求
+
+点击 **YuzeToolkit > Eval Tool > Install Latest npm Package** 后台安装 `@latest`。假定已有 Node.js/npm，缺少 Node 时直接报错。安装流程停止旧服务，安装并启动新服务、运行 doctor，最后恢复 Unity 连接。Console 报告结果，完整输出保存在 `~/.unityevaltool/npm-install.log`。
+
+`UnityEvalToolVersion.RequiredBrokerVersion` 固定为 **4.1.0**。通过注册握手读取实际运行版本；版本过低或未报告版本时，由 Yuze Log Tool 输出 Warning，并在工作台提示更新，不阻断连接。

@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## 4.1.0 — 2026-11-04
+
+- Group the workbench and latest-npm installer under YuzeToolkit / Eval Tool. Install in the background, report missing Node explicitly, and retain the installation log.
+- Report the running Broker version in registration; require Broker 4.1.0 and show update warnings in the Console and workbench without blocking connections.
+
 ## 4.0.0 - 2026-11-04
 
 - Pin the build SDK to .NET 10.0.403, including the 10.0.14 NativeAOT security fix, and keep NuGet vulnerability auditing enabled.

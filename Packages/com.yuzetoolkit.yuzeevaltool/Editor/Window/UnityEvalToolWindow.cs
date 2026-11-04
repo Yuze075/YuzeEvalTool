@@ -15,7 +15,7 @@ namespace YuzeToolkit.Eval
         private UnityEvalToolWorkbenchView? _view;
         private IVisualElementScheduledItem? _tickItem;
 
-        [MenuItem("YuzeToolkit/Eval Tool")]
+        [MenuItem("YuzeToolkit/Eval Tool/Workbench")]
         public static void Open()
         {
             var window = GetWindow<UnityEvalToolWindow>("Yuze Eval Tool");
