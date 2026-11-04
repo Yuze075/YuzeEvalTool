@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+## 4.2.0 — 2026-11-04
+
+- Rewrite every Broker MCP tool description and the remote workspace instructions for concise, accurate guidance.
+- Share one remote Broker connection for Unity federation and remote workspaces: transport, local-export validation, failure classification, retry backoff and the rule that a JSON-RPC or HTTP rejection proves a call was not executed. Unity discovery retry now doubles from the discovery interval, as documented.
+- Validate remote identities in one place for both endpoints; workspaces now also reject two remotes resolving to one Broker.
+- The local `/remote/mcp` gateway always lists all 17 tools; peers without a desktop driver reject desktop calls themselves. Remove dynamic catalog updates and `tools/list_changed`.
+- Keep the peer's own error code and message for forwarded workspace failures; stop repeating the error code in error text. Remote authentication failures use `RemoteAuthenticationFailed` on both endpoints.
+- Report malformed peer payloads as `RemoteIncompatible` instead of catching unrelated local exceptions as remote failures.
+
 ## 4.1.0 — 2026-11-04
 
 - Group the workbench and latest-npm installer under YuzeToolkit / Eval Tool. Install in the background, report missing Node explicitly, and retain the installation log.

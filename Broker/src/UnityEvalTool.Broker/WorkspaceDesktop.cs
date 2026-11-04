@@ -240,7 +240,7 @@ internal static class WorkspaceDesktopWorker
             catch (Exception ex) when (ex is BrokerOperationException or IOException or TimeoutException or JsonException or ArgumentException or InvalidOperationException or ModelContextProtocol.McpException or System.ComponentModel.Win32Exception or FormatException or OverflowException)
             {
                 var error = ex as BrokerOperationException;
-                try { await writer.WriteLineAsync(WorkspaceTools.Failure(dispatched ? "ExecutionOutcomeUnknown" : error?.Code ?? "DesktopDriverFailure", ex.Message, dispatched || error?.MayHaveExecuted == true).ToJsonString().AsMemory(), token); }
+                try { await writer.WriteLineAsync(WorkspaceTools.Failure(dispatched ? "ExecutionOutcomeUnknown" : error?.Code ?? "DesktopDriverFailure", error?.Detail ?? ex.Message, dispatched || error?.MayHaveExecuted == true).ToJsonString().AsMemory(), token); }
                 catch (IOException) { /* Disconnected caller must treat dispatched mutations as unknown. */ }
                 // A timed-out driver request may still be running. End this worker instead of
                 // accepting another action concurrently with an unconfirmed input operation.

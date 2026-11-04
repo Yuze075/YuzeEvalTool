@@ -10,7 +10,7 @@
 | 入口 | 工具与访问范围 |
 |---|---|
 | 本机 `/mcp` | 原有 `unity_status`、`unity_connect`、`eval`，访问本地与聚合的远程 Unity |
-| 本机 `/remote/mcp` | 15 个工作区工具与 2 个可选桌面工具，只能选择已配置的远端主机 |
+| 本机 `/remote/mcp` | 17 个工作区与桌面工具，只能选择已配置的远端主机 |
 | 网络 `/mcp` | 本地 Unity 导出，统一使用主机连接授权 |
 | 网络 `/remote/mcp` | 全部已注册本地项目根，共用连接授权，不转发其他主机 |
 | 本机 `/remote/status` | 浏览器连接状态页，不从网络监听器导出 |
@@ -175,9 +175,9 @@ Broker 重启后不保留任务 / 句柄日志。
 其唯一 Unity 进程，两种目标方式不能同时传入。网络导出端省略 hostId，禁止转发其他主机。
 
 Cua 是可选组件。未配置驱动或配置的可执行文件不存在时，网络入口
-不显示 `desktop_observe`、`desktop_act`。本机聚合入口先显示 15 个工具，发现或连接到具备桌面能力的在线
-远端后才增加这两个工具；聚合入口自己不需要安装 Cua。卸载驱动或最后一个具备桌面能力的远端离线后，
-工具重新隐藏。目录变化发送 `notifications/tools/list_changed`，客户端应据此刷新工具列表。
+不显示 `desktop_observe`、`desktop_act`。本机聚合入口始终显示全部 17 个工具，自己不需要安装 Cua；
+对没有驱动的主机调用桌面工具时，返回该主机的 `ToolUnavailable` 错误。`workspace_status` / `workspace_list`
+的 `hosts[].desktopToolsAvailable` 报告每台已发现主机的桌面能力。工具目录固定，不发送 `notifications/tools/list_changed`。
 文件、终端和 Unity 功能不依赖 Cua。驱动安装不等于系统授权与 worker 就绪，后两项在桌面调用时检查。
 
 当前适配要求 **Cua Driver 0.38.0**。使用官方平台发行包并校验其 SHA-256；其他版本需要先验证契约。

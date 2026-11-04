@@ -33,7 +33,7 @@ Do not install multiple PuerTS backends in one Unity project.
 Use Unity Package Manager's **Add package from git URL** command:
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
 ```
 
 For a local source checkout, use **Add package from disk** and select this package's
@@ -150,4 +150,4 @@ npm packaging sources live at the repository root. See the
 
 Use **YuzeToolkit > Eval Tool > Install Latest npm Package** for background installation of `@latest`. Node.js/npm must already exist; missing Node is an error. The installer stops the old service, installs/starts the new service, runs doctor and restores the Unity connection. The Console reports the result and `~/.unityevaltool/npm-install.log` retains the output.
 
-`UnityEvalToolVersion.RequiredBrokerVersion` is fixed at **4.1.0**. The running version comes from registration; older or unreported versions produce a Yuze Log Tool Warning and a workbench update notice without blocking the connection.
+`UnityEvalToolVersion.RequiredBrokerVersion` is fixed at **4.2.0**. The running version comes from registration; older or unreported versions produce a Yuze Log Tool Warning and a workbench update notice without blocking the connection.

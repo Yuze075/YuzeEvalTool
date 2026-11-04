@@ -17,12 +17,12 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
 
     public async Task HandleAsync(HttpContext http)
     {
-        var exporting = http.Items.ContainsKey(BrokerHost.LocalOnlyRequest);
+        var networkExport = http.Items.ContainsKey(BrokerHost.NetworkExportRequest);
         var authorization = http.Request.Headers.Authorization.ToString();
         var authHash = WorkspaceFiles.Version(Encoding.UTF8.GetBytes(authorization));
         var sessionId = http.Request.Headers["Mcp-Session-Id"].ToString();
         WorkspaceSession? session = null;
-        if (sessionId.Length != 0 && (!_sessions.TryGetValue(sessionId, out session) || session.Closed || session.Exporting != exporting || session.AuthorizationHash != authHash ||
+        if (sessionId.Length != 0 && (!_sessions.TryGetValue(sessionId, out session) || session.Closed || session.NetworkExport != networkExport || session.AuthorizationHash != authHash ||
             Volatile.Read(ref session.ActiveRequests) == 0 && session.ExpiresAtUtc <= DateTimeOffset.UtcNow))
         { http.Response.StatusCode = 404; return; }
         if (session != null) session.ExpiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(Options.LeaseSeconds);
@@ -67,7 +67,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
             {
                 if (_sessions.Count < Options.MaxSessions)
                 {
-                    session = new WorkspaceSession(exporting, authHash, Options);
+                    session = new WorkspaceSession(networkExport, authHash, Options);
                     _sessions[session.Id] = session;
                 }
             }
@@ -76,9 +76,9 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
             await ReplyAsync(http, Success(id, new JsonObject
             {
                 ["protocolVersion"] = "2025-11-25",
-                ["capabilities"] = new JsonObject { ["tools"] = new JsonObject { ["listChanged"] = true }, ["logging"] = new JsonObject(), ["resources"] = new JsonObject() },
+                ["capabilities"] = new JsonObject { ["tools"] = new JsonObject(), ["logging"] = new JsonObject(), ["resources"] = new JsonObject() },
                 ["serverInfo"] = new JsonObject { ["name"] = "YuzeEvalTool.RemoteWorkspace", ["version"] = BrokerConstants.PackageVersion },
-                ["instructions"] = "Remote workspace tools only. List and connect an exact remote workspace before work; read its scoped guidance and matching project Skills. Use remote paths through the context. Desktop tools appear only when an authorized remote with an installed/configured Cua Driver is discovered; refresh tools after list_changed notifications. Desktop defaults to background; foreground requires explicit user permission for each task and an explicit call argument. Events report disconnects and unknown outcomes; never automatically replay writes. MCP notifications do not guarantee a client will wake an idle model."
+                ["instructions"] = "Files, terminal, project AGENTS.md/Skills and optional desktop on remote hosts only; Unity eval stays on the Unity MCP. Flow: workspace_list, workspace_connect, read the returned guidance and relevant Skills, then work through contextHandle with remote paths. Never auto-retry a write that returned ExecutionOutcomeUnknown; check actual state first. Desktop tools work only on hosts with desktopToolsAvailable; foreground input needs the user's explicit permission."
             })); return;
         }
         if (session == null) { http.Response.StatusCode = 400; return; }
@@ -112,7 +112,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
             await ReplyAsync(http, Success(id, result));
         }
         catch (OperationCanceledException) when (http.RequestAborted.IsCancellationRequested) { }
-        catch (BrokerOperationException ex) { await ReplyAsync(http, Success(id, WorkspaceTools.Failure(ex.Code, ex.Message, ex.MayHaveExecuted))); }
+        catch (BrokerOperationException ex) { await ReplyAsync(http, Success(id, WorkspaceTools.Failure(ex.Code, ex.Detail, ex.MayHaveExecuted))); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or JsonException or System.ComponentModel.Win32Exception or FormatException or OverflowException)
         { await ReplyAsync(http, Success(id, WorkspaceTools.Failure("WorkspaceRequestFailed", ex.Message))); }
     }
@@ -149,9 +149,7 @@ internal sealed class WorkspaceMcpEndpoint(WorkspaceService service)
 
     private static async Task SendEventAsync(HttpContext http, long? id, JsonObject item)
     {
-        var notification = WorkspaceService.Text(item, "type") == "tools.changed"
-            ? new JsonObject { ["jsonrpc"] = "2.0", ["method"] = "notifications/tools/list_changed" }
-            : new JsonObject { ["jsonrpc"] = "2.0", ["method"] = "notifications/message", ["params"] = new JsonObject { ["level"] = "warning", ["logger"] = "YuzeEvalTool.workspace", ["data"] = item.DeepClone() } };
+        var notification = new JsonObject { ["jsonrpc"] = "2.0", ["method"] = "notifications/message", ["params"] = new JsonObject { ["level"] = "warning", ["logger"] = "YuzeEvalTool.workspace", ["data"] = item.DeepClone() } };
         if (id.HasValue) await http.Response.WriteAsync("id: " + id + "\n", http.RequestAborted);
         await http.Response.WriteAsync("event: message\ndata: " + notification.ToJsonString() + "\n\n", http.RequestAborted);
     }

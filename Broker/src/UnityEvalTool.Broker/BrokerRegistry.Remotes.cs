@@ -1,10 +1,8 @@
 #nullable enable
-using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol;
-using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
 namespace YuzeToolkit.Eval.Broker;
@@ -14,7 +12,7 @@ internal sealed partial class BrokerRegistry
     private sealed class RemotePeer(RemoteBrokerOptions options)
     {
         public RemoteBrokerOptions Options { get; } = options;
-        public McpClient? Client { get; set; }
+        public RemoteBrokerConnection? Connection { get; set; }
         public RegistrySnapshot? Snapshot { get; set; }
         public FederationInfo? Identity { get; set; }
         public string State { get; set; } = options.Enabled ? "connecting" : "disabled";
@@ -114,18 +112,18 @@ internal sealed partial class BrokerRegistry
         RemotePeer peer;
         RegistrySnapshot snapshot;
         UnityInstanceSnapshot unity;
-        McpClient client;
+        RemoteBrokerConnection connection;
         lock (_syncRoot)
         {
             ValidateAggregateRevision(registryRevision);
             if (_instances.ContainsKey(instanceId)) return Connect(instanceId, _revision);
             (peer, unity) = FindRemoteInstance(instanceId);
-            client = RequireRemoteClient(peer);
+            connection = RequireRemoteConnection(peer);
             snapshot = peer.Snapshot!;
         }
 
         var startedAt = DateTimeOffset.UtcNow;
-        var result = await CallRemoteAsync(peer, client, "unity_connect", new JsonObject
+        var result = await CallRemoteAsync(peer, connection, "unity_connect", new JsonObject
         {
             ["instanceId"] = unity.InstanceId,
             ["registryRevision"] = snapshot.RegistryRevision
@@ -156,7 +154,7 @@ internal sealed partial class BrokerRegistry
         RemotePeer? peer = null;
         RemoteLease? lease;
         UnityInstanceSnapshot? unity = null;
-        McpClient? client = null;
+        RemoteBrokerConnection? connection = null;
         string? requestedEpoch = null;
         lock (_syncRoot)
         {
@@ -167,7 +165,7 @@ internal sealed partial class BrokerRegistry
                 (peer, unity) = FindRemoteInstance(instanceId);
             if (peer != null)
             {
-                client = RequireRemoteClient(peer);
+                connection = RequireRemoteConnection(peer);
                 requestedEpoch = peer.Identity!.BrokerInstanceId;
                 if (lease != null) lease.ActiveRequests++;
             }
@@ -182,7 +180,7 @@ internal sealed partial class BrokerRegistry
 
         try
         {
-            var result = await CallRemoteAsync(peer, client!, "unity_status", new JsonObject
+            var result = await CallRemoteAsync(peer, connection!, "unity_status", new JsonObject
             {
                 ["connectionHandle"] = lease?.Handle ?? string.Empty,
                 ["instanceId"] = lease == null ? unity!.InstanceId : string.Empty,
@@ -199,7 +197,7 @@ internal sealed partial class BrokerRegistry
                     throw new BrokerOperationException(BrokerErrorCodes.ConnectionHandleInvalid,
                         "Remote Broker changed during status retrieval; discover and connect again.");
                 // A late successful read must not revive a client already retired by discovery.
-                if (peer.State == "online" && ReferenceEquals(peer.Client, client))
+                if (peer.State == "online" && ReferenceEquals(peer.Connection, connection))
                     PublishRemoteSnapshot(peer, remote);
                 if (remote.SelectedUnity == null || remote.SelectedUnity.InstanceId != unity!.InstanceId)
                     throw Incompatible("unity_status did not return the selected local Unity instance.");
@@ -224,13 +222,13 @@ internal sealed partial class BrokerRegistry
         int timeoutSeconds, bool resetSession, CancellationToken cancellationToken)
     {
         RemoteLease? lease;
-        McpClient? client = null;
+        RemoteBrokerConnection? connection = null;
         lock (_syncRoot)
         {
             lease = ResolveRemoteLease(connectionHandle);
             if (lease != null)
             {
-                client = RequireRemoteClient(lease.Peer);
+                connection = RequireRemoteConnection(lease.Peer);
                 lease.ActiveRequests++;
             }
         }
@@ -243,7 +241,7 @@ internal sealed partial class BrokerRegistry
                 throw new BrokerOperationException(BrokerErrorCodes.InvalidRequest, "Eval code is required.");
             var timeout = Math.Clamp(timeoutSeconds <= 0 ? 30 : timeoutSeconds, 1, 600);
             var startedAt = DateTimeOffset.UtcNow;
-            var result = await CallRemoteAsync(lease.Peer, client!, "eval", new JsonObject
+            var result = await CallRemoteAsync(lease.Peer, connection!, "eval", new JsonObject
             {
                 ["connectionHandle"] = lease.Handle,
                 ["code"] = code,
@@ -267,39 +265,17 @@ internal sealed partial class BrokerRegistry
     private async Task RunRemotePeerAsync(RemotePeer peer, SemaphoreSlim discoverySlots, CancellationToken stoppingToken)
     {
         var failures = 0;
+        var timeout = TimeSpan.FromSeconds(_configuration.ConnectionTimeoutSeconds);
         while (!stoppingToken.IsCancellationRequested)
         {
-            McpClient? client = null;
-            var timeout = TimeSpan.FromSeconds(_configuration.ConnectionTimeoutSeconds);
-            using var http = new HttpClient(new SocketsHttpHandler
-            {
-                AllowAutoRedirect = false,
-                ConnectTimeout = timeout
-            }) { Timeout = TimeSpan.FromSeconds(3600 + _configuration.ConnectionTimeoutSeconds + _configuration.TransportGraceSeconds) };
-            var headers = new Dictionary<string, string>();
-            var credential = _configuration.GetCredential(peer.Options.CredentialRef);
-            if (credential != null) headers.Add("Authorization", "Bearer " + credential);
-            await using var transport = new HttpClientTransport(new HttpClientTransportOptions
-            {
-                Endpoint = peer.Options.Endpoint,
-                Name = peer.Options.Id,
-                TransportMode = HttpTransportMode.StreamableHttp,
-                EnableStandaloneGetStream = false,
-                MaxReconnectionAttempts = 0,
-                ConnectionTimeout = timeout,
-                AdditionalHeaders = headers
-            }, http, ownsHttpClient: false);
+            RemoteBrokerConnection? connection = null;
             try
             {
                 await discoverySlots.WaitAsync(stoppingToken);
                 try
                 {
-                    client = await McpClient.CreateAsync(transport, new McpClientOptions
-                    {
-                        ProtocolVersion = "2025-11-25",
-                        InitializationTimeout = timeout,
-                        ClientInfo = new Implementation { Name = "UnityEvalTool.Broker", Version = BrokerConstants.PackageVersion }
-                    }, cancellationToken: stoppingToken);
+                    connection = await RemoteBrokerConnection.ConnectAsync(_configuration, peer.Options, "/mcp",
+                        TimeSpan.FromSeconds(3600 + _configuration.ConnectionTimeoutSeconds + _configuration.TransportGraceSeconds), stoppingToken);
                 }
                 finally { discoverySlots.Release(); }
                 while (!stoppingToken.IsCancellationRequested)
@@ -307,8 +283,8 @@ internal sealed partial class BrokerRegistry
                     await discoverySlots.WaitAsync(stoppingToken);
                     try
                     {
-                        var result = await InvokeRemoteAsync(client, "unity_status", new JsonObject(), timeout, stoppingToken);
-                        PublishRemoteSnapshot(peer, ReadSnapshot(result), client);
+                        var result = await connection.CallAsync("unity_status", new JsonObject(), timeout, stoppingToken);
+                        PublishRemoteSnapshot(peer, ReadSnapshot(result), connection);
                         failures = 0;
                     }
                     finally { discoverySlots.Release(); }
@@ -316,29 +292,25 @@ internal sealed partial class BrokerRegistry
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-            catch (Exception ex) when (IsRemoteFailure(ex))
+            catch (Exception ex) when (RemoteBrokerConnection.IsFailure(ex))
             {
-                MarkRemoteUnavailable(peer, RemoteFailureCode(ex));
+                MarkRemoteUnavailable(peer, RemoteBrokerConnection.FailureCode(ex));
                 failures++;
             }
             finally
             {
-                lock (_syncRoot) peer.Client = null;
-                if (client != null) await client.DisposeAsync();
+                lock (_syncRoot) peer.Connection = null;
+                if (connection != null) await connection.DisposeAsync();
             }
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Min(_configuration.ReconnectMaxDelaySeconds,
-                    Math.Pow(2, Math.Min(failures - 1, 10)))), stoppingToken);
-            }
+            try { await Task.Delay(RemoteBrokerConnection.RetryDelay(_configuration, failures), stoppingToken); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
         }
     }
 
-    private async Task<CallToolResult> CallRemoteAsync(RemotePeer peer, McpClient client, string tool,
+    private async Task<CallToolResult> CallRemoteAsync(RemotePeer peer, RemoteBrokerConnection connection, string tool,
         JsonObject arguments, TimeSpan timeout, bool mayExecute, CancellationToken cancellationToken)
     {
-        try { return await InvokeRemoteAsync(client, tool, arguments, timeout, cancellationToken); }
+        try { return await connection.CallAsync(tool, arguments, timeout, cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (mayExecute)
@@ -346,29 +318,17 @@ internal sealed partial class BrokerRegistry
                     $"Remote '{peer.Options.Id}' eval was interrupted. Do not automatically retry.", true);
             throw;
         }
-        catch (Exception ex) when (IsRemoteFailure(ex))
+        // The peer replied with a JSON-RPC error; surface it unchanged and keep the peer online.
+        catch (McpProtocolException) { throw; }
+        catch (Exception ex) when (RemoteBrokerConnection.IsFailure(ex))
         {
-            var code = RemoteFailureCode(ex);
-            // Only a JSON-RPC error proves the peer replied. Transport/session closure remains ambiguous.
-            if (ex is McpProtocolException) throw;
+            var code = RemoteBrokerConnection.FailureCode(ex);
             lock (_syncRoot)
-                if (ReferenceEquals(peer.Client, client)) MarkRemoteUnavailable(peer, code);
-            throw new BrokerOperationException(mayExecute ? BrokerErrorCodes.ExecutionOutcomeUnknown : code,
-                $"Remote '{peer.Options.Id}' request failed. Inspect unity_status.remoteBrokers; do not replay interrupted eval.", mayExecute);
+                if (ReferenceEquals(peer.Connection, connection)) MarkRemoteUnavailable(peer, code);
+            var unknown = mayExecute && !RemoteBrokerConnection.ProvesNotExecuted(ex);
+            throw new BrokerOperationException(unknown ? BrokerErrorCodes.ExecutionOutcomeUnknown : code,
+                $"Remote '{peer.Options.Id}' request failed. Inspect unity_status.remoteBrokers; do not replay interrupted eval.", unknown);
         }
-    }
-
-    private static Task<CallToolResult> InvokeRemoteAsync(McpClient client, string tool, JsonObject arguments,
-        TimeSpan timeout, CancellationToken cancellationToken)
-    {
-        var parameters = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        foreach (var pair in arguments)
-        {
-            using var document = JsonDocument.Parse(pair.Value?.ToJsonString() ?? "null");
-            parameters.Add(pair.Key, document.RootElement.Clone());
-        }
-        return client.CallToolAsync(new CallToolRequestParams { Name = tool, Arguments = parameters }, cancellationToken)
-            .AsTask().WaitAsync(timeout, cancellationToken);
     }
 
     private static JsonElement ReadRemoteResult(CallToolResult result)
@@ -384,11 +344,11 @@ internal sealed partial class BrokerRegistry
     private static RegistrySnapshot ReadSnapshot(CallToolResult result)
     {
         var snapshot = DeserializeRemoteResult(result, BrokerJsonContext.Default.RegistrySnapshot);
-        var info = snapshot.Federation;
-        if (info == null || info.Version != 1 || info.View != "local" ||
-            !Guid.TryParseExact(info.BrokerId, "N", out _) || !Guid.TryParseExact(info.BrokerInstanceId, "N", out _) ||
-            info.LeaseIdleTimeoutSeconds is <= 0 or > 86400 || snapshot.UnityInstances == null || snapshot.RegistryRevision < 0)
-            throw Incompatible("Configure a compatible Broker network endpoint that exports local projects only.");
+        var info = snapshot.Federation ?? throw Incompatible("The remote snapshot has no federation identity.");
+        RemoteBrokerConnection.RequireLocalExport(info.View, info.BrokerId, info.BrokerInstanceId);
+        if (info.Version != 1 || info.LeaseIdleTimeoutSeconds is <= 0 or > 86400 ||
+            snapshot.UnityInstances == null || snapshot.RegistryRevision < 0)
+            throw Incompatible("The remote snapshot does not match the Unity Broker contract.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var unity in snapshot.UnityInstances)
         {
@@ -417,16 +377,27 @@ internal sealed partial class BrokerRegistry
         }
     }
 
-    private void PublishRemoteSnapshot(RemotePeer peer, RegistrySnapshot snapshot, McpClient? client = null)
+    // Unity federation and remote workspaces share this check: no self-route, no two remotes
+    // resolving to one Broker, and no identity change for a remote already discovered.
+    public void ValidateRemoteIdentity(string remoteId, string brokerId)
+    {
+        lock (_syncRoot)
+        {
+            var peer = _remotePeers[remoteId];
+            if (brokerId == _configuration.BrokerId ||
+                _remotePeers.Values.Any(other => other != peer && other.Identity?.BrokerId == brokerId) ||
+                (peer.Identity != null && peer.Identity.BrokerId != brokerId))
+                throw new BrokerOperationException(BrokerErrorCodes.RemoteIdentityConflict,
+                    "A remote points to this Broker, duplicates another configured Broker, or changed identity.");
+        }
+    }
+
+    private void PublishRemoteSnapshot(RemotePeer peer, RegistrySnapshot snapshot, RemoteBrokerConnection? connection = null)
     {
         lock (_syncRoot)
         {
             var info = snapshot.Federation!;
-            if (info.BrokerId == _configuration.BrokerId || _remotePeers.Values.Any(other =>
-                    other != peer && other.Identity?.BrokerId == info.BrokerId) ||
-                (peer.Identity != null && peer.Identity.BrokerId != info.BrokerId))
-                throw new BrokerOperationException(BrokerErrorCodes.RemoteIdentityConflict,
-                    "A remote points to this Broker or duplicates another configured Broker.");
+            ValidateRemoteIdentity(peer.Options.Id, info.BrokerId);
             var previous = peer.Snapshot;
             if (previous?.Federation?.BrokerInstanceId == info.BrokerInstanceId &&
                 snapshot.RegistryRevision < previous.RegistryRevision) return;
@@ -437,7 +408,7 @@ internal sealed partial class BrokerRegistry
                 peer.Identity?.BrokerInstanceId != info.BrokerInstanceId)
                 _aggregateRevision++;
             peer.Identity = info;
-            if (client != null) peer.Client = client;
+            if (connection != null) peer.Connection = connection;
             peer.Snapshot = snapshot;
             peer.LastSeenAtUtc = DateTimeOffset.UtcNow;
             peer.DisconnectedAtUtc = null;
@@ -454,7 +425,7 @@ internal sealed partial class BrokerRegistry
             peer.State = "offline";
             peer.ErrorCode = code;
             peer.DisconnectedAtUtc ??= DateTimeOffset.UtcNow;
-            if (code is BrokerErrorCodes.RemoteIncompatible or BrokerErrorCodes.RemoteIdentityConflict or BrokerErrorCodes.AuthenticationFailed)
+            if (code is BrokerErrorCodes.RemoteIncompatible or BrokerErrorCodes.RemoteIdentityConflict or BrokerErrorCodes.RemoteAuthenticationFailed)
             {
                 peer.Snapshot = null;
                 foreach (var pair in _remoteLeases.Where(pair => pair.Value.Peer == peer).ToArray())
@@ -525,8 +496,8 @@ internal sealed partial class BrokerRegistry
                 "Remote Broker or Unity process changed; discover and connect again.");
     }
 
-    private static McpClient RequireRemoteClient(RemotePeer peer) => peer.State == "online" && peer.Client != null
-        ? peer.Client
+    private static RemoteBrokerConnection RequireRemoteConnection(RemotePeer peer) => peer.State == "online" && peer.Connection != null
+        ? peer.Connection
         : throw new BrokerOperationException(BrokerErrorCodes.RemoteUnavailable, $"Remote '{peer.Options.Id}' is unavailable.");
 
     private static TimeSpan RemoteIdleTimeout(RegistrySnapshot snapshot) =>
@@ -543,15 +514,4 @@ internal sealed partial class BrokerRegistry
 
     private static BrokerOperationException Incompatible(string message) =>
         new(BrokerErrorCodes.RemoteIncompatible, message);
-
-    private static bool IsRemoteFailure(Exception error) => error is HttpRequestException or IOException or InvalidDataException or
-        TimeoutException or OperationCanceledException or McpException or ClientTransportClosedException or JsonException or ObjectDisposedException;
-
-    private static string RemoteFailureCode(Exception error) => error switch
-    {
-        BrokerOperationException operation => operation.Code,
-        HttpRequestException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => BrokerErrorCodes.AuthenticationFailed,
-        JsonException or InvalidDataException or McpProtocolException => BrokerErrorCodes.RemoteIncompatible,
-        _ => BrokerErrorCodes.RemoteUnavailable
-    };
 }

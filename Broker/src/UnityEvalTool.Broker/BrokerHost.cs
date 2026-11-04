@@ -8,7 +8,7 @@ internal static class BrokerHost
 {
     private static readonly DateTimeOffset StartedAtUtc = DateTimeOffset.UtcNow;
     public static readonly string InstanceId = Guid.NewGuid().ToString("N");
-    internal static readonly object LocalOnlyRequest = new();
+    internal static readonly object NetworkExportRequest = new();
 
     public static async Task RunAsync(string[] args)
     {
@@ -70,7 +70,7 @@ internal static class BrokerHost
                     context.Response.Headers.WWWAuthenticate = "Bearer realm=\"UnityEvalTool\"";
                     return;
                 }
-                context.Items[LocalOnlyRequest] = true;
+                context.Items[NetworkExportRequest] = true;
                 await next(context);
                 return;
             }

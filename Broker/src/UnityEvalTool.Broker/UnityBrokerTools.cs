@@ -12,8 +12,9 @@ namespace YuzeToolkit.Eval.Broker;
 [McpServerToolType]
 internal sealed class UnityBrokerTools(BrokerRegistry registry, IHttpContextAccessor contexts)
 {
-    private bool LocalOnly => (contexts.HttpContext ?? throw new InvalidOperationException("MCP HTTP context is unavailable."))
-        .Items.ContainsKey(BrokerHost.LocalOnlyRequest);
+    // A network export serves only this computer's Unity instances; the local endpoint aggregates remotes.
+    private bool NetworkExport => (contexts.HttpContext ?? throw new InvalidOperationException("MCP HTTP context is unavailable."))
+        .Items.ContainsKey(BrokerHost.NetworkExportRequest);
     // MCP protocol versions through 2025-11-25 require every outputSchema.properties value to be a
     // JSON object, but the MCP SDK derives the boolean JSON Schema "true" for JsonElement returns,
     // which strict clients then reject. "{}" is the object-form equivalent of "true": the SDK wraps
@@ -32,15 +33,15 @@ internal sealed class UnityBrokerTools(BrokerRegistry registry, IHttpContextAcce
 
     private static MethodInfo GetMethod(string name) => typeof(UnityBrokerTools).GetMethod(name)!;
     [McpServerTool(Name = "unity_status", UseStructuredContent = true)]
-    [Description("Read Unity instances, source and lifecycle state, or wait for a state transition. Local endpoints aggregate configured remotes; network endpoints export local instances only. Remote ids are source-qualified; never match a remote project by the local working directory. Call this before unity_connect. Before remote compilation, obtain capturedAtUtc with that instanceId or connectionHandle so the timestamp uses the remote clock. ready includes executable CompilationFailed repair mode. Inspect isConnected, source.isStale, phase, canEval and remoteBrokers errors.")]
+    [Description("List local and remote Unity instances with their lifecycle state, or wait for a state change. Call before unity_connect. Remote instances have ids like remote:<host>:<id>; choose them by host and projectPath, never by matching the local working directory. Check isConnected, source.isStale, status.phase, status.canEval and remoteBrokers errors. Before an eval that may compile, call this with the same connectionHandle and keep capturedAtUtc; it uses that instance's clock.")]
     public async Task<JsonElement> StatusAsync(
-        [Description("Optional handle returned by unity_connect. Pass either this or instanceId when waiting.")] string connectionHandle = "",
-        [Description("Optional instanceId returned by an earlier snapshot. Use this to wait before unity_connect, including while Unity is compiling or reloading.")] string instanceId = "",
-        [Description("snapshot; ready (normal Ready or CompilationFailed repair mode); or compilation-complete (successful or failed terminal compilation). Always inspect the returned phase.")] string waitFor = "snapshot",
-        [Description("Optional compilationCycleId from unity_status to match while waiting. Do not pass the Unity-side requestId returned by scheduleAssetRefresh.")] string compilationCycleId = "",
-        [Description("Deprecated compatibility alias for compilationCycleId. New callers should use compilationCycleId.")] string requestId = "",
-        [Description("Optional capturedAtUtc from a fresh unity_status snapshot taken immediately before the eval that requests compilation. compilation-complete then ignores older cycles.")] string observedAfterUtc = "",
-        [Description("Wait timeout in seconds. Zero returns immediately.")] int timeoutSeconds = 0,
+        [Description("Handle from unity_connect. Pass this or instanceId when waiting.")] string connectionHandle = "",
+        [Description("instanceId from an earlier snapshot; allows waiting before unity_connect, e.g. while Unity compiles.")] string instanceId = "",
+        [Description("snapshot (default); ready (Ready, or CompilationFailed repair mode); compilation-complete (succeeded or failed). Always check the returned phase.")] string waitFor = "snapshot",
+        [Description("Optional compilationCycleId from unity_status to wait for. Not the requestId returned by scheduleAssetRefresh.")] string compilationCycleId = "",
+        [Description("Deprecated alias of compilationCycleId.")] string requestId = "",
+        [Description("capturedAtUtc from the unity_status call made just before the compiling eval; compilation-complete then ignores older cycles.")] string observedAfterUtc = "",
+        [Description("Wait timeout in seconds, 0–3600; 0 returns immediately.")] int timeoutSeconds = 0,
         CancellationToken cancellationToken = default)
     {
         DateTimeOffset? observedAfter = null;
@@ -58,32 +59,32 @@ internal sealed class UnityBrokerTools(BrokerRegistry registry, IHttpContextAcce
                 "compilationCycleId and its deprecated requestId alias must match when both are provided.");
         var selectedCompilationCycleId = string.IsNullOrWhiteSpace(compilationCycleId) ? requestId : compilationCycleId;
         var timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 0, 3600));
-        var snapshot = LocalOnly
+        var snapshot = NetworkExport
             ? await registry.WaitAsync(connectionHandle, instanceId, waitFor, selectedCompilationCycleId, observedAfter, timeout, cancellationToken)
             : await registry.WaitForProjectAsync(connectionHandle, instanceId, waitFor, selectedCompilationCycleId, observedAfter, timeout, cancellationToken);
         return JsonSerializer.SerializeToElement(snapshot, BrokerJsonContext.Default.RegistrySnapshot);
     }
 
     [McpServerTool(Name = "unity_connect", UseStructuredContent = true)]
-    [Description("Bind this workflow to one Unity instance. First call unity_status, choose the exact instance, and pass that snapshot's registryRevision. Reuse the returned opaque connectionHandle across compilation, temporary disconnects, and same-process Domain Reload; reconnect only when the handle is invalid, expired, or belongs to a replaced Unity process.")]
+    [Description("Bind to one Unity instance chosen from unity_status, passing that snapshot's registryRevision. Reuse the returned connectionHandle across compilation, Domain Reload and brief disconnects; reconnect only when the handle is reported invalid or expired, or the Unity process was replaced.")]
     public async Task<JsonElement> ConnectAsync(
-        [Description("Exact instanceId returned by unity_status.")] string instanceId,
-        [Description("Exact registryRevision returned by the preceding unity_status call.")] long registryRevision,
+        [Description("Exact instanceId from unity_status.")] string instanceId,
+        [Description("registryRevision from the same unity_status call.")] long registryRevision,
         CancellationToken cancellationToken = default)
     {
-        var result = LocalOnly ? registry.Connect(instanceId, registryRevision)
+        var result = NetworkExport ? registry.Connect(instanceId, registryRevision)
             : await registry.ConnectProjectAsync(instanceId, registryRevision, cancellationToken);
         return JsonSerializer.SerializeToElement(result, BrokerJsonContext.Default.ConnectionLeaseResult);
     }
 
     [McpServerTool(Name = "eval")]
-    [Description("Run one JavaScript request in the Unity selected by unity_connect, using the persistent eval session and tools:// module contract described by the code parameter. Eval is unavailable while Unity is compiling, reloading, importing, changing PlayMode, stalled, or disconnected. Before a request that may compile, retain a fresh unity_status capturedAtUtc; after the request returns, wait with unity_status(waitFor: compilation-complete, observedAfterUtc: capturedAtUtc). CompilationFailed remains executable against the last successful assemblies for repair. Never automatically retry an interrupted request whose effects are uncertain.")]
+    [Description("Run JavaScript in the connected Unity's persistent PuerTS session. Unavailable while Unity is compiling, reloading, importing, changing Play Mode, stalled or disconnected. CompilationFailed still runs against the last successful assemblies, for repairs. For code that may compile: take capturedAtUtc from unity_status first, then call unity_status(waitFor: compilation-complete, observedAfterUtc: capturedAtUtc). Never automatically retry a request whose outcome is unknown.")]
     public async Task<CallToolResult> EvalAsync(
-        [Description("Opaque handle returned by unity_connect.")] string connectionHandle,
-        [Description("JavaScript defining async function execute(). Return concise serializable data. For unfamiliar Unity work, import tools:// for root summaries and getToolDetails(path), then import the relevant tools://Path module; generated tool methods use positional parameters. Prefer helper modules and use CS.* only for uncovered APIs.")] string code,
-        [Description("Unity-side execution timeout in seconds, from 1 to 600.")] int timeout = 30,
-        [Description("Dispose and recreate this handle's persistent Unity-side PuerTS VM before execution.")] bool resetSession = false,
-        CancellationToken cancellationToken = default) => LocalOnly
+        [Description("Handle from unity_connect.")] string connectionHandle,
+        [Description("JavaScript defining async function execute() that returns small serializable data. To discover helpers, import tools:// for summaries and getToolDetails(path), then import tools://<Path>; generated methods take positional arguments. Use CS.* only for APIs the helpers do not cover.")] string code,
+        [Description("Unity-side timeout in seconds, 1–600.")] int timeout = 30,
+        [Description("Recreate this handle's PuerTS VM before running.")] bool resetSession = false,
+        CancellationToken cancellationToken = default) => NetworkExport
             ? UnityToolResultConverter.Convert(await registry.ExecuteEvalAsync(connectionHandle, code, timeout, resetSession, cancellationToken))
             : await registry.ExecuteProjectEvalAsync(connectionHandle, code, timeout, resetSession, cancellationToken);
 }

@@ -11,7 +11,7 @@ still opt-in. There are no per-project grants or separate workspace credentials.
 | Listener / path | Catalog and scope |
 |---|---|
 | Local `/mcp` | Existing `unity_status`, `unity_connect`, `eval`; local and federated Unity instances |
-| Local `/remote/mcp` | 15 workspace tools plus 2 optional desktop tools; configured remote hosts only |
+| Local `/remote/mcp` | 17 workspace and desktop tools; configured remote hosts only |
 | Network `/mcp` | Local Unity export with host connection authorization |
 | Network `/remote/mcp` | All registered local folders with the same connection authorization; no onward routing |
 | Local `/remote/status` | Browser connection monitor; never exposed by the network listener |
@@ -212,12 +212,11 @@ no folder registration or project context is needed. `desktop_act` uses the same
 `observationId`. A project `contextHandle` remains an alternative when targeting its unique Unity
 process; never supply both hostId and contextHandle. Network exports omit hostId and cannot forward.
 
-Cua is optional. Without an installed, explicitly configured driver, the network catalog omits `desktop_observe` and `desktop_act`. The local gateway
-starts with 15 tools and adds those two only after discovering or connecting an online peer
-that exports desktop capability; it does not require Cua on the gateway itself. Driver removal
-or loss of the last capable peer hides them again. Catalog changes emit
-`notifications/tools/list_changed`; clients must refresh their tool lists. Files, terminals and
-Unity remain available without Cua. Installation is distinct from OS permissions and worker
+Cua is optional. Without an installed, explicitly configured driver, the network catalog omits `desktop_observe` and `desktop_act`.
+The local gateway always lists all 17 tools and does not require Cua itself; a desktop call to a
+host without a driver returns that host's `ToolUnavailable` error. `hosts[].desktopToolsAvailable`
+in `workspace_status` / `workspace_list` reports each discovered host. The catalog is static, so
+no `notifications/tools/list_changed` is sent. Files, terminals and Unity remain available without Cua. Installation is distinct from OS permissions and worker
 readiness, which are checked when desktop tools are invoked.
 
 The adapter currently requires **Cua Driver 0.38.0**; other versions are rejected until their

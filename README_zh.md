@@ -52,7 +52,7 @@ Yuze Eval Tool Package 会声明 core 依赖，但不会替项目选择 JavaScri
 在 Unity 中打开 **Window > Package Manager**，选择 **Add package from git URL**，输入：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0
 ```
 
 对应的 `Packages/manifest.json` 依赖是：
@@ -60,7 +60,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 ```json
 {
   "dependencies": {
-    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.1.0"
+    "com.yuzetoolkit.yuzeevaltool": "https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeevaltool#v4.2.0"
   }
 }
 ```
@@ -76,7 +76,7 @@ https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzee
 结果通过 Yuze Log Tool 显示在 Unity Console，完整日志位于 `~/.unityevaltool/npm-install.log`；失败后停止后续命令。
 工作台入口为 **YuzeToolkit > Eval Tool > Workbench**。
 
-本 UnityPackage 固定要求 Broker **4.1.0** 或更新版本。握手报告正在运行的 Broker 版本；低于要求、无法识别或
+本 UnityPackage 固定要求 Broker **4.2.0** 或更新版本。握手报告正在运行的 Broker 版本；低于要求、无法识别或
 未报告版本时，Console 发出 Warning，工作台提示从安装菜单更新；提示不会禁用连接。
 
 全局安装原生 npm Package，然后显式安装当前用户服务：
@@ -219,7 +219,7 @@ unity list
 安装 Yuze Eval Tool 后，使用 **Add package from git URL** 添加 Yuze Agent Tool：
 
 ```text
-https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.1.0
+https://github.com/Yuze075/YuzeEvalTool.git?path=/Packages/com.yuzetoolkit.yuzeagenttool#v4.2.0
 ```
 
 然后把该 Package 中的 `Runtime/Panel/Prefabs/DebugPanel.prefab` 放入 Scene 或常驻

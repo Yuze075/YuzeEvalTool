@@ -2,20 +2,18 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
-using ModelContextProtocol.Client;
 
 namespace YuzeToolkit.Eval.Broker;
 
-internal sealed class WorkspaceSession(bool exporting, string authorizationHash, WorkspaceOptions options) : IAsyncDisposable
+internal sealed class WorkspaceSession(bool networkExport, string authorizationHash, WorkspaceOptions options) : IAsyncDisposable
 {
     private readonly object _eventsLock = new();
     private readonly Queue<JsonObject> _events = new();
     private long _eventId;
     private long _expiresAtTicks = DateTimeOffset.UtcNow.AddSeconds(options.LeaseSeconds).UtcTicks;
     private int _closed;
-    private bool? _desktopToolsVisible;
     public string Id { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-    public bool Exporting { get; } = exporting;
+    public bool NetworkExport { get; } = networkExport;
     public string AuthorizationHash { get; } = authorizationHash;
     public DateTimeOffset ExpiresAtUtc
     {
@@ -27,14 +25,6 @@ internal sealed class WorkspaceSession(bool exporting, string authorizationHash,
     public SemaphoreSlim Gate { get; } = new(1, 1);
     public ConcurrentDictionary<string, WorkspaceContext> Contexts { get; } = new(StringComparer.Ordinal);
     public Dictionary<string, WorkspacePeer> Peers { get; } = new(StringComparer.Ordinal);
-
-    // Called under Gate; the event stream reads the resulting event through its own lock.
-    public void UpdateDesktopTools(bool available)
-    {
-        if (_desktopToolsVisible.HasValue && _desktopToolsVisible != available)
-            Publish("tools.changed", new JsonObject { ["desktopToolsAvailable"] = available });
-        _desktopToolsVisible = available;
-    }
 
     public void Publish(string type, JsonObject detail)
     {
@@ -102,11 +92,10 @@ internal sealed class WorkspaceContext(string workspaceId, string cwd) : IDispos
     public void Dispose() { foreach (var task in Tasks.Values) task.Dispose(); Tasks.Clear(); }
 }
 
-internal sealed class WorkspacePeer(string id, HttpClient http, McpClient client) : IAsyncDisposable
+internal sealed class WorkspacePeer(string id, RemoteBrokerConnection connection) : IAsyncDisposable
 {
     public string Id { get; } = id;
-    public McpClient Client { get; } = client;
-    public string? BrokerId { get; set; }
+    public RemoteBrokerConnection Connection { get; } = connection;
     public string? InstanceId { get; set; }
     public bool DesktopToolsAvailable { get; set; }
     public string State { get; set; } = "connecting";
@@ -115,5 +104,5 @@ internal sealed class WorkspacePeer(string id, HttpClient http, McpClient client
     public long EventCursor { get; set; }
     public int Failures { get; set; }
     public DateTimeOffset NextProbeAtUtc { get; set; }
-    public async ValueTask DisposeAsync() { await Client.DisposeAsync(); http.Dispose(); }
+    public ValueTask DisposeAsync() => Connection.DisposeAsync();
 }

@@ -34,6 +34,7 @@ internal static class BrokerErrorCodes
     public const string ExecutionOutcomeUnknown = nameof(ExecutionOutcomeUnknown);
     public const string BrokerUnavailable = nameof(BrokerUnavailable);
     public const string RemoteUnavailable = nameof(RemoteUnavailable);
+    public const string RemoteAuthenticationFailed = nameof(RemoteAuthenticationFailed);
     public const string RemoteIncompatible = nameof(RemoteIncompatible);
     public const string RemoteIdentityConflict = nameof(RemoteIdentityConflict);
     public const string RemoteCliUnsupported = nameof(RemoteCliUnsupported);
@@ -45,9 +46,11 @@ internal sealed class BrokerOperationException : McpException
         : base(mayHaveExecuted ? $"{code}: {message} (mayHaveExecuted=true)" : $"{code}: {message}")
     {
         Code = code;
+        Detail = message;
         MayHaveExecuted = mayHaveExecuted;
     }
 
     public string Code { get; }
+    public string Detail { get; }
     public bool MayHaveExecuted { get; }
 }

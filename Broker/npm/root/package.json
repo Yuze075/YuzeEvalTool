@@ -1,6 +1,6 @@
 {
   "name": "@yuzetoolkit/unityevaltool",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Unity Broker, local and remote MCP access, and CLI for Yuze Eval Tool",
   "keywords": [
     "unity",
@@ -37,12 +37,12 @@
     "service:uninstall": "node scripts/uninstall-service.js"
   },
   "optionalDependencies": {
-    "@yuzetoolkit/unityevaltool-darwin-arm64": "4.1.0",
-    "@yuzetoolkit/unityevaltool-darwin-x64": "4.1.0",
-    "@yuzetoolkit/unityevaltool-linux-arm64": "4.1.0",
-    "@yuzetoolkit/unityevaltool-linux-x64": "4.1.0",
-    "@yuzetoolkit/unityevaltool-win32-arm64": "4.1.0",
-    "@yuzetoolkit/unityevaltool-win32-x64": "4.1.0"
+    "@yuzetoolkit/unityevaltool-darwin-arm64": "4.2.0",
+    "@yuzetoolkit/unityevaltool-darwin-x64": "4.2.0",
+    "@yuzetoolkit/unityevaltool-linux-arm64": "4.2.0",
+    "@yuzetoolkit/unityevaltool-linux-x64": "4.2.0",
+    "@yuzetoolkit/unityevaltool-win32-arm64": "4.2.0",
+    "@yuzetoolkit/unityevaltool-win32-x64": "4.2.0"
   },
   "engines": {
     "node": ">=18"
